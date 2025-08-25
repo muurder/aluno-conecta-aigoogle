@@ -21,6 +21,15 @@ if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
+if (import.meta.env.PROD) {
+  const opts = firebase.app().options as any;
+  console.log("Firebase options (prod):", {
+    projectId: opts.projectId,
+    authDomain: opts.authDomain,
+    storageBucket: opts.storageBucket,
+  });
+}
+
 
 // Export Firebase services
 export const auth = firebase.auth();

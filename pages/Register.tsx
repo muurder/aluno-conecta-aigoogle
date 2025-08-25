@@ -58,6 +58,17 @@ const Register: React.FC = () => {
         setFormData(prevData => {
             const newFormData = { ...prevData, [name]: value };
 
+            if (name === 'fullName') {
+                // Generate institutional login from full name
+                const institutionalLogin = value
+                    .trim()
+                    .toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .replace(/[^a-z0-9\s]/g, '') // Remove special chars but keep spaces
+                    .replace(/\s+/g, '.'); // Replace spaces with dots
+                newFormData.institutionalLogin = institutionalLogin;
+            }
+
             if (name === 'university') {
                 const university = value as UniversityName;
                 setSelectedLogo(university ? UNIVERSITY_LOGOS[university] : null);
@@ -77,9 +88,8 @@ const Register: React.FC = () => {
     if (formData.institutionalLogin && formData.university) {
         const university = formData.university as UniversityName;
         const details = UNIVERSITY_DETAILS[university];
-        const emailPrefix = formData.institutionalLogin.trim().toLowerCase()
-            .replace(/\s+/g, '.')
-            .replace(/[^a-z0-9._-]/g, '');
+        // The prefix is already formatted and stored in institutionalLogin
+        const emailPrefix = formData.institutionalLogin;
         if (emailPrefix) {
             institutionalEmail = `${emailPrefix}@${details.domain}`;
         }
@@ -219,7 +229,7 @@ service cloud.firestore {
                         <input name="fullName" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-gray-700">Seu E-mail Pessoal (para login)</label>
+                        <label className="text-sm font-medium text-gray-700">Email Pessoal (para login)</label>
                         <input name="email" type="email" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="seu.email@provedor.com" required />
                     </div>
                     <div>
@@ -236,21 +246,17 @@ service cloud.firestore {
                             {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
                         </select>
                     </div>
-                     <div>
-                        <label className="text-sm font-medium text-gray-700">Seu Login da Faculdade</label>
-                        <input name="institutionalLogin" placeholder="ex: joao.silva (sem @...)" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
-                    </div>
-                    <div className="md:col-span-2 relative">
-                        <label className="text-sm font-medium text-gray-700">E-mail da Universidade (gerado)</label>
-                        <input name="institutionalEmailDisplay" value={institutionalEmail || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" />
-                        <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
-                    </div>
-                     <div>
+                    <div>
                         <label className="text-sm font-medium text-gray-700">Curso</label>
                         <select name="course" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
                             <option value="">Selecione</option>
                             {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
                         </select>
+                    </div>
+                    <div className="md:col-span-2 relative">
+                        <label className="text-sm font-medium text-gray-700">Email Institucional (gerado)</label>
+                        <input name="institutionalEmailDisplay" value={institutionalEmail || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado a partir do nome completo" />
+                        <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Campus</label>
