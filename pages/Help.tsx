@@ -4,9 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { GoogleGenAI } from '@google/genai';
 import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
-// The API key is injected by the environment and should not be hardcoded.
-// @ts-ignore
-const API_KEY = process.env.API_KEY;
+// The API key is now securely read from environment variables
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 interface Message {
   sender: 'user' | 'ai';
@@ -46,7 +45,7 @@ const Help: React.FC = () => {
 
         try {
             if (!API_KEY) {
-                throw new Error("API key for Gemini is not configured.");
+                throw new Error("A chave de API para o Gemini não está configurada. Adicione VITE_GEMINI_API_KEY ao seu ambiente.");
             }
             const ai = new GoogleGenAI({ apiKey: API_KEY });
             
@@ -63,7 +62,7 @@ const Help: React.FC = () => {
 
         } catch (error) {
             console.error("Error fetching AI response:", error);
-            const errorMessage: Message = { sender: 'ai', text: "Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde." };
+            const errorMessage: Message = { sender: 'ai', text: "Desculpe, não consegui processar sua solicitação no momento. Verifique se a chave da API do Gemini está configurada corretamente e tente novamente." };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setLoading(false);
