@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'https://esm.sh/react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';

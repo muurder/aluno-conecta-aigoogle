@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'https://esm.sh/react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ClockIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 

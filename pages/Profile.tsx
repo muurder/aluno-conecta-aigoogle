@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'https://esm.sh/react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronRightIcon, UserCircleIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon } from '@heroicons/react/24/outline';

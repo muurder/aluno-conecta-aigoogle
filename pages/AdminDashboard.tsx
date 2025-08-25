@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'https://esm.sh/react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
