@@ -28,6 +28,13 @@ const Login: React.FC = () => {
     }
   };
 
+  const inputClasses = (hasError: boolean) => 
+    `mt-1 w-full p-3 border rounded-lg transition focus:ring-2 ${
+      hasError 
+        ? 'border-red-500 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500' 
+        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+    }`;
+
   return (
     <div className="min-h-full flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl space-y-6">
@@ -46,7 +53,7 @@ const Login: React.FC = () => {
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               placeholder="Digite seu login"
-              className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className={inputClasses(!!error)}
               required
             />
           </div>
@@ -58,7 +65,7 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="********"
-                className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className={inputClasses(!!error)}
                 required
               />
               <button

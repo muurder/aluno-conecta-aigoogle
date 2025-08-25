@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
-import { CameraIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, ArrowPathIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
@@ -125,37 +125,54 @@ const Register: React.FC = () => {
                 setError('O e-mail gerado é inválido. Verifique se o login contém caracteres válidos (letras, números, pontos, hífens).');
             } else if (err.code === 'auth/operation-not-allowed') {
                 setError(
-                    <div className="text-left">
-                        <p className="font-bold text-center mb-2">Ação Necessária no Firebase</p>
-                        <p className="text-sm mb-2">
-                            O erro <code className="bg-red-200 text-red-800 text-xs p-1 rounded">auth/operation-not-allowed</code> indica que o método de login com <strong>E-mail/Senha</strong> não está habilitado no seu projeto.
-                        </p>
-                        <p className="text-sm font-semibold">Para corrigir:</p>
-                        <ol className="list-decimal list-inside text-sm mt-1 space-y-1">
-                            <li>Abra o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">Console do Firebase</a>.</li>
-                            <li>Vá para a seção <strong>Authentication</strong>.</li>
-                            <li>Clique na aba <strong>Sign-in method</strong> (ou Método de login).</li>
-                            <li>Encontre <strong>"E-mail/senha"</strong> na lista de provedores e ative-o.</li>
-                            <li>Salve as alterações e tente se cadastrar novamente.</li>
-                        </ol>
+                    <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <ExclamationTriangleIcon className="h-6 w-6 text-red-400" aria-hidden="true" />
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-md font-bold text-red-800">Ação Necessária no Firebase</h3>
+                                <div className="mt-2 text-sm text-red-700 space-y-3">
+                                    <p>
+                                        O erro <code className="bg-red-200 text-red-800 font-mono text-xs p-1 rounded">auth/operation-not-allowed</code> indica que o método de login com <strong>E-mail/Senha</strong> não está habilitado.
+                                    </p>
+                                    <div>
+                                        <p className="font-semibold">Para corrigir:</p>
+                                        <ol className="list-decimal list-inside space-y-1 mt-1">
+                                            <li>Abra o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-red-900">Console do Firebase</a>.</li>
+                                            <li>Vá para a seção <strong>Authentication</strong>.</li>
+                                            <li>Clique na aba <strong>Sign-in method</strong> (ou Método de login).</li>
+                                            <li>Encontre <strong>"E-mail/senha"</strong> na lista de provedores e ative-o.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 );
             } else if (err.code === 'permission-denied') {
                 setError(
-                    <div className="text-left">
-                        <p className="font-bold text-center mb-2">Ação Necessária no Firestore</p>
-                        <p className="text-sm mb-2">
-                            O erro <code className="bg-red-200 text-red-800 text-xs p-1 rounded">permission-denied</code> indica que as <strong>Regras de Segurança do Firestore</strong> estão bloqueando a criação do seu perfil de usuário.
-                        </p>
-                        <p className="text-sm font-semibold">Para corrigir, permita a criação de novos usuários:</p>
-                        <ol className="list-decimal list-inside text-sm mt-1 space-y-1">
-                            <li>No Console do Firebase, vá para <strong>Firestore Database</strong>.</li>
-                            <li>Clique na aba <strong>Regras</strong>.</li>
-                            <li>Substitua as regras existentes por estas para permitir o cadastro:</li>
-                        </ol>
-                        <div className="text-left bg-gray-100 p-2 my-2 rounded-md overflow-x-auto">
-                            <pre className="text-xs text-gray-600">
-                                <code>
+                    <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <ExclamationTriangleIcon className="h-6 w-6 text-red-400" aria-hidden="true" />
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-md font-bold text-red-800">Ação Necessária no Firestore</h3>
+                                <div className="mt-2 text-sm text-red-700 space-y-3">
+                                    <p>
+                                        O erro <code className="bg-red-200 text-red-800 font-mono text-xs p-1 rounded">permission-denied</code> indica que as <strong>Regras de Segurança</strong> estão bloqueando a criação do seu perfil de usuário.
+                                    </p>
+                                    <div>
+                                        <p className="font-semibold">Para corrigir, siga os passos:</p>
+                                        <ol className="list-decimal list-inside space-y-1 mt-1">
+                                            <li>Acesse o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-red-900">Console do Firebase</a> e vá para <strong>Firestore Database</strong>.</li>
+                                            <li>Clique na aba <strong>Regras (Rules)</strong>.</li>
+                                            <li>Substitua as regras existentes pelo código abaixo:</li>
+                                        </ol>
+                                    </div>
+                                    <div className="bg-gray-800 text-white p-3 rounded-md overflow-x-auto font-mono text-xs my-2">
+                                        <pre><code>
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -167,10 +184,14 @@ service cloud.firestore {
     }
   }
 }`}
-                                </code>
-                            </pre>
+                                        </code></pre>
+                                    </div>
+                                    <p className="text-xs text-red-600">
+                                        <strong>Atenção:</strong> Esta regra é para desenvolvimento. Ajuste para produção conforme suas necessidades de segurança.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                         <p className="text-xs text-gray-500 text-center">Isso permite que novos usuários se cadastrem. Lembre-se de ajustar as regras para suas necessidades de produção.</p>
                     </div>
                 );
             } else {
@@ -192,7 +213,11 @@ service cloud.firestore {
                     <p className="text-gray-500 mt-2">Preencha seus dados</p>
                 </div>
 
-                {error && <div className="text-red-700 bg-red-100 p-4 rounded-lg border border-red-200 text-sm">{error}</div>}
+                {error && (
+                    typeof error === 'string' 
+                        ? <div className="text-red-700 bg-red-100 p-4 rounded-lg border border-red-200 text-sm">{error}</div> 
+                        : error
+                )}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <div>
