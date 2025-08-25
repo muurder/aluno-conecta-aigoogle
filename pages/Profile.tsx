@@ -15,8 +15,8 @@ const Profile: React.FC = () => {
 
   const ProfileHeader: React.FC = () => (
     <div className="bg-gradient-to-b from-cyan-200 to-teal-300 p-6 text-center relative overflow-hidden">
-        <img src="/images/chat_bubble_left.png" className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
-        <img src="/images/chat_bubble_right.png" className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
+        <img src="/images/balao1.png" className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
+        <img src="/images/balao2.png" className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
         <div className="relative">
             <div className="relative w-28 h-28 mx-auto">
                 {user?.photo ? (
