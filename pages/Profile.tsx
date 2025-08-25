@@ -1,8 +1,8 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'https://esm.sh/react@18.2.0';
+import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
 import { useAuth } from '../context/AuthContext';
-import { ChevronRightIcon, UserCircleIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon, UserCircleIcon, CameraIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
+import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
 
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();

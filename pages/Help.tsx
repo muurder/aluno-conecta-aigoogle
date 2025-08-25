@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
 import { useAuth } from '../context/AuthContext';
-import { GoogleGenAI } from '@google/genai';
-import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
+import { GoogleGenAI } from 'https://esm.sh/@google/genai';
+import { ArrowLeftIcon, PaperAirplaneIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
 
 // The API key is injected by the environment and should not be hardcoded.
 // @ts-ignore
