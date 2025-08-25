@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { 
@@ -79,24 +80,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: Omit<User, 'uid'>, pass: string): Promise<User> => {
-    // Verifica se este é o primeiro usuário a se registrar
-    const usersCol = collection(db, 'users');
-    const userSnapshot = await getDocs(usersCol);
-    const isFirstUser = userSnapshot.empty;
-
+    // O "primeiro usuário é admin" foi removido. Essa verificação exigia
+    // permissão de leitura na coleção de usuários antes da autenticação,
+    // o que causava o erro 'permission-denied'.
+    // O primeiro usuário agora deve ser definido como admin manualmente no console do Firebase.
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, pass);
     const firebaseUser = userCredential.user;
     
     const newUser: User = {
         uid: firebaseUser.uid,
-        ...userData,
+        ...userData, // userData from registration form already has status: 'pending'
     };
-
-    // Se for o primeiro usuário, torna-o um admin e aprova automaticamente
-    if (isFirstUser) {
-        newUser.isAdmin = true;
-        newUser.status = 'approved';
-    }
     
     await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
     setUser(newUser);
