@@ -15,8 +15,8 @@ const Profile: React.FC = () => {
 
   const ProfileHeader: React.FC = () => (
     <div className="bg-gradient-to-b from-cyan-200 to-teal-300 p-6 text-center relative overflow-hidden">
-        <img src="https://i.imgur.com/3Y44p2p.png" className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
-        <img src="https://i.imgur.com/k91J27u.png" className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
+        <img src="/images/chat_bubble_left.png" className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
+        <img src="/images/chat_bubble_right.png" className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
         <div className="relative">
             <div className="relative w-28 h-28 mx-auto">
                 {user?.photo ? (
@@ -29,7 +29,7 @@ const Profile: React.FC = () => {
                 </button>
             </div>
             <h2 className="mt-4 text-xl font-bold text-gray-800">{user?.fullName}</h2>
-            <p className="text-sm text-gray-700">{user?.email}</p>
+            <p className="text-sm text-gray-700 break-words">{user?.email}</p>
         </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowRightIcon, MagnifyingGlassIcon, BookOpenIcon, DocumentTextIcon, BanknotesIcon, GlobeAltIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, MagnifyingGlassIcon, BookOpenIcon, DocumentTextIcon, BanknotesIcon, GlobeAltIcon, ArrowPathIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 
 const Home: React.FC = () => {
     const { user } = useAuth();
@@ -19,8 +19,8 @@ const Home: React.FC = () => {
         </button>
     );
 
-    const HelpItem: React.FC<{title: string, icon: React.ReactNode}> = ({title, icon}) => (
-        <button className="flex flex-col items-center justify-center space-y-2 p-3 bg-white rounded-lg hover:bg-gray-100 transition w-full shadow-sm border border-gray-200">
+    const HelpItem: React.FC<{title: string, icon: React.ReactNode, onClick?: () => void}> = ({title, icon, onClick}) => (
+        <button onClick={onClick} className="flex flex-col items-center justify-center space-y-2 p-3 bg-white rounded-lg hover:bg-gray-100 transition w-full shadow-sm border border-gray-200">
             {icon}
             <span className="text-xs text-center text-gray-700 font-medium">{title}</span>
         </button>
@@ -53,10 +53,11 @@ const Home: React.FC = () => {
                     <input type="text" placeholder="Procurar no app" className="w-full p-3 pl-10 border border-gray-300 rounded-lg bg-white shadow-sm"/>
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                    <HelpItem title="Disciplinas e atividades" icon={<BookOpenIcon className="w-8 h-8 text-teal-600"/>}/>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                    <HelpItem title="Disciplinas e atividades" icon={<BookOpenIcon className="w-8 h-8 text-teal-600"/>} onClick={() => navigate('/my-course')}/>
                     <HelpItem title="Emissão de documentos" icon={<DocumentTextIcon className="w-8 h-8 text-teal-600"/>}/>
-                    <HelpItem title="Financeiro" icon={<BanknotesIcon className="w-8 h-8 text-teal-600" />} />
+                    <HelpItem title="Carteirinha Virtual" icon={<IdentificationIcon className="w-8 h-8 text-teal-600"/>} onClick={() => navigate('/virtual-id')} />
+                    <HelpItem title="Financeiro" icon={<BanknotesIcon className="w-8 h-8 text-teal-600" />} onClick={() => navigate('/financial')} />
                     <HelpItem title="Financiamentos e bolsas" icon={<GlobeAltIcon className="w-8 h-8 text-teal-600" />} />
                 </div>
             </div>
