@@ -61,7 +61,10 @@ const Register: React.FC = () => {
                 if (data.login && data.university) {
                     const university = data.university as UniversityName;
                     const details = UNIVERSITY_DETAILS[university];
-                    const emailPrefix = data.login.trim().toLowerCase().replace(/\s+/g, '.');
+                    // Sanitize login to create a valid email prefix
+                    const emailPrefix = data.login.trim().toLowerCase()
+                        .replace(/\s+/g, '.')
+                        .replace(/[^a-z0-9._-]/g, '');
                     data.email = `${emailPrefix}@${details.domain}`;
                 }
                 return data;
@@ -109,14 +112,20 @@ const Register: React.FC = () => {
             await auth.register(formData, password);
             navigate('/pending');
         } catch (err: any) {
+            console.error("Registration Error:", err); // Log the full error for debugging
             if (err.code === 'auth/email-already-in-use') {
                  setError('Este e-mail já está em uso. Tente outro login ou faculdade.');
             } else if (err.code === 'auth/weak-password') {
                 setError('A senha deve ter pelo menos 6 caracteres.');
+            } else if (err.code === 'auth/invalid-email') {
+                setError('O e-mail gerado é inválido. Verifique se o login contém caracteres válidos (letras, números, pontos, hífens).');
+            } else if (err.code === 'auth/operation-not-allowed') {
+                setError('Cadastro por e-mail e senha não está habilitado no seu projeto Firebase. Verifique a configuração no Console do Firebase.');
+            } else if (err.code === 'permission-denied') {
+                setError('Erro de permissão ao salvar dados. Verifique as Regras de Segurança do Firestore no Console do Firebase.');
             } else {
                 setError('Ocorreu um erro ao criar a conta. Tente novamente.');
             }
-            console.error(err);
         } finally {
             setLoading(false);
         }
