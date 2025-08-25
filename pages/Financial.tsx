@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BanknotesIcon } from '@heroicons/react/24/outline';
+import { BanknotesIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
 
 const Financial: React.FC = () => {
     return (

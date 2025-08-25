@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
-import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CameraIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
+import { ArrowPathIcon, SparklesIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
 
 const AdminEditUser: React.FC = () => {
     const { login } = useParams<{ login: string }>();

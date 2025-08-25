@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AcademicCapIcon } from '@heroicons/react/24/outline';
+import { AcademicCapIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
 
 const MyCourse: React.FC = () => {
     return (

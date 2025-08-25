@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
-import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CameraIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
+import { ArrowPathIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
 
 const EditProfile: React.FC = () => {
     const { user, updateUser } = useAuth();

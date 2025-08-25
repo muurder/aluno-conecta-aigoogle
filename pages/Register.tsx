@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
 import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
-import { CameraIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, ArrowPathIcon, SparklesIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
