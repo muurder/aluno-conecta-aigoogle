@@ -32,25 +32,6 @@ const getUserProfile = async (firebaseUser: FirebaseUser): Promise<User | null> 
     if (userDoc.exists()) {
         return userDoc.data() as User;
     }
-    // Caso de admin pré-existente ou erro de sincronia
-    if (firebaseUser.email === 'admin@portal.com') {
-        const adminProfile: User = {
-            uid: firebaseUser.uid,
-            login: 'admin',
-            fullName: 'Administrator',
-            email: 'admin@portal.com',
-            university: 'Anhanguera',
-            course: 'System Admin',
-            campus: 'Santana',
-            validity: '12/2099',
-            photo: null,
-            status: 'approved',
-            isAdmin: true,
-            rgm: '000000'
-        };
-        await setDoc(userDocRef, adminProfile);
-        return adminProfile;
-    }
     return null;
 }
 
@@ -82,6 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: Omit<User, 'uid'>, pass: string) => {
+    // Verifica se este é o primeiro usuário a se registrar
+    const usersCol = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCol);
+    const isFirstUser = userSnapshot.empty;
+
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, pass);
     const firebaseUser = userCredential.user;
     
@@ -89,6 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: firebaseUser.uid,
         ...userData,
     };
+
+    // Se for o primeiro usuário, torna-o um admin e aprova automaticamente
+    if (isFirstUser) {
+        newUser.isAdmin = true;
+        newUser.status = 'approved';
+    }
     
     await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
     setUser(newUser);
