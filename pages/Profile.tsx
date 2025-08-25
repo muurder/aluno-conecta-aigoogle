@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronRightIcon, UserCircleIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
+import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();
@@ -24,7 +24,7 @@ const Profile: React.FC = () => {
                 ) : (
                     <UserCircleIcon className="w-28 h-28 text-white/70" />
                 )}
-                <button className="absolute bottom-0 right-0 bg-white text-blue-600 rounded-full p-2 shadow-md">
+                <button onClick={() => navigate('/edit-profile')} className="absolute bottom-0 right-0 bg-white text-blue-600 rounded-full p-2 shadow-md">
                     <CameraIcon className="w-5 h-5" />
                 </button>
             </div>
@@ -60,6 +60,9 @@ const Profile: React.FC = () => {
 
         <div className="flex-grow bg-white">
             <h3 className="px-4 py-2 text-sm font-semibold text-gray-500 uppercase">Sua Conta</h3>
+            {user?.isAdmin && (
+                <ProfileLink icon={<ChartBarIcon className="w-6 h-6 text-gray-500"/>} label="Dashboard" onClick={() => navigate('/admin/dashboard')} />
+            )}
             <ProfileLink icon={<IdentificationIcon className="w-6 h-6 text-gray-500"/>} label="Carteirinha virtual" onClick={() => navigate('/virtual-id')} />
             <ProfileLink icon={<UserOutlineIcon className="w-6 h-6 text-gray-500"/>} label="Informações pessoais" onClick={() => navigate('/edit-profile')} />
             <ProfileLink icon={<DocumentDuplicateIcon className="w-6 h-6 text-gray-500"/>} label="Meus documentos" onClick={() => {}} />

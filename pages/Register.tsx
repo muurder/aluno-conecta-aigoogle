@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
-import StudentIdCard from '../components/StudentIdCard';
 import { CameraIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const Register: React.FC = () => {
@@ -45,19 +44,23 @@ const Register: React.FC = () => {
         const { name, value } = e.target;
         let newFormData = { ...formData, [name]: value };
 
+        const updateEmail = (data: Partial<User>) => {
+            if (data.fullName && data.university) {
+                const university = data.university as UniversityName;
+                const details = UNIVERSITY_DETAILS[university];
+                const emailPrefix = data.fullName.trim().toLowerCase().replace(/\s+/g, '.');
+                data.email = `${emailPrefix}@${details.domain}`;
+            }
+            return data;
+        };
+
         if (name === 'university') {
             const university = value as UniversityName;
             const details = UNIVERSITY_DETAILS[university];
-            newFormData.campus = details.campuses[0]; // Default to first campus
-            if(newFormData.login) {
-                newFormData.email = `${newFormData.login}@${details.domain}`;
-            }
+            newFormData.campus = details.campuses[0];
         }
 
-        if(name === 'login' && newFormData.university) {
-            const details = UNIVERSITY_DETAILS[newFormData.university as UniversityName];
-            newFormData.email = `${value}@${details.domain}`;
-        }
+        newFormData = updateEmail(newFormData);
         
         setFormData(newFormData);
     };
@@ -101,10 +104,6 @@ const Register: React.FC = () => {
                     <p className="text-gray-500 mt-2">Preencha seus dados</p>
                 </div>
 
-                <div className="my-6">
-                    <StudentIdCard user={formData} />
-                </div>
-
                 {error && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{error}</p>}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -133,7 +132,7 @@ const Register: React.FC = () => {
                     </div>
                     <div className="md:col-span-2 relative">
                         <label className="text-sm font-medium text-gray-700">E-mail</label>
-                        <input name="email" value={formData.email || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" required />
+                        <input name="email" value={formData.email || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" required />
                         <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                     </div>
                     <div>

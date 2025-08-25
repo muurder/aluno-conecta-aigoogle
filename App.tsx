@@ -13,6 +13,8 @@ import MainLayout from './layouts/MainLayout';
 import MyCourse from './pages/MyCourse';
 import Financial from './pages/Financial';
 import Help from './pages/Help';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminEditUser from './pages/AdminEditUser';
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -30,6 +32,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
       <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+      
       <Route
         path="/"
         element={isAuthenticated ? <MainLayout><Home /></MainLayout> : <Navigate to="/login" />}
@@ -58,6 +61,11 @@ const AppRoutes: React.FC = () => {
         path="/help"
         element={isAuthenticated ? <Help /> : <Navigate to="/login" />}
       />
+
+      {/* Admin Routes */}
+      <Route path="/admin/dashboard" element={isAuthenticated && user?.isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
+      <Route path="/admin/edit-user/:login" element={isAuthenticated && user?.isAdmin ? <AdminEditUser /> : <Navigate to="/" />} />
+      
       <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
     </Routes>
   );
