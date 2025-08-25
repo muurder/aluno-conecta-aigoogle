@@ -26,7 +26,7 @@ const PendingApproval: React.FC = () => {
         <ClockIcon className="mx-auto h-16 w-16 text-yellow-500" />
         <h1 className="text-2xl font-bold text-gray-800">Aguardando aprovação do administrador</h1>
         <p className="text-gray-600">
-          Usuário: <span className="font-semibold text-gray-900">{user?.login}</span>
+          Usuário: <span className="font-semibold text-gray-900">{user?.email}</span>
         </p>
         <p className="text-sm text-gray-500">
           Sua conta foi criada com sucesso e está aguardando aprovação. Você será redirecionado automaticamente assim que for aprovado.

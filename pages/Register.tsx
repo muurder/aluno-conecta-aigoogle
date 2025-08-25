@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +13,7 @@ const Register: React.FC = () => {
     const auth = useAuth();
     const [formData, setFormData] = useState<Omit<User, 'uid'>>({
         status: 'pending',
-        login: '',
+        institutionalLogin: '',
         rgm: '',
         fullName: '',
         email: '',
@@ -57,19 +58,6 @@ const Register: React.FC = () => {
         setFormData(prevData => {
             const newFormData = { ...prevData, [name]: value };
 
-            const updateEmail = (data: Omit<User, 'uid'>) => {
-                if (data.login && data.university) {
-                    const university = data.university as UniversityName;
-                    const details = UNIVERSITY_DETAILS[university];
-                    // Sanitize login to create a valid email prefix
-                    const emailPrefix = data.login.trim().toLowerCase()
-                        .replace(/\s+/g, '.')
-                        .replace(/[^a-z0-9._-]/g, '');
-                    data.email = `${emailPrefix}@${details.domain}`;
-                }
-                return data;
-            };
-
             if (name === 'university') {
                 const university = value as UniversityName;
                 setSelectedLogo(university ? UNIVERSITY_LOGOS[university] : null);
@@ -81,9 +69,22 @@ const Register: React.FC = () => {
                 }
             }
             
-            return updateEmail(newFormData);
+            return newFormData;
         });
     };
+    
+    let institutionalEmail = '';
+    if (formData.institutionalLogin && formData.university) {
+        const university = formData.university as UniversityName;
+        const details = UNIVERSITY_DETAILS[university];
+        const emailPrefix = formData.institutionalLogin.trim().toLowerCase()
+            .replace(/\s+/g, '.')
+            .replace(/[^a-z0-9._-]/g, '');
+        if (emailPrefix) {
+            institutionalEmail = `${emailPrefix}@${details.domain}`;
+        }
+    }
+
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -101,7 +102,7 @@ const Register: React.FC = () => {
             setError('As senhas não coincidem.');
             return;
         }
-        if (!formData.login || !formData.email || !formData.fullName || !formData.university || !formData.course || !formData.campus) {
+        if (!formData.email || !formData.fullName || !formData.university || !formData.course || !formData.campus || !formData.institutionalLogin) {
             setError('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
@@ -118,11 +119,11 @@ const Register: React.FC = () => {
         } catch (err: any) {
             console.error("Registration Error:", err); // Log the full error for debugging
             if (err.code === 'auth/email-already-in-use') {
-                 setError('Este e-mail já está em uso. Tente outro login ou faculdade.');
+                 setError('Este e-mail já está em uso. Por favor, utilize outro.');
             } else if (err.code === 'auth/weak-password') {
                 setError('A senha deve ter pelo menos 6 caracteres.');
             } else if (err.code === 'auth/invalid-email') {
-                setError('O e-mail gerado é inválido. Verifique se o login contém caracteres válidos (letras, números, pontos, hífens).');
+                setError('O e-mail fornecido é inválido.');
             } else if (err.code === 'auth/operation-not-allowed') {
                 setError(
                     <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -152,45 +153,38 @@ const Register: React.FC = () => {
                 );
             } else if (err.code === 'permission-denied') {
                 setError(
-                    <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <ExclamationTriangleIcon className="h-6 w-6 text-red-400" aria-hidden="true" />
+                    <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg text-red-900">
+                        <h3 className="text-lg font-bold mb-3">Ação Necessária no Firestore</h3>
+                        <div className="text-sm space-y-3">
+                            <p>
+                                O erro <code className="bg-red-200 text-red-800 font-mono text-xs p-1 rounded">permission-denied</code> indica que as <strong>Regras de Segurança do Firestore</strong> estão bloqueando a criação do seu perfil de usuário.
+                            </p>
+                            <div>
+                                <p>Para corrigir, permita a criação de novos usuários:</p>
+                                <ol className="list-decimal list-inside space-y-1 mt-2">
+                                    <li>No <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-red-900">Console do Firebase</a>, vá para <strong>Firestore Database</strong>.</li>
+                                    <li>Clique na aba <strong>Regras</strong>.</li>
+                                    <li>Substitua as regras existentes por estas para permitir o cadastro:</li>
+                                </ol>
                             </div>
-                            <div className="ml-3">
-                                <h3 className="text-md font-bold text-red-800">Ação Necessária no Firestore</h3>
-                                <div className="mt-2 text-sm text-red-700 space-y-3">
-                                    <p>
-                                        O erro <code className="bg-red-200 text-red-800 font-mono text-xs p-1 rounded">permission-denied</code> indica que as <strong>Regras de Segurança</strong> estão bloqueando a criação do seu perfil de usuário.
-                                    </p>
-                                    <div>
-                                        <p className="font-semibold">Para corrigir, siga os passos:</p>
-                                        <ol className="list-decimal list-inside space-y-1 mt-1">
-                                            <li>Acesse o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-red-900">Console do Firebase</a> e vá para <strong>Firestore Database</strong>.</li>
-                                            <li>Clique na aba <strong>Regras (Rules)</strong>.</li>
-                                            <li>Substitua as regras existentes pelo código abaixo:</li>
-                                        </ol>
-                                    </div>
-                                    <div className="bg-gray-800 text-white p-3 rounded-md overflow-x-auto font-mono text-xs my-2">
-                                        <pre><code>
+                            <div className="bg-gray-100 text-gray-800 p-3 rounded-md overflow-x-auto font-mono text-xs my-2 border">
+                                <pre><code>
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
-      // Permite que qualquer um crie um usuário, mas só o
-      // próprio usuário possa ler ou modificar seus dados depois.
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      // Permite que qualquer um crie um usuário,
+      // mas apenas o próprio usuário pode ler ou modificar seus dados.
+      allow read, update, delete: if request.auth.uid == userId;
       allow create: if true;
     }
   }
 }`}
-                                        </code></pre>
-                                    </div>
-                                    <p className="text-xs text-red-600">
-                                        <strong>Atenção:</strong> Esta regra é para desenvolvimento. Ajuste para produção conforme suas necessidades de segurança.
-                                    </p>
-                                </div>
+                                </code></pre>
                             </div>
+                            <p className="text-sm">
+                                Isso permite que novos usuários se cadastrem. Lembre-se de ajustar as regras para suas necessidades de produção.
+                            </p>
                         </div>
                     </div>
                 );
@@ -220,18 +214,13 @@ service cloud.firestore {
                 )}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">Login</label>
-                        <input name="login" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                     <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">Nome Completo</label>
+                        <input name="fullName" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">RGM</label>
-                         <div className="relative mt-1">
-                            <input name="rgm" value={formData.rgm || ''} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg pr-10" required />
-                            <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 h-fit">
-                               <ArrowPathIcon className="h-4 w-4"/>
-                            </button>
-                        </div>
+                    <div className="md:col-span-2">
+                        <label className="text-sm font-medium text-gray-700">Seu Email</label>
+                        <input name="email" type="email" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="seu.email@provedor.com" required />
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Senha</label>
@@ -241,16 +230,20 @@ service cloud.firestore {
                         <label className="text-sm font-medium text-gray-700">Confirmar Senha</label>
                         <input name="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
-                    <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-gray-700">Nome Completo</label>
-                        <input name="fullName" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
-                    </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Faculdade</label>
-                        <select name="university" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                            <option value="">Selecione</option>
+                        <select name="university" value={formData.university} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
                             {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
                         </select>
+                    </div>
+                     <div>
+                        <label className="text-sm font-medium text-gray-700">Login Institucional</label>
+                        <input name="institutionalLogin" placeholder="ex: joao.silva" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                    </div>
+                    <div className="md:col-span-2 relative">
+                        <label className="text-sm font-medium text-gray-700">Email da Universidade</label>
+                        <input name="institutionalEmailDisplay" value={institutionalEmail || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" />
+                        <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                     </div>
                      <div>
                         <label className="text-sm font-medium text-gray-700">Curso</label>
@@ -259,17 +252,21 @@ service cloud.firestore {
                             {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
                         </select>
                     </div>
-                    <div className="md:col-span-2 relative">
-                        <label className="text-sm font-medium text-gray-700">E-mail</label>
-                        <input name="email" value={formData.email || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" required />
-                        <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
-                    </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Campus</label>
                         <select name="campus" value={formData.campus || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required disabled={!formData.university}>
                             <option value="">Selecione um campus</option>
                             {formData.university && UNIVERSITY_DETAILS[formData.university as UniversityName].campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
                         </select>
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-700">RGM</label>
+                         <div className="relative mt-1">
+                            <input name="rgm" value={formData.rgm || ''} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg pr-10" required />
+                            <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 h-fit">
+                               <ArrowPathIcon className="h-4 w-4"/>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Validade</label>

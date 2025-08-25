@@ -10,10 +10,10 @@ export type UserStatus = 'pending' | 'approved';
 
 export interface User {
   uid: string; // Firebase Authentication User ID
-  login: string;
+  institutionalLogin: string;
   rgm: string;
   fullName: string;
-  email: string;
+  email: string; // User's real email for authentication
   university: UniversityName;
   course: string;
   campus: string;
