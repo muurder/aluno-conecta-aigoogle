@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +25,7 @@ const Register: React.FC = () => {
 
     const generateValidity = useCallback(() => {
         const today = new Date();
-        const randomDays = Math.floor(150 + Math.random() * 451);
+        const randomDays = Math.floor(100 + Math.random() * (600 - 100 + 1));
         today.setDate(today.getDate() + randomDays);
         const month = (today.getMonth() + 1).toString().padStart(2, '0');
         const year = today.getFullYear();

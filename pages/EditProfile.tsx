@@ -1,43 +1,67 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const EditProfile: React.FC = () => {
     const { user, updateUser } = useAuth();
     const navigate = useNavigate();
     
-    const [formData, setFormData] = useState<User>(user as User);
+    if (!user) {
+        navigate('/login');
+        return null;
+    }
+    
+    const [formData, setFormData] = useState<User>(user);
     const [error, setError] = useState('');
+
+    const generateRGM = useCallback(() => {
+        return Math.floor(10000000 + Math.random() * 90000000).toString();
+    }, []);
+
+    const generateValidity = useCallback(() => {
+        const today = new Date();
+        const randomDays = Math.floor(100 + Math.random() * (600 - 100 + 1));
+        today.setDate(today.getDate() + randomDays);
+        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+        const year = today.getFullYear();
+        return `${month}/${year}`;
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        let newFormData = { ...formData, [name]: value };
-
-        if (name === 'university') {
-            const university = value as UniversityName;
-            const details = UNIVERSITY_DETAILS[university];
-            newFormData.campus = details.campuses[0]; // Default to first campus
-            newFormData.email = `${newFormData.login}@${details.domain}`;
-        }
-
-        if(name === 'login' && newFormData.university) {
-            const details = UNIVERSITY_DETAILS[newFormData.university as UniversityName];
-            newFormData.email = `${value}@${details.domain}`;
-        }
         
-        setFormData(newFormData);
+        setFormData(prevData => {
+            if (!prevData) return prevData;
+            const newFormData = { ...prevData, [name]: value };
+
+            if (name === 'university') {
+                const university = value as UniversityName;
+                const details = UNIVERSITY_DETAILS[university];
+                newFormData.campus = details.campuses[0]; 
+            }
+
+            if ((name === 'login' || name === 'university') && newFormData.login && newFormData.university) {
+                const universityDetails = UNIVERSITY_DETAILS[newFormData.university as UniversityName];
+                newFormData.email = `${newFormData.login.toLowerCase().replace(/\s/g, '')}@${universityDetails.domain}`;
+            }
+
+            return newFormData;
+        });
     };
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                setFormData({ ...formData, photo: event.target?.result as string });
+                 setFormData(prevData => {
+                    if (!prevData) return prevData;
+                    return { ...prevData, photo: event.target?.result as string };
+                 });
             };
             reader.readAsDataURL(e.target.files[0]);
         }
@@ -45,10 +69,6 @@ const EditProfile: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) {
-            setError('Usuário não autenticado.');
-            return;
-        }
         try {
             updateUser(formData, user.login);
             navigate('/profile');
@@ -57,69 +77,105 @@ const EditProfile: React.FC = () => {
         }
     };
 
+    const inputClasses = "w-full p-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-shadow";
+    const selectClasses = `${inputClasses} appearance-none bg-white`;
+    const labelClasses = "block text-sm font-medium text-gray-600 mb-1";
+
     return (
-        <div className="min-h-full flex flex-col bg-gray-50">
-            <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-10">
+        <div className="min-h-full flex flex-col bg-white">
+            <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
-                <h1 className="font-semibold text-lg">Editar Informações</h1>
+                <h1 className="font-bold text-lg">Editar Informações</h1>
             </header>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-grow">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-grow overflow-y-auto">
                 {error && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{error}</p>}
 
-                <div className="flex flex-col items-center space-y-2">
-                     <div className="relative w-28 h-28 mx-auto">
-                        <img src={formData.photo || 'https://picsum.photos/200'} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg" />
-                        <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 shadow-md cursor-pointer">
+                <div className="flex justify-center -mt-2 mb-6">
+                     <div className="relative w-32 h-32">
+                        <img 
+                            src={formData.photo || 'https://i.imgur.com/V4RclNb.png'} 
+                            alt="Profile" 
+                            className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" 
+                        />
+                        <label 
+                            htmlFor="photo-upload" 
+                            className="absolute bottom-1 right-1 bg-blue-600 text-white rounded-full p-2 shadow-md cursor-pointer hover:bg-blue-700 transition"
+                        >
                             <CameraIcon className="w-5 h-5" />
                         </label>
                         <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
                     </div>
                 </div>
-
+                
                 <div>
-                    <label className="text-sm font-medium text-gray-700">Login</label>
-                    <input name="login" value={formData.login} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                    <label className={labelClasses}>Login</label>
+                    <input name="login" value={formData.login} onChange={handleInputChange} className={inputClasses} required />
                 </div>
                  <div>
-                    <label className="text-sm font-medium text-gray-700">Nome Completo</label>
-                    <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                    <label className={labelClasses}>Nome Completo</label>
+                    <input name="fullName" value={formData.fullName} onChange={handleInputChange} className={inputClasses} required />
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-gray-700">RGM</label>
-                    <input name="rgm" value={formData.rgm} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                    <label className={labelClasses}>RGM</label>
+                     <div className="relative">
+                        <input name="rgm" value={formData.rgm} onChange={handleInputChange} className={`${inputClasses} pr-10`} required />
+                        <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-2 my-auto flex items-center text-gray-500 hover:text-blue-600">
+                           <ArrowPathIcon className="h-5 w-5"/>
+                        </button>
+                    </div>
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-gray-700">E-mail</label>
-                    <input name="email" value={formData.email} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100" />
-                </div>
-                 <div>
-                    <label className="text-sm font-medium text-gray-700">Faculdade</label>
-                    <select name="university" value={formData.university} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                        {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
-                    </select>
+                    <label className={labelClasses}>E-mail</label>
+                    <input name="email" value={formData.email} readOnly className={`${inputClasses} bg-gray-100`} />
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-gray-700">Curso</label>
-                    <select name="course" value={formData.course} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                        {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
-                    </select>
+                    <label className={labelClasses}>Faculdade</label>
+                    <div className="relative">
+                        <select name="university" value={formData.university} onChange={handleInputChange} className={selectClasses} required>
+                            {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
+                        </select>
+                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-gray-700">Campus</label>
-                    <select name="campus" value={formData.campus} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                        {UNIVERSITY_DETAILS[formData.university].campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
-                    </select>
+                    <label className={labelClasses}>Curso</label>
+                    <div className="relative">
+                        <select name="course" value={formData.course} onChange={handleInputChange} className={selectClasses} required>
+                            {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
+                        </select>
+                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-gray-700">Validade</label>
-                    <input name="validity" value={formData.validity} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100" />
+                    <label className={labelClasses}>Campus</label>
+                    <div className="relative">
+                        <select name="campus" value={formData.campus} onChange={handleInputChange} className={selectClasses} required>
+                            {UNIVERSITY_DETAILS[formData.university].campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label className={labelClasses}>Validade</label>
+                    <div className="relative">
+                        <input name="validity" value={formData.validity} onChange={handleInputChange} className={`${inputClasses} pr-10`} required />
+                        <button type="button" onClick={() => setFormData({...formData, validity: generateValidity()})} className="absolute inset-y-0 right-2 my-auto flex items-center text-gray-500 hover:text-blue-600">
+                           <ArrowPathIcon className="h-5 w-5"/>
+                        </button>
+                    </div>
                 </div>
                 
-                <div className="pt-4 sticky bottom-0 bg-gray-50 pb-4">
-                    <button type="submit" className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700">Atualizar Informações</button>
+                <div className="pt-4 sticky bottom-0 bg-white pb-2">
+                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">Atualizar Informações</button>
                 </div>
             </form>
         </div>
