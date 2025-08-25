@@ -8,14 +8,14 @@ import {
     signOut,
     User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, query, where } from 'firebase/firestore';
 import type { User } from '../types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
-  login: (email: string, pass:string) => Promise<void>;
+  login: (login: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: Omit<User, 'uid'>, pass: string) => Promise<User>;
   updateUser: (newUserData: User) => Promise<void>;
@@ -54,7 +54,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (login: string, pass: string) => {
+    // 1. Query Firestore for the user with the given login
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('login', '==', login));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        // No user found with that login, throw an error to be caught by the Login page
+        throw new Error('User not found');
+    }
+
+    // 2. Get the email from the found user document
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data() as User;
+    const email = userData.email;
+
+    // 3. Sign in with the retrieved email and provided password
     await signInWithEmailAndPassword(auth, email, pass);
   };
 
