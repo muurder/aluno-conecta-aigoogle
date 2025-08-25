@@ -16,8 +16,12 @@ const StudentIdCard: React.FC<StudentIdCardProps> = ({ user }) => {
         <div className="absolute -bottom-24 -right-10 w-48 h-48 bg-white/10 rounded-full opacity-50"></div>
         
         <div className="relative z-10 flex flex-col h-full">
-            <header className="mb-4">
-                {logo && <img src={logo} alt={`${user.university} Logo`} className="h-8 object-contain" />}
+            <header className="flex justify-start items-center mb-4 h-10">
+                {logo ? (
+                    <img src={logo} alt={`${user.university} Logo`} className="max-h-full object-contain" />
+                ) : (
+                    user.university && <p className="font-semibold text-gray-700">{user.university}</p>
+                )}
             </header>
 
             <main className="flex-grow flex flex-col items-center justify-center text-center">
