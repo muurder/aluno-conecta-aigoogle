@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -32,13 +33,6 @@ const EditProfile: React.FC = () => {
                 const university = value as UniversityName;
                 const details = UNIVERSITY_DETAILS[university];
                 newFormData.campus = details.campuses[0]; 
-            }
-
-            if ((name === 'login' || name === 'university') && newFormData.login && newFormData.university) {
-                const universityDetails = UNIVERSITY_DETAILS[newFormData.university as UniversityName];
-                // Note: Changing the email requires re-authentication or a backend function in production
-                // For this app, we'll allow it, but it won't update the Firebase Auth email.
-                newFormData.email = `${newFormData.login.toLowerCase().replace(/\s/g, '')}@${universityDetails.domain}`;
             }
 
             return newFormData;
@@ -107,8 +101,8 @@ const EditProfile: React.FC = () => {
                 </div>
                 
                 <div>
-                    <label className={labelClasses}>Login</label>
-                    <input name="login" value={formData.login} onChange={handleInputChange} className={inputClasses} required />
+                    <label className={labelClasses}>Login Institucional</label>
+                    <input name="institutionalLogin" value={formData.institutionalLogin} onChange={handleInputChange} className={inputClasses} required />
                 </div>
                  <div>
                     <label className={labelClasses}>Nome Completo</label>
@@ -124,7 +118,7 @@ const EditProfile: React.FC = () => {
                     </div>
                 </div>
                 <div>
-                    <label className={labelClasses}>E-mail</label>
+                    <label className={labelClasses}>Seu Email (para login)</label>
                     <input name="email" value={formData.email} readOnly className={`${inputClasses} bg-gray-100`} />
                 </div>
                 <div>

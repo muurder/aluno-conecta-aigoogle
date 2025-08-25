@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -51,23 +52,11 @@ const AdminEditUser: React.FC = () => {
         const { name, value } = e.target;
         let newFormData = { ...formData, [name]: value };
 
-        const updateEmail = (data: User) => {
-            if (data.login && data.university) {
-                const university = data.university as UniversityName;
-                const details = UNIVERSITY_DETAILS[university];
-                const emailPrefix = data.login.trim().toLowerCase().replace(/\s+/g, '.');
-                data.email = `${emailPrefix}@${details.domain}`;
-            }
-            return data;
-        };
-
         if (name === 'university') {
             const university = value as UniversityName;
             const details = UNIVERSITY_DETAILS[university];
             newFormData.campus = details.campuses[0];
         }
-        
-        newFormData = updateEmail(newFormData);
         
         setFormData(newFormData);
     };
@@ -112,7 +101,7 @@ const AdminEditUser: React.FC = () => {
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
-                <h1 className="font-semibold text-lg">Editar Usuário: {formData.login}</h1>
+                <h1 className="font-semibold text-lg">Editar Usuário: {formData.institutionalLogin}</h1>
             </header>
             
             <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-grow overflow-y-auto">
@@ -129,8 +118,8 @@ const AdminEditUser: React.FC = () => {
                 </div>
 
                 <div>
-                    <label className="text-sm font-medium text-gray-700">Login</label>
-                    <input name="login" value={formData.login} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                    <label className="text-sm font-medium text-gray-700">Login Institucional</label>
+                    <input name="institutionalLogin" value={formData.institutionalLogin} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                 </div>
                 <div>
                     <label className="text-sm font-medium text-gray-700">Nova Senha (Ignorado)</label>
@@ -150,7 +139,7 @@ const AdminEditUser: React.FC = () => {
                     </div>
                 </div>
                 <div className="relative">
-                    <label className="text-sm font-medium text-gray-700">E-mail</label>
+                    <label className="text-sm font-medium text-gray-700">Email de Acesso do Usuário</label>
                     <input name="email" value={formData.email} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" />
                     <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                 </div>

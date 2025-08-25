@@ -33,7 +33,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     const handleReprove = async (user: User) => {
-        if (window.confirm(`Tem certeza que deseja reprovar (excluir) o usuário ${user.login}? Esta ação não pode ser desfeita.`)) {
+        if (window.confirm(`Tem certeza que deseja reprovar (excluir) o usuário ${user.institutionalLogin}? Esta ação não pode ser desfeita.`)) {
             await deleteUser(user.uid);
             fetchUsers();
         }
@@ -66,7 +66,7 @@ const AdminDashboard: React.FC = () => {
                         <div key={user.uid} className="bg-white p-4 rounded-lg shadow-sm border space-y-3">
                             <div>
                                 <h2 className="font-bold text-gray-800">{user.fullName}</h2>
-                                <p className="text-sm text-gray-500">{user.login} ({user.email})</p>
+                                <p className="text-sm text-gray-500">{user.institutionalLogin} ({user.email})</p>
                             </div>
                             <div className="flex items-center justify-between">
                                 <StatusBadge status={user.status} />
