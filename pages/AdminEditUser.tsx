@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +5,7 @@ import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const AdminEditUser: React.FC = () => {
     const { login } = useParams<{ login: string }>();
@@ -46,11 +45,23 @@ const AdminEditUser: React.FC = () => {
         const { name, value } = e.target;
         let newFormData = { ...formData, [name]: value };
 
+        const updateEmail = (data: User) => {
+            if (data.login && data.university) {
+                const university = data.university as UniversityName;
+                const details = UNIVERSITY_DETAILS[university];
+                const emailPrefix = data.login.trim().toLowerCase().replace(/\s+/g, '.');
+                data.email = `${emailPrefix}@${details.domain}`;
+            }
+            return data;
+        };
+
         if (name === 'university') {
             const university = value as UniversityName;
             const details = UNIVERSITY_DETAILS[university];
             newFormData.campus = details.campuses[0];
         }
+        
+        newFormData = updateEmail(newFormData);
         
         setFormData(newFormData);
     };
@@ -134,9 +145,10 @@ const AdminEditUser: React.FC = () => {
                         </button>
                     </div>
                 </div>
-                <div>
+                <div className="relative">
                     <label className="text-sm font-medium text-gray-700">E-mail</label>
-                    <input name="email" value={formData.email} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" />
+                    <input name="email" value={formData.email} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" />
+                    <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                 </div>
                 <div>
                     <label className="text-sm font-medium text-gray-700">Faculdade</label>
