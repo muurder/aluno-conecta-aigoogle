@@ -20,12 +20,14 @@ import { firebaseConfig } from './firebase';
 const FirebaseConfigWarning: React.FC = () => (
   <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg shadow-2xl p-8 max-w-lg text-center">
-      <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração necessária</h2>
+      <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração do Firebase Incompleta</h2>
       <p className="text-gray-700 mb-2">
-        Seu aplicativo não está conectado ao Firebase. Para continuar, você precisa adicionar suas credenciais do Firebase.
+        Para que o aplicativo funcione, você precisa conectar suas credenciais do Firebase.
       </p>
       <p className="text-gray-700 mb-6">
-        Por favor, edite o arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">firebase.ts</code> e substitua os valores de placeholder no objeto `firebaseConfig`.
+        1. Renomeie o arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">firebase.example.ts</code> para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">firebase.ts</code>.
+        <br />
+        2. Substitua os valores de exemplo pelas suas chaves do Firebase.
       </p>
       <div className="text-left bg-gray-100 p-4 rounded-md overflow-x-auto">
         <pre className="text-xs text-gray-600">
@@ -88,7 +90,7 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  const isFirebaseConfigured = firebaseConfig.apiKey !== "COLOQUE_SUA_API_KEY_AQUI";
+  const isFirebaseConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== "COLOQUE_SUA_API_KEY_AQUI";
 
   if (!isFirebaseConfigured) {
     return <FirebaseConfigWarning />;
