@@ -3,11 +3,11 @@ import type { UniversityName } from './types';
 
 export const UNIVERSITY_LOGOS: Record<UniversityName, string> = {
     "Anhanguera": "/logos/anhanguera.png",
-    "Anhembi Morumbi": "/logos/anhembi-morumbi.png",
+    "Anhembi Morumbi": "/logos/anhembimorumbi.png",
     "Estacio": "/logos/estacio.png",
     "Fiesp": "/logos/fiesp.png",
-    "FMU": "/logos/FMU.png",
-    "São Judas": "/logos/sao judas.png",
+    "FMU": "/logos/fmu.png",
+    "São Judas": "/logos/saojudas.png",
     "Unicid": "/logos/unicid.png",
     "Unicsul": "/logos/unicsul.png",
     "Unifesp": "/logos/unifesp.png",
