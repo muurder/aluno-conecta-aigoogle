@@ -1,9 +1,9 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React from 'https://esm.sh/react@18.2.0';
+import { useLocation, useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
-import { UserCircleIcon } from '@heroicons/react/24/solid';
+import { Cog6ToothIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
+import { UserCircleIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();

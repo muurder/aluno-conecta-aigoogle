@@ -1,7 +1,7 @@
-import React from 'react';
+import React from 'https://esm.sh/react@18.2.0';
 import type { User } from '../types';
 import { UNIVERSITY_LOGOS } from '../constants';
-import { UserCircleIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
+import { UserCircleIcon, InformationCircleIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
 
 interface StudentIdCardProps {
   user: Partial<User>;

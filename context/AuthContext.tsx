@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'https://esm.sh/react@18.2.0';
 import type { User } from '../types';
 
 interface AuthContextType {
