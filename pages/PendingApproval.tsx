@@ -12,7 +12,7 @@ const PendingApproval: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (user && user.status === 'pending') {
-        updateUser({ ...user, status: 'approved' });
+        updateUser({ ...user, status: 'approved' }, user.login);
       }
     }, 5000);
 

@@ -20,4 +20,5 @@ export interface User {
   photo: string | null;
   status: UserStatus;
   password?: string; // Only used for registration/storage, not exposed
+  isAdmin?: boolean;
 }
