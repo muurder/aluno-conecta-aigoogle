@@ -3,15 +3,15 @@ import type { UniversityName } from './types';
 
 export const UNIVERSITY_LOGOS: Record<UniversityName, string> = {
     "Anhanguera": "/logos/anhanguera.png",
-    "Anhembi Morumbi": "/logos/anhembi_morumbi.png",
+    "Anhembi Morumbi": "/logos/anhembi-morumbi.png",
     "Estacio": "/logos/estacio.png",
     "Fiesp": "/logos/fiesp.png",
-    "FMU": "/logos/fmu.png",
-    "São Judas": "/logos/sao_judas.png",
+    "FMU": "/logos/FMU.png",
+    "São Judas": "/logos/sao judas.png",
     "Unicid": "/logos/unicid.png",
     "Unicsul": "/logos/unicsul.png",
     "Unifesp": "/logos/unifesp.png",
-    "USP": "/logos/usp.png"
+    "USP": "/logos/usp.jpg"
 };
 
 export const UNIVERSITY_DETAILS: Record<UniversityName, { domain: string; campuses: string[] }> = {
