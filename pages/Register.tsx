@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
-import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
+import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
 import { CameraIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const Register: React.FC = () => {
@@ -16,6 +15,7 @@ const Register: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
+    const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
 
     const generateRGM = useCallback(() => {
         const randomPart = Math.floor(10000000 + Math.random() * 90000000).toString();
@@ -56,8 +56,13 @@ const Register: React.FC = () => {
 
         if (name === 'university') {
             const university = value as UniversityName;
-            const details = UNIVERSITY_DETAILS[university];
-            newFormData.campus = details.campuses[0];
+            setSelectedLogo(university ? UNIVERSITY_LOGOS[university] : null);
+            if (university) {
+                const details = UNIVERSITY_DETAILS[university];
+                newFormData.campus = details.campuses[0];
+            } else {
+                 newFormData.campus = '';
+            }
         }
 
         newFormData = updateEmail(newFormData);
@@ -100,6 +105,9 @@ const Register: React.FC = () => {
         <div className="min-h-full flex flex-col justify-center bg-gradient-to-b from-cyan-50 to-blue-100 p-4">
             <div className="w-full max-w-lg mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
                 <div className="text-center">
+                    {selectedLogo && (
+                        <img src={selectedLogo} alt="Logotipo da Faculdade" className="h-16 mx-auto mb-4 object-contain" />
+                    )}
                     <h1 className="text-3xl font-bold text-gray-800">Criar conta</h1>
                     <p className="text-gray-500 mt-2">Preencha seus dados</p>
                 </div>
@@ -111,12 +119,14 @@ const Register: React.FC = () => {
                         <label className="text-sm font-medium text-gray-700">Login</label>
                         <input name="login" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
-                    <div className="relative">
+                    <div>
                         <label className="text-sm font-medium text-gray-700">RGM</label>
-                        <input name="rgm" value={formData.rgm || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg pr-10" required />
-                        <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute right-1 top-7 p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600">
-                           <ArrowPathIcon className="h-4 w-4"/>
-                        </button>
+                         <div className="relative mt-1">
+                            <input name="rgm" value={formData.rgm || ''} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg pr-10" required />
+                            <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 h-fit">
+                               <ArrowPathIcon className="h-4 w-4"/>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Senha</label>
@@ -152,6 +162,7 @@ const Register: React.FC = () => {
                     <div>
                         <label className="text-sm font-medium text-gray-700">Campus</label>
                         <select name="campus" value={formData.campus || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required disabled={!formData.university}>
+                            <option value="">Selecione um campus</option>
                             {formData.university && UNIVERSITY_DETAILS[formData.university as UniversityName].campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
                         </select>
                     </div>
@@ -162,16 +173,27 @@ const Register: React.FC = () => {
 
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700">Foto do aluno (upload)</label>
-                        <label htmlFor="photo-upload" className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500">
-                            <div className="space-y-1 text-center">
-                                <CameraIcon className="mx-auto h-12 w-12 text-gray-400" />
-                                <div className="flex text-sm text-gray-600">
-                                    <p className="pl-1">Selecionar imagem</p>
-                                </div>
-                                <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
-                            </div>
-                        </label>
                         <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
+                        <label htmlFor="photo-upload" className="mt-1 cursor-pointer block">
+                            {formData.photo ? (
+                                <div className="relative group">
+                                    <img src={formData.photo} alt="Preview" className="w-full h-40 object-cover rounded-md border-2 border-green-500"/>
+                                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                        Trocar Imagem
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-500">
+                                    <div className="space-y-1 text-center">
+                                        <CameraIcon className="mx-auto h-12 w-12 text-gray-400" />
+                                        <div className="flex text-sm text-gray-600">
+                                            <p className="pl-1">Selecionar imagem</p>
+                                        </div>
+                                        <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
+                                    </div>
+                                </div>
+                            )}
+                        </label>
                     </div>
                     
                     <button type="submit" className="md:col-span-2 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700">Criar conta</button>

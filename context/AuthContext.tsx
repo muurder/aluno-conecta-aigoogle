@@ -88,6 +88,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = (newUserData: User, originalLogin: string) => {
     try {
         const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
+        const oldUserData = storedUsers[originalLogin];
+
+        // Preserve password if not provided in new data
+        if (!newUserData.password && oldUserData?.password) {
+            newUserData.password = oldUserData.password;
+        }
+
         if (originalLogin !== newUserData.login && storedUsers[originalLogin]) {
             delete storedUsers[originalLogin];
         }

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -15,8 +14,13 @@ const Profile: React.FC = () => {
   };
 
   const ProfileHeader: React.FC = () => (
-    <div className="bg-gradient-to-b from-teal-400 to-cyan-500 p-6 text-white text-center relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-white/10 rounded-full blur-2xl"></div>
+    <div className="bg-gradient-to-b from-cyan-300 to-teal-400 p-6 text-white text-center relative overflow-hidden">
+        <div className="absolute top-8 left-10 w-20 h-20">
+            <img src="https://i.imgur.com/8qk842Z.png" alt="deco" className="opacity-50" />
+        </div>
+        <div className="absolute top-16 right-10 w-16 h-16">
+            <img src="https://i.imgur.com/kH1V5Am.png" alt="deco" className="opacity-50" />
+        </div>
         <div className="relative">
             <div className="relative w-28 h-28 mx-auto">
                 {user?.photo ? (
@@ -28,19 +32,19 @@ const Profile: React.FC = () => {
                     <CameraIcon className="w-5 h-5" />
                 </button>
             </div>
-            <h2 className="mt-4 text-xl font-bold">{user?.fullName}</h2>
-            <p className="text-sm opacity-90">{user?.email}</p>
+            <h2 className="mt-4 text-xl font-bold text-gray-800">{user?.fullName}</h2>
+            <p className="text-sm text-gray-700">{user?.email}</p>
         </div>
     </div>
   );
 
-  const ProfileLink: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; }> = ({ icon, label, onClick }) => (
-    <button onClick={onClick} className="flex items-center justify-between w-full p-4 border-b border-gray-200 hover:bg-gray-50">
+  const ProfileLink: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; isLogout?: boolean }> = ({ icon, label, onClick, isLogout = false }) => (
+    <button onClick={onClick} className="flex items-center justify-between w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
         <div className="flex items-center space-x-4">
-            {icon}
-            <span className="text-gray-700">{label}</span>
+            <div className={isLogout ? 'text-red-500' : 'text-gray-500'}>{icon}</div>
+            <span className={isLogout ? 'text-red-500 font-medium' : 'text-gray-700'}>{label}</span>
         </div>
-        <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+        {!isLogout && <ChevronRightIcon className="w-5 h-5 text-gray-400" />}
     </button>
   );
 
@@ -48,8 +52,8 @@ const Profile: React.FC = () => {
     <div className="flex flex-col h-full bg-gray-50">
         <ProfileHeader />
         
-        <div className="p-4">
-            <button onClick={() => navigate('/edit-profile')} className="w-full text-left bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between mb-6">
+        <div className="p-4 -mt-8 relative z-10">
+            <button onClick={() => navigate('/my-course')} className="w-full text-left bg-white p-4 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
                 <div>
                     <p className="font-semibold text-blue-800">{user?.course}</p>
                     <p className="text-sm text-gray-500">RGM {user?.rgm}</p>
@@ -58,20 +62,22 @@ const Profile: React.FC = () => {
             </button>
         </div>
 
-        <div className="flex-grow bg-white">
-            <h3 className="px-4 py-2 text-sm font-semibold text-gray-500 uppercase">Sua Conta</h3>
-            {user?.isAdmin && (
-                <ProfileLink icon={<ChartBarIcon className="w-6 h-6 text-gray-500"/>} label="Dashboard" onClick={() => navigate('/admin/dashboard')} />
-            )}
-            <ProfileLink icon={<IdentificationIcon className="w-6 h-6 text-gray-500"/>} label="Carteirinha virtual" onClick={() => navigate('/virtual-id')} />
-            <ProfileLink icon={<UserOutlineIcon className="w-6 h-6 text-gray-500"/>} label="Informações pessoais" onClick={() => navigate('/edit-profile')} />
-            <ProfileLink icon={<DocumentDuplicateIcon className="w-6 h-6 text-gray-500"/>} label="Meus documentos" onClick={() => {}} />
-            <ProfileLink icon={<DocumentTextIcon className="w-6 h-6 text-gray-500"/>} label="Emitir documentos" onClick={() => {}} />
-            <ProfileLink icon={<QuestionMarkCircleIcon className="w-6 h-6 text-gray-500"/>} label="Ajuda" onClick={() => navigate('/help')} />
+        <div className="flex-grow bg-white mx-4 mb-4 rounded-lg shadow-md overflow-hidden">
+            <h3 className="px-4 py-3 text-sm font-semibold text-gray-500 uppercase bg-gray-50 border-b border-gray-200">Sua Conta</h3>
+            <div className="flex flex-col">
+                {user?.isAdmin && (
+                    <ProfileLink icon={<ChartBarIcon className="w-6 h-6"/>} label="Dashboard" onClick={() => navigate('/admin/dashboard')} />
+                )}
+                <ProfileLink icon={<IdentificationIcon className="w-6 h-6"/>} label="Carteirinha virtual" onClick={() => navigate('/virtual-id')} />
+                <ProfileLink icon={<UserOutlineIcon className="w-6 h-6"/>} label="Informações pessoais" onClick={() => navigate('/edit-profile')} />
+                <ProfileLink icon={<DocumentDuplicateIcon className="w-6 h-6"/>} label="Meus documentos" onClick={() => {}} />
+                <ProfileLink icon={<DocumentTextIcon className="w-6 h-6"/>} label="Emitir documentos" onClick={() => {}} />
+                <ProfileLink icon={<QuestionMarkCircleIcon className="w-6 h-6"/>} label="Ajuda" onClick={() => navigate('/help')} />
+            </div>
         </div>
 
-        <div className="bg-white p-4">
-             <ProfileLink icon={<ArrowLeftOnRectangleIcon className="w-6 h-6 text-red-500"/>} label="Sair do app" onClick={handleLogout} />
+        <div className="bg-white mx-4 mb-4 rounded-lg shadow-md">
+             <ProfileLink icon={<ArrowLeftOnRectangleIcon className="w-6 h-6"/>} label="Sair do app" onClick={handleLogout} isLogout={true} />
         </div>
     </div>
   );
