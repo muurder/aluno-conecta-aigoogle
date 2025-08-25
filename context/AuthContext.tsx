@@ -15,9 +15,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (email: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (userData: Omit<User, 'uid'>, pass: string) => Promise<void>;
+  register: (userData: Omit<User, 'uid'>, pass: string) => Promise<User>;
   updateUser: (newUserData: User) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut(auth);
   };
 
-  const register = async (userData: Omit<User, 'uid'>, pass: string) => {
+  const register = async (userData: Omit<User, 'uid'>, pass: string): Promise<User> => {
     // Verifica se este é o primeiro usuário a se registrar
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
@@ -84,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
     setUser(newUser);
+    return newUser;
   };
   
   const updateUser = async (newUserData: User) => {
