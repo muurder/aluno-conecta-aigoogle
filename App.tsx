@@ -75,7 +75,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <div className="h-screen font-sans">
-        <div className="max-w-sm mx-auto h-full bg-white shadow-lg">
+        <div className="relative max-w-sm mx-auto h-full bg-white shadow-lg">
           <HashRouter>
             <AppRoutes />
           </HashRouter>

@@ -34,7 +34,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {showHeader && <Header />}
-      <main className="flex-grow overflow-y-auto">
+      <main className="flex-grow overflow-y-auto pb-16">
         {children}
       </main>
       <BottomNav />
