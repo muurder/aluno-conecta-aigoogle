@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
@@ -9,7 +9,7 @@ import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
 
 const EditProfile: React.FC = () => {
     const { user, updateUser } = useAuth();
-    const navigate = useNavigate();
+    const history = useHistory();
     
     const [formData, setFormData] = useState<User>(user as User);
     const [error, setError] = useState('');
@@ -51,7 +51,7 @@ const EditProfile: React.FC = () => {
         }
         try {
             updateUser(formData, user.login);
-            navigate('/profile');
+            history.push('/profile');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
         }
@@ -60,7 +60,7 @@ const EditProfile: React.FC = () => {
     return (
         <div className="min-h-full flex flex-col bg-gray-50">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-10">
-                <button onClick={() => navigate(-1)} className="mr-4">
+                <button onClick={() => history.goBack()} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-semibold text-lg">Editar Informações</h1>

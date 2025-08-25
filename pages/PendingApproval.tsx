@@ -1,11 +1,11 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ClockIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
 const PendingApproval: React.FC = () => {
-  const navigate = useNavigate();
+  const history = useHistory();
   const { user, logout, updateUser } = useAuth();
 
   // Simulate admin approval after 5 seconds for demo purposes
@@ -22,7 +22,7 @@ const PendingApproval: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    history.push('/login');
   };
 
   return (

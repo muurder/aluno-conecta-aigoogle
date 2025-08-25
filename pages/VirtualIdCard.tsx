@@ -1,12 +1,13 @@
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
 const VirtualIdCard: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const history = useHistory();
   const [activeTab, setActiveTab] = useState<'card' | 'qr'>('card');
 
   const QRCodePlaceholder: React.FC = () => (
@@ -21,7 +22,7 @@ const VirtualIdCard: React.FC = () => {
   return (
     <div className="min-h-full flex flex-col bg-gray-50">
         <header className="p-4 flex items-center justify-between text-gray-700">
-            <button onClick={() => navigate(-1)} className="mr-4">
+            <button onClick={() => history.goBack()} className="mr-4">
                 <ArrowLeftIcon className="w-6 h-6" />
             </button>
             <h1 className="font-semibold text-lg absolute left-1/2 -translate-x-1/2">Carteirinha Virtual</h1>

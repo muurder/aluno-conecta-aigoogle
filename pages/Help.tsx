@@ -2,14 +2,14 @@
 import React from 'react';
 import { QuestionMarkCircleIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 
 const Help: React.FC = () => {
-    const navigate = useNavigate();
+    const history = useHistory();
     return (
         <div className="min-h-full flex flex-col bg-gray-50">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm">
-                <button onClick={() => navigate(-1)} className="mr-4">
+                <button onClick={() => history.goBack()} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-semibold text-lg">Ajuda</h1>
