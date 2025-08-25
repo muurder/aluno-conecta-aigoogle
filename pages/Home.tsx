@@ -37,7 +37,7 @@ const Home: React.FC = () => {
     );
 
     return (
-        <div className="bg-transparent p-4 space-y-6">
+        <div className="p-4 space-y-6">
             {/* User Info Card */}
             <div className="bg-blue-900 text-white p-5 rounded-xl shadow-md relative overflow-hidden">
                 <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-800/50 rounded-full"></div>
