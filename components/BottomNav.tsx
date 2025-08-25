@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
+import { NavLink } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
+import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
 
 const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ to, icon, label }) => {
   return (
