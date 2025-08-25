@@ -10,7 +10,7 @@ import { getFirestore } from "firebase/firestore";
 // ATENÇÃO: Substitua este objeto de exemplo pelo seu próprio `firebaseConfig`
 // que você copiou do console do Firebase. NUNCA compartilhe suas chaves publicamente.
 const firebaseConfig = {
-  apiKey: "COLOQUE_SUA_NOVA_API_KEY_AQUI",
+  apiKey: "COLOQUE_SUA_API_KEY_AQUI",
   authDomain: "COLOQUE_SEU_AUTH_DOMAIN_AQUI",
   projectId: "COLOQUE_SEU_PROJECT_ID_AQUI",
   storageBucket: "COLOQUE_SEU_STORAGE_BUCKET_AQUI",
