@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'https://esm.sh/react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
