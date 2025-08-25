@@ -16,7 +16,6 @@ export const firebaseConfig = {
   storageBucket: "COLOQUE_SEU_STORAGE_BUCKET_AQUI",
   messagingSenderId: "COLOQUE_SEU_MESSAGING_SENDER_ID_AQUI",
   appId: "COLOQUE_SEU_APP_ID_AQUI",
-  measurementId: "COLOQUE_SEU_MEASUREMENT_ID_AQUI" // opcional
 };
 
 // Initialize Firebase

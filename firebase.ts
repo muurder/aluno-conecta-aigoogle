@@ -3,20 +3,16 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// ATENÇÃO: Substitua este objeto de exemplo pelo seu próprio `firebaseConfig`
-// que você copiou do console do Firebase. NUNCA compartilhe suas chaves publicamente.
+// Your web app's Firebase configuration is now read from Environment Variables
+// This makes the code safe to be shared on GitHub.
+// For local development, create a .env.local file in the root of your project.
 export const firebaseConfig = {
-  apiKey: "COLOQUE_SUA_API_KEY_AQUI",
-  authDomain: "COLOQUE_SEU_AUTH_DOMAIN_AQUI",
-  projectId: "COLOQUE_SEU_PROJECT_ID_AQUI",
-  storageBucket: "COLOQUE_SEU_STORAGE_BUCKET_AQUI",
-  messagingSenderId: "COLOQUE_SEU_MESSAGING_SENDER_ID_AQUI",
-  appId: "COLOQUE_SEU_APP_ID_AQUI",
-  measurementId: "COLOQUE_SEU_MEASUREMENT_ID_AQUI" // opcional
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase

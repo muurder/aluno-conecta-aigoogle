@@ -15,33 +15,35 @@ import Financial from './pages/Financial';
 import Help from './pages/Help';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
-import { firebaseConfig } from './firebase';
 
+// This component now warns if environment variables are not set for local development.
 const FirebaseConfigWarning: React.FC = () => (
   <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg shadow-2xl p-8 max-w-lg text-center">
-      <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração do Firebase Incompleta</h2>
+      <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração Local Incompleta</h2>
       <p className="text-gray-700 mb-2">
-        Para que o aplicativo funcione, você precisa conectar suas credenciais do Firebase.
+        Para rodar o aplicativo localmente, você precisa configurar suas chaves de API.
       </p>
       <p className="text-gray-700 mb-6">
-        1. Renomeie o arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">firebase.example.ts</code> para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">firebase.ts</code>.
+        1. Crie um arquivo chamado <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do seu projeto.
         <br />
-        2. Substitua os valores de exemplo pelas suas chaves do Firebase.
+        2. Cole o conteúdo abaixo dentro dele e substitua pelos seus valores.
       </p>
       <div className="text-left bg-gray-100 p-4 rounded-md overflow-x-auto">
         <pre className="text-xs text-gray-600">
           <code>
-{`// firebase.ts
-
-export const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  // ... e os outros campos
-};`}
+{`# .env.local
+VITE_FIREBASE_API_KEY="SUA_API_KEY"
+VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN"
+VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID"
+VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET"
+VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID"
+VITE_FIREBASE_APP_ID="SEU_APP_ID"
+VITE_GEMINI_API_KEY="SUA_CHAVE_GEMINI"`}
           </code>
         </pre>
       </div>
+       <p className="text-xs text-gray-500 mt-4">Este arquivo não será enviado para o GitHub, mantendo suas chaves seguras.</p>
     </div>
   </div>
 );
@@ -90,7 +92,8 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  const isFirebaseConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== "COLOQUE_SUA_API_KEY_AQUI";
+  // Checks if the environment variable for Firebase is set.
+  const isFirebaseConfigured = import.meta.env.VITE_FIREBASE_API_KEY;
 
   if (!isFirebaseConfigured) {
     return <FirebaseConfigWarning />;
