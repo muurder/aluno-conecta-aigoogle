@@ -17,7 +17,7 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
 
 const BottomNav: React.FC = () => {
   return (
-    <footer className="bg-white border-t border-gray-200 shadow-md">
+    <footer className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
       <nav className="flex justify-around items-center h-16">
         <NavItem to="/" icon={<HomeIcon className="w-6 h-6" />} label="Início" />
         <NavItem to="/my-course" icon={<AcademicCapIcon className="w-6 h-6" />} label="Meu Curso" />
