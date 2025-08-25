@@ -109,8 +109,12 @@ const Register: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            await auth.register(formData, password);
-            navigate('/pending');
+            const newUser = await auth.register(formData, password);
+            if (newUser.status === 'approved') {
+                navigate('/');
+            } else {
+                navigate('/pending');
+            }
         } catch (err: any) {
             console.error("Registration Error:", err); // Log the full error for debugging
             if (err.code === 'auth/email-already-in-use') {
