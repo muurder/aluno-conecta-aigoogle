@@ -1,18 +1,17 @@
-
 import React from 'react';
 import type { UniversityName } from './types';
 
 export const UNIVERSITY_LOGOS: Record<UniversityName, string> = {
-    "Anhanguera": "https://i.imgur.com/Kz8pL5d.png",
-    "Anhembi Morumbi": "https://i.imgur.com/bldo73T.png",
-    "Estacio": "https://i.imgur.com/W2q2i5w.png",
-    "Fiesp": "https://i.imgur.com/O6y6GgJ.png",
-    "FMU": "https://i.imgur.com/Jd0O4U2.png",
-    "São Judas": "https://i.imgur.com/zW3E2sQ.png",
-    "Unicid": "https://i.imgur.com/uN8Gzpr.png",
-    "Unicsul": "https://i.imgur.com/Fw8h4pP.png",
-    "Unifesp": "https://i.imgur.com/fGv7u1c.png",
-    "USP": "https://i.imgur.com/o1bX2tY.png"
+    "Anhanguera": "/logos/anhanguera.png",
+    "Anhembi Morumbi": "/logos/anhembi_morumbi.png",
+    "Estacio": "/logos/estacio.png",
+    "Fiesp": "/logos/fiesp.png",
+    "FMU": "/logos/fmu.png",
+    "São Judas": "/logos/sao_judas.png",
+    "Unicid": "/logos/unicid.png",
+    "Unicsul": "/logos/unicsul.png",
+    "Unifesp": "/logos/unifesp.png",
+    "USP": "/logos/usp.png"
 };
 
 export const UNIVERSITY_DETAILS: Record<UniversityName, { domain: string; campuses: string[] }> = {
