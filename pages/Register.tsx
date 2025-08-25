@@ -140,11 +140,6 @@ const Register: React.FC = () => {
                         <label className="text-sm font-medium text-gray-700">Nome Completo</label>
                         <input name="fullName" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
-                    <div className="md:col-span-2 relative">
-                        <label className="text-sm font-medium text-gray-700">E-mail</label>
-                        <input name="email" value={formData.email || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" required />
-                        <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
-                    </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Faculdade</label>
                         <select name="university" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
@@ -158,6 +153,11 @@ const Register: React.FC = () => {
                             <option value="">Selecione</option>
                             {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
                         </select>
+                    </div>
+                    <div className="md:col-span-2 relative">
+                        <label className="text-sm font-medium text-gray-700">E-mail</label>
+                        <input name="email" value={formData.email || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" required />
+                        <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Campus</label>
