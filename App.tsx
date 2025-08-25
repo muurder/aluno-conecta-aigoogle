@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Switch, Route, Redirect } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -21,54 +21,32 @@ const AppRoutes: React.FC = () => {
 
   if (isAuthenticated && user?.status === 'pending') {
     return (
-      <Switch>
-        <Route path="/pending" component={PendingApproval} />
-        <Redirect to="/pending" />
-      </Switch>
+      <Routes>
+        <Route path="/pending" element={<PendingApproval />} />
+        <Route path="*" element={<Navigate to="/pending" />} />
+      </Routes>
     );
   }
 
   return (
-    <Switch>
-      <Route path="/login">
-        {!isAuthenticated ? <Login /> : <Redirect to="/" />}
-      </Route>
-      <Route path="/register">
-        {!isAuthenticated ? <Register /> : <Redirect to="/" />}
-      </Route>
+    <Routes>
+      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
       
-      <Route exact path="/">
-        {isAuthenticated ? <MainLayout><Home /></MainLayout> : <Redirect to="/login" />}
-      </Route>
-      <Route path="/profile">
-        {isAuthenticated ? <MainLayout><Profile /></MainLayout> : <Redirect to="/login" />}
-      </Route>
-      <Route path="/virtual-id">
-        {isAuthenticated ? <VirtualIdCard /> : <Redirect to="/login" />}
-      </Route>
-      <Route path="/edit-profile">
-        {isAuthenticated ? <EditProfile /> : <Redirect to="/login" />}
-      </Route>
-       <Route path="/my-course">
-        {isAuthenticated ? <MainLayout><MyCourse /></MainLayout> : <Redirect to="/login" />}
-      </Route>
-       <Route path="/financial">
-        {isAuthenticated ? <MainLayout><Financial /></MainLayout> : <Redirect to="/login" />}
-      </Route>
-      <Route path="/help">
-        {isAuthenticated ? <Help /> : <Redirect to="/login" />}
-      </Route>
+      <Route path="/" element={isAuthenticated ? <MainLayout><Home /></MainLayout> : <Navigate to="/login" />} />
+      <Route path="/profile" element={isAuthenticated ? <MainLayout><Profile /></MainLayout> : <Navigate to="/login" />} />
+      <Route path="/virtual-id" element={isAuthenticated ? <VirtualIdCard /> : <Navigate to="/login" />} />
+      <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
+      <Route path="/my-course" element={isAuthenticated ? <MainLayout><MyCourse /></MainLayout> : <Navigate to="/login" />} />
+      <Route path="/financial" element={isAuthenticated ? <MainLayout><Financial /></MainLayout> : <Navigate to="/login" />} />
+      <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
 
       {/* Admin Routes */}
-      <Route path="/admin/dashboard">
-        {isAuthenticated && user?.isAdmin ? <AdminDashboard /> : <Redirect to="/" />}
-      </Route>
-      <Route path="/admin/edit-user/:login">
-        {isAuthenticated && user?.isAdmin ? <AdminEditUser /> : <Redirect to="/" />}
-      </Route>
+      <Route path="/admin/dashboard" element={isAuthenticated && user?.isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
+      <Route path="/admin/edit-user/:login" element={isAuthenticated && user?.isAdmin ? <AdminEditUser /> : <Navigate to="/" />} />
       
-      <Redirect to={isAuthenticated ? "/" : "/login"} />
-    </Switch>
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
+    </Routes>
   );
 };
 

@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const AdminDashboard: React.FC = () => {
-    const history = useHistory();
+    const navigate = useNavigate();
     const { getAllUsers, deleteUser, updateUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
 
@@ -41,7 +41,7 @@ const AdminDashboard: React.FC = () => {
     return (
         <div className="min-h-full flex flex-col bg-gray-50">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-10">
-                <button onClick={() => history.push('/profile')} className="mr-4">
+                <button onClick={() => navigate('/profile')} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-semibold text-lg">Admin Dashboard</h1>
@@ -65,7 +65,7 @@ const AdminDashboard: React.FC = () => {
                                             <CheckCircleIcon className="w-6 h-6" />
                                         </button>
                                     )}
-                                    <button onClick={() => history.push(`/admin/edit-user/${user.login}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full" title="Editar">
+                                    <button onClick={() => navigate(`/admin/edit-user/${user.login}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full" title="Editar">
                                         <PencilIcon className="w-6 h-6" />
                                     </button>
                                     <button onClick={() => handleReprove(user.login)} className="p-2 text-red-600 hover:bg-red-100 rounded-full" title="Reprovar/Excluir">

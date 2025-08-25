@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
@@ -9,13 +9,13 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const history = useHistory();
+  const navigate = useNavigate();
   const auth = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (auth.login(login, password)) {
-      history.push('/');
+      navigate('/');
     } else {
       setError('Login ou senha inválidos.');
     }
@@ -74,7 +74,7 @@ const Login: React.FC = () => {
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Não tem conta?{' '}
-            <button onClick={() => history.push('/register')} className="font-medium text-blue-600 hover:underline">
+            <button onClick={() => navigate('/register')} className="font-medium text-blue-600 hover:underline">
               Cadastre-se
             </button>
           </p>

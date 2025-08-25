@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
@@ -8,7 +8,7 @@ import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants'
 import { CameraIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const Register: React.FC = () => {
-    const history = useHistory();
+    const navigate = useNavigate();
     const auth = useAuth();
     const [formData, setFormData] = useState<Partial<User>>({
         status: 'pending',
@@ -99,7 +99,7 @@ const Register: React.FC = () => {
         } as User;
 
         auth.register(fullUser);
-        history.push('/pending');
+        navigate('/pending');
     };
     
     return (
@@ -203,7 +203,7 @@ const Register: React.FC = () => {
                 <div className="text-center">
                     <p className="text-sm text-gray-600">
                         Já tem conta?{' '}
-                        <button onClick={() => history.push('/login')} className="font-medium text-blue-600 hover:underline">
+                        <button onClick={() => navigate('/login')} className="font-medium text-blue-600 hover:underline">
                             Entrar
                         </button>
                     </p>

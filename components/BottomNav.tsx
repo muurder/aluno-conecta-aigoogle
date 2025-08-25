@@ -7,9 +7,10 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
   return (
     <NavLink 
       to={to} 
-      exact
-      className="text-gray-500 flex flex-col items-center justify-center w-full pt-2 pb-1"
-      activeClassName="text-blue-600"
+      end
+      className={({ isActive }) => 
+        `flex flex-col items-center justify-center w-full pt-2 pb-1 ${isActive ? 'text-blue-600' : 'text-gray-500'}`
+      }
     >
       {icon}
       <span className="text-xs">{label}</span>
