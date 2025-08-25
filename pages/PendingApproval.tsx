@@ -6,22 +6,17 @@ import { ClockIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
 const PendingApproval: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout } = useAuth();
 
-  // Simulate admin approval after 5 seconds for demo purposes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (user && user.status === 'pending') {
-        updateUser({ ...user, status: 'approved' }, user.login);
-      }
-    }, 5000);
+    // A lógica de redirecionamento agora é tratada centralmente no App.tsx
+    // com base no estado do usuário fornecido pelo AuthContext.
+    // Se o status do usuário mudar para 'approved', o App.tsx irá redirecionar
+    // automaticamente para a página inicial.
+  }, [user]);
 
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, updateUser]);
-
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 

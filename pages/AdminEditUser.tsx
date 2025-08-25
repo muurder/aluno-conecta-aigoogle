@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +9,7 @@ import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 const AdminEditUser: React.FC = () => {
-    const { login } = useParams<{ login: string }>();
+    const { uid } = useParams<{ uid: string }>();
     const { getAllUsers, updateUser } = useAuth();
     const navigate = useNavigate();
     
@@ -17,13 +18,18 @@ const AdminEditUser: React.FC = () => {
     const [error, setError] = useState('');
     
     useEffect(() => {
-        const userToEdit = getAllUsers().find(u => u.login === login);
-        if (userToEdit) {
-            setFormData(userToEdit);
-        } else {
-            setError('Usuário não encontrado.');
-        }
-    }, [login, getAllUsers]);
+        const fetchUser = async () => {
+            if (!uid) return;
+            const users = await getAllUsers();
+            const userToEdit = users.find(u => u.uid === uid);
+            if (userToEdit) {
+                setFormData(userToEdit);
+            } else {
+                setError('Usuário não encontrado.');
+            }
+        };
+        fetchUser();
+    }, [uid, getAllUsers]);
 
     const generateRGM = useCallback(() => {
         const randomPart = Math.floor(10000000 + Math.random() * 90000000).toString();
@@ -79,15 +85,13 @@ const AdminEditUser: React.FC = () => {
         }
     };
     
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData || !login) return;
+        if (!formData || !uid) return;
         try {
-            const dataToUpdate = { ...formData };
-            if (newPassword.trim()) {
-                dataToUpdate.password = newPassword.trim();
-            }
-            updateUser(dataToUpdate, login);
+            // Note: Changing user password requires backend logic (e.g., Cloud Function)
+            // This implementation will only update Firestore data.
+            await updateUser(formData);
             navigate('/admin/dashboard');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
@@ -108,7 +112,7 @@ const AdminEditUser: React.FC = () => {
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
-                <h1 className="font-semibold text-lg">Editar Usuário: {login}</h1>
+                <h1 className="font-semibold text-lg">Editar Usuário: {formData.login}</h1>
             </header>
             
             <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-grow overflow-y-auto">
@@ -129,8 +133,8 @@ const AdminEditUser: React.FC = () => {
                     <input name="login" value={formData.login} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                 </div>
                 <div>
-                    <label className="text-sm font-medium text-gray-700">Nova Senha (Opcional)</label>
-                    <input name="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="Deixe em branco para não alterar" />
+                    <label className="text-sm font-medium text-gray-700">Nova Senha (Ignorado)</label>
+                    <input name="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100" placeholder="Alteração de senha via admin requer backend" disabled />
                 </div>
                  <div>
                     <label className="text-sm font-medium text-gray-700">Nome Completo</label>
@@ -140,7 +144,7 @@ const AdminEditUser: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">RGM</label>
                     <div className="relative mt-1">
                         <input name="rgm" value={formData.rgm} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg pr-10" required />
-                        <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 h-fit">
+                        <button type="button" onClick={() => formData && setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 h-fit">
                            <ArrowPathIcon className="h-4 w-4"/>
                         </button>
                     </div>
@@ -172,7 +176,7 @@ const AdminEditUser: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Validade</label>
                      <div className="relative mt-1">
                         <input name="validity" value={formData.validity} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg pr-10" />
-                        <button type="button" onClick={() => setFormData({...formData, validity: generateValidity()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 h-fit">
+                        <button type="button" onClick={() => formData && setFormData({...formData, validity: generateValidity()})} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 h-fit">
                            <ArrowPathIcon className="h-4 w-4"/>
                         </button>
                     </div>

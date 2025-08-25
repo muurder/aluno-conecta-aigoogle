@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
@@ -17,20 +18,8 @@ const EditProfile: React.FC = () => {
     }
     
     const [formData, setFormData] = useState<User>(user);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
-    const generateRGM = useCallback(() => {
-        return Math.floor(10000000 + Math.random() * 90000000).toString();
-    }, []);
-
-    const generateValidity = useCallback(() => {
-        const today = new Date();
-        const randomDays = Math.floor(100 + Math.random() * (600 - 100 + 1));
-        today.setDate(today.getDate() + randomDays);
-        const month = (today.getMonth() + 1).toString().padStart(2, '0');
-        const year = today.getFullYear();
-        return `${month}/${year}`;
-    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -47,6 +36,8 @@ const EditProfile: React.FC = () => {
 
             if ((name === 'login' || name === 'university') && newFormData.login && newFormData.university) {
                 const universityDetails = UNIVERSITY_DETAILS[newFormData.university as UniversityName];
+                // Note: Changing the email requires re-authentication or a backend function in production
+                // For this app, we'll allow it, but it won't update the Firebase Auth email.
                 newFormData.email = `${newFormData.login.toLowerCase().replace(/\s/g, '')}@${universityDetails.domain}`;
             }
 
@@ -67,13 +58,18 @@ const EditProfile: React.FC = () => {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
+        setError('');
         try {
-            updateUser(formData, user.login);
+            await updateUser(formData);
             navigate('/profile');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
+            console.error(err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -122,7 +118,7 @@ const EditProfile: React.FC = () => {
                     <label className={labelClasses}>RGM</label>
                      <div className="relative">
                         <input name="rgm" value={formData.rgm} onChange={handleInputChange} className={`${inputClasses} pr-10`} required />
-                        <button type="button" onClick={() => setFormData({...formData, rgm: generateRGM()})} className="absolute inset-y-0 right-2 my-auto flex items-center text-gray-500 hover:text-blue-600">
+                        <button type="button" onClick={() => {}} className="absolute inset-y-0 right-2 my-auto flex items-center text-gray-500 hover:text-blue-600">
                            <ArrowPathIcon className="h-5 w-5"/>
                         </button>
                     </div>
@@ -168,14 +164,16 @@ const EditProfile: React.FC = () => {
                     <label className={labelClasses}>Validade</label>
                     <div className="relative">
                         <input name="validity" value={formData.validity} onChange={handleInputChange} className={`${inputClasses} pr-10`} required />
-                        <button type="button" onClick={() => setFormData({...formData, validity: generateValidity()})} className="absolute inset-y-0 right-2 my-auto flex items-center text-gray-500 hover:text-blue-600">
+                        <button type="button" onClick={() => {}} className="absolute inset-y-0 right-2 my-auto flex items-center text-gray-500 hover:text-blue-600">
                            <ArrowPathIcon className="h-5 w-5"/>
                         </button>
                     </div>
                 </div>
                 
                 <div className="pt-4 sticky bottom-0 bg-white pb-2">
-                    <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">Atualizar Informações</button>
+                    <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400">
+                        {loading ? 'Atualizando...' : 'Atualizar Informações'}
+                    </button>
                 </div>
             </form>
         </div>

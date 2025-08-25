@@ -5,19 +5,26 @@ import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 const Login: React.FC = () => {
-  const [login, setLogin] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const auth = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (auth.login(login, password)) {
+    setLoading(true);
+    setError('');
+    try {
+      await auth.login(email, password);
       navigate('/');
-    } else {
-      setError('Login ou senha inválidos.');
+    } catch (err) {
+      setError('E-mail ou senha inválidos. Por favor, tente novamente.');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,12 +40,12 @@ const Login: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-700">Login</label>
+            <label className="text-sm font-medium text-gray-700">E-mail</label>
             <input
-              type="text"
-              value={login}
-              onChange={(e) => setLogin(e.target.value)}
-              placeholder="Digite seu login"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Digite seu e-mail"
               className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               required
             />
@@ -65,10 +72,11 @@ const Login: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2 transition-transform transform hover:scale-105"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2 transition-transform transform hover:scale-105 disabled:bg-blue-400 disabled:scale-100"
           >
-            <ArrowRightOnRectangleIcon className="h-5 w-5"/>
-            Entrar
+            {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div> : <ArrowRightOnRectangleIcon className="h-5 w-5"/>}
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
         <div className="text-center">
