@@ -1,6 +1,6 @@
 
-import React from 'https://esm.sh/react@18.2.0';
-import { HashRouter, Routes, Route, Navigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
+import React from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';

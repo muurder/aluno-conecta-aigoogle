@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useCallback } from 'https://esm.sh/react@18.2.0';
-import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
-import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
+import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();

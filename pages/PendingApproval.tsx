@@ -1,8 +1,8 @@
 
-import React, { useEffect } from 'https://esm.sh/react@18.2.0';
-import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ClockIcon, ArrowUturnLeftIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
+import { ClockIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
 const PendingApproval: React.FC = () => {
   const navigate = useNavigate();
