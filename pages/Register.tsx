@@ -24,7 +24,7 @@ const Register: React.FC = () => {
     });
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
+    const [error, setError] = useState<React.ReactNode>('');
     const [loading, setLoading] = useState(false);
     const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
 
@@ -120,9 +120,55 @@ const Register: React.FC = () => {
             } else if (err.code === 'auth/invalid-email') {
                 setError('O e-mail gerado é inválido. Verifique se o login contém caracteres válidos (letras, números, pontos, hífens).');
             } else if (err.code === 'auth/operation-not-allowed') {
-                setError('Cadastro por e-mail e senha não está habilitado no seu projeto Firebase. Verifique a configuração no Console do Firebase.');
+                setError(
+                    <div className="text-left">
+                        <p className="font-bold text-center mb-2">Ação Necessária no Firebase</p>
+                        <p className="text-sm mb-2">
+                            O erro <code className="bg-red-200 text-red-800 text-xs p-1 rounded">auth/operation-not-allowed</code> indica que o método de login com <strong>E-mail/Senha</strong> não está habilitado no seu projeto.
+                        </p>
+                        <p className="text-sm font-semibold">Para corrigir:</p>
+                        <ol className="list-decimal list-inside text-sm mt-1 space-y-1">
+                            <li>Abra o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">Console do Firebase</a>.</li>
+                            <li>Vá para a seção <strong>Authentication</strong>.</li>
+                            <li>Clique na aba <strong>Sign-in method</strong> (ou Método de login).</li>
+                            <li>Encontre <strong>"E-mail/senha"</strong> na lista de provedores e ative-o.</li>
+                            <li>Salve as alterações e tente se cadastrar novamente.</li>
+                        </ol>
+                    </div>
+                );
             } else if (err.code === 'permission-denied') {
-                setError('Erro de permissão ao salvar dados. Verifique as Regras de Segurança do Firestore no Console do Firebase.');
+                setError(
+                    <div className="text-left">
+                        <p className="font-bold text-center mb-2">Ação Necessária no Firestore</p>
+                        <p className="text-sm mb-2">
+                            O erro <code className="bg-red-200 text-red-800 text-xs p-1 rounded">permission-denied</code> indica que as <strong>Regras de Segurança do Firestore</strong> estão bloqueando a criação do seu perfil de usuário.
+                        </p>
+                        <p className="text-sm font-semibold">Para corrigir, permita a criação de novos usuários:</p>
+                        <ol className="list-decimal list-inside text-sm mt-1 space-y-1">
+                            <li>No Console do Firebase, vá para <strong>Firestore Database</strong>.</li>
+                            <li>Clique na aba <strong>Regras</strong>.</li>
+                            <li>Substitua as regras existentes por estas para permitir o cadastro:</li>
+                        </ol>
+                        <div className="text-left bg-gray-100 p-2 my-2 rounded-md overflow-x-auto">
+                            <pre className="text-xs text-gray-600">
+                                <code>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Permite que qualquer um crie um usuário, mas só o
+      // próprio usuário possa ler ou modificar seus dados depois.
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if true;
+    }
+  }
+}`}
+                                </code>
+                            </pre>
+                        </div>
+                         <p className="text-xs text-gray-500 text-center">Isso permite que novos usuários se cadastrem. Lembre-se de ajustar as regras para suas necessidades de produção.</p>
+                    </div>
+                );
             } else {
                 setError('Ocorreu um erro ao criar a conta. Tente novamente.');
             }
@@ -142,7 +188,7 @@ const Register: React.FC = () => {
                     <p className="text-gray-500 mt-2">Preencha seus dados</p>
                 </div>
 
-                {error && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{error}</p>}
+                {error && <div className="text-red-700 bg-red-100 p-4 rounded-lg border border-red-200 text-sm">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <div>
