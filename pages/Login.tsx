@@ -24,7 +24,7 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error("Login Error:", err.code);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        setError('E-mail não encontrado. Verifique o e-mail digitado ou cadastre-se.');
+        setError('E-mail pessoal não encontrado. Verifique o e-mail digitado ou cadastre-se.');
       } else if (err.code === 'auth/wrong-password') {
         setError('Senha incorreta. Por favor, tente novamente.');
       } else {
@@ -54,12 +54,12 @@ const Login: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-700">E-mail</label>
+            <label className="text-sm font-medium text-gray-700">Seu E-mail Pessoal</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Digite seu e-mail"
+              placeholder="seu.email@provedor.com"
               className={inputClasses(!!error)}
               required
             />

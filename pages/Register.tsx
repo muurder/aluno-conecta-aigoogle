@@ -219,7 +219,7 @@ service cloud.firestore {
                         <input name="fullName" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-gray-700">Seu Email</label>
+                        <label className="text-sm font-medium text-gray-700">Seu E-mail Pessoal (para login)</label>
                         <input name="email" type="email" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="seu.email@provedor.com" required />
                     </div>
                     <div>
@@ -237,11 +237,11 @@ service cloud.firestore {
                         </select>
                     </div>
                      <div>
-                        <label className="text-sm font-medium text-gray-700">Login Institucional</label>
-                        <input name="institutionalLogin" placeholder="ex: joao.silva" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                        <label className="text-sm font-medium text-gray-700">Seu Login da Faculdade</label>
+                        <input name="institutionalLogin" placeholder="ex: joao.silva (sem @...)" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                     </div>
                     <div className="md:col-span-2 relative">
-                        <label className="text-sm font-medium text-gray-700">Email da Universidade</label>
+                        <label className="text-sm font-medium text-gray-700">E-mail da Universidade (gerado)</label>
                         <input name="institutionalEmailDisplay" value={institutionalEmail || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado automaticamente" />
                         <SparklesIcon className="absolute right-2 top-8 h-5 w-5 text-green-500"/>
                     </div>
