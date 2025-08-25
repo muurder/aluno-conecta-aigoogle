@@ -17,7 +17,15 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
 
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   if (isAuthenticated && user?.status === 'pending') {
     return (
@@ -43,18 +51,16 @@ const AppRoutes: React.FC = () => {
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={isAuthenticated && user?.isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
-      <Route path="/admin/edit-user/:login" element={isAuthenticated && user?.isAdmin ? <AdminEditUser /> : <Navigate to="/" />} />
+      <Route path="/admin/edit-user/:uid" element={isAuthenticated && user?.isAdmin ? <AdminEditUser /> : <Navigate to="/" />} />
       
       <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
     </Routes>
   );
 };
 
-// ...
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      {/* 100dvh lida melhor com barras do navegador no mobile do que 100vh/h-screen */}
       <div className="min-h-[100dvh] font-sans bg-slate-100">
         <div className="relative max-w-sm mx-auto min-h-[100dvh] bg-white shadow-lg overflow-hidden">
           <HashRouter>
@@ -65,6 +71,5 @@ const App: React.FC = () => {
     </AuthProvider>
   );
 };
-
 
 export default App;

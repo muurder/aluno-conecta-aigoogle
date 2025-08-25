@@ -1,30 +1,42 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { auth, db } from '../firebase';
+import { 
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    User as FirebaseUser
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import type { User } from '../types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (login: string, pass: string) => boolean;
-  logout: () => void;
-  register: (userData: User) => void;
-  updateUser: (userData: User, originalLogin: string) => void;
-  getAllUsers: () => User[];
-  deleteUser: (login: string) => void;
+  loading: boolean;
+  login: (email: string, pass: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (userData: Omit<User, 'uid'>, pass: string) => Promise<void>;
+  updateUser: (newUserData: User) => Promise<void>;
+  getAllUsers: () => Promise<User[]>;
+  deleteUser: (uid: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    try {
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
-      if (!storedUsers['admin']) {
-        storedUsers['admin'] = {
+// Função auxiliar para buscar dados do Firestore
+const getUserProfile = async (firebaseUser: FirebaseUser): Promise<User | null> => {
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+        return userDoc.data() as User;
+    }
+    // Caso de admin pré-existente ou erro de sincronia
+    if (firebaseUser.email === 'admin@portal.com') {
+        const adminProfile: User = {
+            uid: firebaseUser.uid,
             login: 'admin',
-            password: 'admin',
             fullName: 'Administrator',
             email: 'admin@portal.com',
             university: 'Anhanguera',
@@ -33,106 +45,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             validity: '12/2099',
             photo: null,
             status: 'approved',
-            isAdmin: true
+            isAdmin: true,
+            rgm: '000000'
         };
-        localStorage.setItem('users', JSON.stringify(storedUsers));
-      }
-    } catch (error) {
-        console.error("Failed to initialize admin user", error);
+        await setDoc(userDocRef, adminProfile);
+        return adminProfile;
     }
+    return null;
+}
 
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userProfile = await getUserProfile(firebaseUser);
+        setUser(userProfile);
+      } else {
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem('user');
-    }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (login: string, pass: string): boolean => {
-    try {
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
-      const userData = storedUsers[login];
-      if (userData && userData.password === pass) {
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Failed to login", error);
-      return false;
-    }
+  const login = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await signOut(auth);
   };
 
-  const register = (userData: User) => {
-    try {
-      const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
-      storedUsers[userData.login] = userData;
-      localStorage.setItem('users', JSON.stringify(storedUsers));
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-    } catch (error) {
-       console.error("Failed to register", error);
-    }
+  const register = async (userData: Omit<User, 'uid'>, pass: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, pass);
+    const firebaseUser = userCredential.user;
+    
+    const newUser: User = {
+        uid: firebaseUser.uid,
+        ...userData,
+    };
+    
+    await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+    setUser(newUser);
   };
   
-  const updateUser = (newUserData: User, originalLogin: string) => {
-    try {
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
-        const oldUserData = storedUsers[originalLogin];
-
-        // Preserve password if not provided in new data
-        if (!newUserData.password && oldUserData?.password) {
-            newUserData.password = oldUserData.password;
-        }
-
-        if (originalLogin !== newUserData.login && storedUsers[originalLogin]) {
-            delete storedUsers[originalLogin];
-        }
-        storedUsers[newUserData.login] = newUserData;
-        localStorage.setItem('users', JSON.stringify(storedUsers));
-        
-        if (user?.login === originalLogin) {
-            setUser(newUserData);
-            localStorage.setItem('user', JSON.stringify(newUserData));
-        }
-    } catch(error) {
-        console.error("Failed to update user", error);
-    }
+  const updateUser = async (newUserData: User) => {
+      const userDocRef = doc(db, 'users', newUserData.uid);
+      await updateDoc(userDocRef, { ...newUserData });
+      if (user?.uid === newUserData.uid) {
+          setUser(newUserData);
+      }
   };
 
-  const getAllUsers = (): User[] => {
-    try {
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
-        return Object.values(storedUsers);
-    } catch (error) {
-        console.error("Failed to get all users", error);
-        return [];
-    }
+  const getAllUsers = async (): Promise<User[]> => {
+    const usersCol = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCol);
+    const userList = userSnapshot.docs.map(doc => doc.data() as User);
+    return userList;
   };
 
-  const deleteUser = (login: string) => {
-    try {
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '{}');
-        delete storedUsers[login];
-        localStorage.setItem('users', JSON.stringify(storedUsers));
-    } catch (error) {
-        console.error("Failed to delete user", error);
-    }
+  const deleteUser = async (uid: string) => {
+    // ATENÇÃO: Isso deleta apenas o perfil do Firestore.
+    // Deletar o usuário da Autenticação do Firebase requer privilégios de admin
+    // e geralmente é feito a partir de um backend (Cloud Function) por segurança.
+    const userDocRef = doc(db, 'users', uid);
+    await deleteDoc(userDocRef);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, register, updateUser, getAllUsers, deleteUser }}>
-      {children}
+    <AuthContext.Provider value={{ isAuthenticated: !!user, user, loading, login, logout, register, updateUser, getAllUsers, deleteUser }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

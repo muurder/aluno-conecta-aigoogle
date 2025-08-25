@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -9,12 +10,22 @@ import { CameraIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/out
 const Register: React.FC = () => {
     const navigate = useNavigate();
     const auth = useAuth();
-    const [formData, setFormData] = useState<Partial<User>>({
+    const [formData, setFormData] = useState<Omit<User, 'uid'>>({
         status: 'pending',
+        login: '',
+        rgm: '',
+        fullName: '',
+        email: '',
+        university: 'Anhanguera',
+        course: '',
+        campus: '',
+        validity: '',
+        photo: null,
     });
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
 
     const generateRGM = useCallback(() => {
@@ -42,32 +53,33 @@ const Register: React.FC = () => {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        let newFormData = { ...formData, [name]: value };
-
-        const updateEmail = (data: Partial<User>) => {
-            if (data.fullName && data.university) {
-                const university = data.university as UniversityName;
-                const details = UNIVERSITY_DETAILS[university];
-                const emailPrefix = data.fullName.trim().toLowerCase().replace(/\s+/g, '.');
-                data.email = `${emailPrefix}@${details.domain}`;
-            }
-            return data;
-        };
-
-        if (name === 'university') {
-            const university = value as UniversityName;
-            setSelectedLogo(university ? UNIVERSITY_LOGOS[university] : null);
-            if (university) {
-                const details = UNIVERSITY_DETAILS[university];
-                newFormData.campus = details.campuses[0];
-            } else {
-                 newFormData.campus = '';
-            }
-        }
-
-        newFormData = updateEmail(newFormData);
         
-        setFormData(newFormData);
+        setFormData(prevData => {
+            const newFormData = { ...prevData, [name]: value };
+
+            const updateEmail = (data: Omit<User, 'uid'>) => {
+                if (data.login && data.university) {
+                    const university = data.university as UniversityName;
+                    const details = UNIVERSITY_DETAILS[university];
+                    const emailPrefix = data.login.trim().toLowerCase().replace(/\s+/g, '.');
+                    data.email = `${emailPrefix}@${details.domain}`;
+                }
+                return data;
+            };
+
+            if (name === 'university') {
+                const university = value as UniversityName;
+                setSelectedLogo(university ? UNIVERSITY_LOGOS[university] : null);
+                if (university) {
+                    const details = UNIVERSITY_DETAILS[university];
+                    newFormData.campus = details.campuses[0];
+                } else {
+                    newFormData.campus = '';
+                }
+            }
+            
+            return updateEmail(newFormData);
+        });
     };
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,25 +92,34 @@ const Register: React.FC = () => {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {
             setError('As senhas não coincidem.');
             return;
         }
-        if (!formData.login || !formData.fullName || !formData.university || !formData.course || !formData.campus) {
+        if (!formData.login || !formData.email || !formData.fullName || !formData.university || !formData.course || !formData.campus) {
             setError('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
         
-        const fullUser: User = {
-            ...formData,
-            password: password,
-            status: 'pending',
-        } as User;
-
-        auth.register(fullUser);
-        navigate('/pending');
+        setLoading(true);
+        setError('');
+        try {
+            await auth.register(formData, password);
+            navigate('/pending');
+        } catch (err: any) {
+            if (err.code === 'auth/email-already-in-use') {
+                 setError('Este e-mail já está em uso. Tente outro login ou faculdade.');
+            } else if (err.code === 'auth/weak-password') {
+                setError('A senha deve ter pelo menos 6 caracteres.');
+            } else {
+                setError('Ocorreu um erro ao criar a conta. Tente novamente.');
+            }
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
     
     return (
@@ -196,7 +217,9 @@ const Register: React.FC = () => {
                         </label>
                     </div>
                     
-                    <button type="submit" className="md:col-span-2 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700">Criar conta</button>
+                    <button type="submit" disabled={loading} className="md:col-span-2 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
+                        {loading ? 'Criando conta...' : 'Criar conta'}
+                    </button>
                 </form>
 
                 <div className="text-center">

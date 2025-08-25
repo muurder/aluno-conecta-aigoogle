@@ -9,6 +9,7 @@ export type UniversityName = typeof universityNames[number];
 export type UserStatus = 'pending' | 'approved';
 
 export interface User {
+  uid: string; // Firebase Authentication User ID
   login: string;
   rgm: string;
   fullName: string;
@@ -19,6 +20,5 @@ export interface User {
   validity: string;
   photo: string | null;
   status: UserStatus;
-  password?: string; // Only used for registration/storage, not exposed
   isAdmin?: boolean;
 }
