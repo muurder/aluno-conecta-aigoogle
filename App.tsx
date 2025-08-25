@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -16,34 +17,57 @@ import Help from './pages/Help';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
 
-// This component now warns if environment variables are not set for local development.
+const isProduction = import.meta.env.PROD;
+
+// This component now shows a different warning for production and local development environments.
 const FirebaseConfigWarning: React.FC = () => (
   <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-lg shadow-2xl p-8 max-w-lg text-center">
-      <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração Local Incompleta</h2>
-      <p className="text-gray-700 mb-2">
-        Para rodar o aplicativo localmente, você precisa configurar suas chaves de API.
-      </p>
-      <p className="text-gray-700 mb-6">
-        1. Crie um arquivo chamado <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do seu projeto.
-        <br />
-        2. Cole o conteúdo abaixo dentro dele e substitua pelos seus valores.
-      </p>
-      <div className="text-left bg-gray-100 p-4 rounded-md overflow-x-auto">
-        <pre className="text-xs text-gray-600">
-          <code>
+      {isProduction ? (
+        <>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h2>
+          <p className="text-gray-700 mb-4">
+            O aplicativo não pôde ser iniciado devido a um problema de configuração no servidor.
+          </p>
+          <p className="text-gray-600">
+            Por favor, entre em contato com o administrador do sistema para resolver o problema.
+          </p>
+        </>
+      ) : (
+        <>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração Local Incompleta</h2>
+          <p className="text-gray-700 mb-4">
+            Para rodar o "Portal do Aluno" no seu computador, você precisa das chaves de API.
+          </p>
+          <p className="text-gray-600 text-sm mb-6">
+            (Isso é diferente das chaves que você configurou na Vercel, que são para o site online).
+          </p>
+          
+          <p className="text-gray-700 mb-2 font-semibold">Como resolver:</p>
+          <ol className="text-left list-decimal list-inside text-gray-700 mb-6 space-y-1">
+              <li>Crie um arquivo chamado <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto.</li>
+              <li>Copie e cole o texto abaixo nele, substituindo pelas suas chaves.</li>
+          </ol>
+
+          <div className="text-left bg-gray-100 p-4 rounded-md overflow-x-auto">
+            <pre className="text-xs text-gray-600">
+              <code>
 {`# .env.local
-VITE_FIREBASE_API_KEY="SUA_API_KEY"
-VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN"
-VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID"
-VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET"
-VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID"
-VITE_FIREBASE_APP_ID="SEU_APP_ID"
-VITE_GEMINI_API_KEY="SUA_CHAVE_GEMINI"`}
-          </code>
-        </pre>
-      </div>
-       <p className="text-xs text-gray-500 mt-4">Este arquivo não será enviado para o GitHub, mantendo suas chaves seguras.</p>
+# Cole suas chaves do Firebase e Gemini aqui
+
+VITE_FIREBASE_API_KEY="SUA_API_KEY_DO_FIREBASE"
+VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN_DO_FIREBASE"
+VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID_DO_FIREBASE"
+VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET_DO_FIREBASE"
+VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID_DO_FIREBASE"
+VITE_FIREBASE_APP_ID="SEU_APP_ID_DO_FIREBASE"
+VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
+              </code>
+            </pre>
+          </div>
+           <p className="text-xs text-gray-500 mt-4">Este arquivo <code className="text-xs">.env.local</code> é seguro e não será enviado para o GitHub.</p>
+        </>
+      )}
     </div>
   </div>
 );

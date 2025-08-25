@@ -1,26 +1,11 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+// ESTE ARQUIVO NÃO É MAIS UTILIZADO.
+//
+// A configuração do Firebase agora é feita através de variáveis de ambiente.
+// Para desenvolvimento local, crie um arquivo chamado `.env.local` na raiz do projeto.
+//
+// As instruções de como preencher o arquivo `.env.local` aparecerão na tela
+// do aplicativo se ele não estiver configurado corretamente.
+//
+// Manter este arquivo aqui é apenas para referência histórica. Não o renomeie para `firebase.ts`.
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// ATENÇÃO: Copie este arquivo para `firebase.ts` e substitua os valores
-// de exemplo pelas suas próprias chaves do console do Firebase.
-export const firebaseConfig = {
-  apiKey: "COLOQUE_SUA_API_KEY_AQUI",
-  authDomain: "COLOQUE_SEU_AUTH_DOMAIN_AQUI",
-  projectId: "COLOQUE_SEU_PROJECT_ID_AQUI",
-  storageBucket: "COLOQUE_SEU_STORAGE_BUCKET_AQUI",
-  messagingSenderId: "COLOQUE_SEU_MESSAGING_SENDER_ID_AQUI",
-  appId: "COLOQUE_SEU_APP_ID_AQUI",
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Export Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export {}; // Exporta um objeto vazio para manter o arquivo como um módulo e evitar erros.

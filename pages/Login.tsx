@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,10 +18,10 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await auth.login(email, password);
+      await auth.login(login, password);
       navigate('/');
     } catch (err) {
-      setError('E-mail ou senha inválidos. Por favor, tente novamente.');
+      setError('Login ou senha inválidos. Por favor, tente novamente.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -40,12 +40,12 @@ const Login: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-700">E-mail</label>
+            <label className="text-sm font-medium text-gray-700">Login</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Digite seu e-mail"
+              type="text"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+              placeholder="Digite seu login"
               className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               required
             />
