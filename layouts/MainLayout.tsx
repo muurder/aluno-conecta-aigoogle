@@ -14,15 +14,15 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const showHeader = showHeaderOnPages.includes(location.pathname);
 
   return (
-    <div className="flex flex-col h-full bg-gray-100">
+    <div className="flex flex-col h-full bg-gray-50">
       {showHeader && (
-        <header className="bg-white px-4 pt-6 pb-4 shadow-sm">
+        <header className="bg-white px-4 pt-6 pb-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200">
                     {user?.photo ? (
                         <img src={user.photo} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                        <UserCircleIcon className="w-full h-full text-gray-400" />
+                        <UserCircleIcon className="w-full h-full text-gray-300" />
                     )}
                 </div>
 
