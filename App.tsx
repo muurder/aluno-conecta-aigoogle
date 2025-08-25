@@ -50,11 +50,13 @@ const AppRoutes: React.FC = () => {
   );
 };
 
+// ...
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <div className="h-screen font-sans">
-        <div className="relative max-w-sm mx-auto h-full bg-white shadow-lg">
+      {/* 100dvh lida melhor com barras do navegador no mobile do que 100vh/h-screen */}
+      <div className="min-h-[100dvh] font-sans bg-slate-100">
+        <div className="relative max-w-sm mx-auto min-h-[100dvh] bg-white shadow-lg overflow-hidden">
           <HashRouter>
             <AppRoutes />
           </HashRouter>
@@ -63,5 +65,6 @@ const App: React.FC = () => {
     </AuthProvider>
   );
 };
+
 
 export default App;

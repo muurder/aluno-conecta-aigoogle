@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
@@ -20,14 +19,20 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
 
 const BottomNav: React.FC = () => {
   return (
-    <footer className="w-full flex-shrink-0 bg-white border-t border-gray-200 shadow-md">
-      <nav className="flex justify-around items-center h-16">
-        <NavItem to="/" icon={<HomeIcon className="w-6 h-6" />} label="Início" />
-        <NavItem to="/my-course" icon={<AcademicCapIcon className="w-6 h-6" />} label="Meu Curso" />
-        <NavItem to="/financial" icon={<BanknotesIcon className="w-6 h-6" />} label="Financeiro" />
-        <NavItem to="/profile" icon={<UserIcon className="w-6 h-6" />} label="Perfil" />
-      </nav>
-    </footer>
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 
+                 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // notch iOS
+    >
+      <div className="mx-auto max-w-sm">
+        <ul className="grid grid-cols-4 h-[64px] items-center">
+          <li><NavItem to="/" icon={<HomeIcon className="w-6 h-6" />} label="Início" /></li>
+          <li><NavItem to="/my-course" icon={<AcademicCapIcon className="w-6 h-6" />} label="Meu Curso" /></li>
+          <li><NavItem to="/financial" icon={<BanknotesIcon className="w-6 h-6" />} label="Financeiro" /></li>
+          <li><NavItem to="/profile" icon={<UserIcon className="w-6 h-6" />} label="Perfil" /></li>
+        </ul>
+      </div>
+    </nav>
   );
 };
 
