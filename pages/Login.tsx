@@ -1,8 +1,8 @@
 
-import React, { useState } from 'https://esm.sh/react@18.2.0';
-import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/outline?deps=react';
+import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 const Login: React.FC = () => {
   const [login, setLogin] = useState('');

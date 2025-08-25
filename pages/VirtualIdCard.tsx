@@ -1,9 +1,9 @@
 
-import React, { useState } from 'https://esm.sh/react@18.2.0';
-import { useNavigate } from 'https://esm.sh/react-router-dom@6.23.1?deps=react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StudentIdCard from '../components/StudentIdCard';
-import { ArrowLeftIcon, ArrowPathIcon } from 'https://esm.sh/@heroicons/react@2.1.3/24/solid?deps=react';
+import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
 const VirtualIdCard: React.FC = () => {
   const { user } = useAuth();
