@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -15,22 +14,22 @@ const Profile: React.FC = () => {
   };
 
   const ProfileHeader: React.FC = () => (
-    <div className="bg-gradient-to-b from-cyan-200 to-teal-300 p-6 text-center relative overflow-hidden">
-        <img src="/images/balao1.png" className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
-        <img src="/images/balao2.png" className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
+    <div className="bg-gradient-to-b from-cyan-400 to-teal-500 p-6 text-center relative overflow-hidden">
+        <img src="/decors/balao1.png" className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
+        <img src="/decors/balao2.png" className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
         <div className="relative">
             <div className="relative w-28 h-28 mx-auto">
                 {user?.photo ? (
-                    <img src={user.photo} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-white/80 shadow-lg" />
+                    <img src={user.photo} alt="Profile" className="w-28 h-28 rounded-full object-cover shadow-lg" />
                 ) : (
-                    <UserCircleIcon className="w-28 h-28 text-white/70" />
+                    <UserCircleIcon className="w-28 h-28 text-white/60" />
                 )}
                 <button onClick={() => history.push('/edit-profile')} className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 shadow-md hover:bg-blue-700 transition">
                     <CameraIcon className="w-5 h-5" />
                 </button>
             </div>
-            <h2 className="mt-4 text-xl font-bold text-gray-800">{user?.fullName}</h2>
-            <p className="text-sm text-gray-700 break-words">{user?.email}</p>
+            <h2 className="mt-4 text-xl font-bold text-slate-800">{user?.fullName}</h2>
+            <p className="text-sm text-slate-700 break-words">{user?.email}</p>
         </div>
     </div>
   );
