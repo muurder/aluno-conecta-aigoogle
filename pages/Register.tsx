@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -141,7 +142,7 @@ const Register: React.FC = () => {
                 setError(
                      <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg text-red-900">
                         <h3 className="text-lg font-bold mb-3">Ação Necessária no Supabase</h3>
-                        <p>O erro indica que as <strong>Regras de Segurança (RLS)</strong> estão bloqueando a criação do seu perfil de usuário. Verifique se o script SQL foi executado corretamente no seu projeto Supabase, conforme as instruções da tela inicial.</p>
+                        <p>Ocorreu um erro de permissão ao salvar seus dados. Isso geralmente acontece se as <strong>Regras de Segurança (RLS)</strong> não foram configuradas corretamente. Verifique se o script SQL da tela inicial foi executado no seu projeto Supabase.</p>
                     </div>
                 );
             }
