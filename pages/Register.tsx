@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,21 +9,23 @@ import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
 import { CameraIcon, ArrowPathIcon, SparklesIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
+type FormData = Omit<User, 'uid' | 'email'>;
+
 const Register: React.FC = () => {
     const navigate = useNavigate();
     const auth = useAuth();
-    const [formData, setFormData] = useState<Omit<User, 'uid'>>({
+    const [formData, setFormData] = useState<FormData>({
         status: 'pending',
         institutionalLogin: '',
         rgm: '',
         fullName: '',
-        email: '',
         university: 'Anhanguera',
         course: '',
         campus: '',
         validity: '',
         photo: null,
     });
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<React.ReactNode>('');
@@ -112,7 +115,7 @@ const Register: React.FC = () => {
             setError('As senhas não coincidem.');
             return;
         }
-        if (!formData.email || !formData.fullName || !formData.university || !formData.course || !formData.campus || !formData.institutionalLogin) {
+        if (!email || !formData.fullName || !formData.university || !formData.course || !formData.campus || !formData.institutionalLogin) {
             setError('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
@@ -120,7 +123,7 @@ const Register: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const newUser = await auth.register(formData, password);
+            const newUser = await auth.register(formData, email, password);
             if (newUser.status === 'approved') {
                 navigate('/');
             } else {
@@ -128,77 +131,21 @@ const Register: React.FC = () => {
             }
         } catch (err: any) {
             console.error("Registration Error:", err); // Log the full error for debugging
-            if (err.code === 'auth/email-already-in-use') {
+            if (err.message.includes('User already registered')) {
                  setError('Este e-mail já está em uso. Por favor, utilize outro.');
-            } else if (err.code === 'auth/weak-password') {
+            } else if (err.message.includes('password should be at least 6 characters')) {
                 setError('A senha deve ter pelo menos 6 caracteres.');
-            } else if (err.code === 'auth/invalid-email') {
+            } else if (err.message.includes('valid email')) {
                 setError('O e-mail fornecido é inválido.');
-            } else if (err.code === 'auth/operation-not-allowed') {
+            } else if (err.message.includes('violates row-level security policy')) {
                 setError(
-                    <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <ExclamationTriangleIcon className="h-6 w-6 text-red-400" aria-hidden="true" />
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="text-md font-bold text-red-800">Ação Necessária no Firebase</h3>
-                                <div className="mt-2 text-sm text-red-700 space-y-3">
-                                    <p>
-                                        O erro <code className="bg-red-200 text-red-800 font-mono text-xs p-1 rounded">auth/operation-not-allowed</code> indica que o método de login com <strong>E-mail/Senha</strong> não está habilitado.
-                                    </p>
-                                    <div>
-                                        <p className="font-semibold">Para corrigir:</p>
-                                        <ol className="list-decimal list-inside space-y-1 mt-1">
-                                            <li>Abra o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-red-900">Console do Firebase</a>.</li>
-                                            <li>Vá para a seção <strong>Authentication</strong>.</li>
-                                            <li>Clique na aba <strong>Sign-in method</strong> (ou Método de login).</li>
-                                            <li>Encontre <strong>"E-mail/senha"</strong> na lista de provedores e ative-o.</li>
-                                        </ol>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                     <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg text-red-900">
+                        <h3 className="text-lg font-bold mb-3">Ação Necessária no Supabase</h3>
+                        <p>O erro indica que as <strong>Regras de Segurança (RLS)</strong> estão bloqueando a criação do seu perfil de usuário. Verifique se o script SQL foi executado corretamente no seu projeto Supabase, conforme as instruções da tela inicial.</p>
                     </div>
                 );
-            } else if (err.code === 'permission-denied') {
-                setError(
-                    <div className="text-left p-4 bg-red-50 border border-red-200 rounded-lg text-red-900">
-                        <h3 className="text-lg font-bold mb-3">Ação Necessária no Firestore</h3>
-                        <div className="text-sm space-y-3">
-                            <p>
-                                O erro <code className="bg-red-200 text-red-800 font-mono text-xs p-1 rounded">permission-denied</code> indica que as <strong>Regras de Segurança do Firestore</strong> estão bloqueando a criação do seu perfil de usuário.
-                            </p>
-                            <div>
-                                <p>Para corrigir, permita a criação de novos usuários:</p>
-                                <ol className="list-decimal list-inside space-y-1 mt-2">
-                                    <li>No <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-red-900">Console do Firebase</a>, vá para <strong>Firestore Database</strong>.</li>
-                                    <li>Clique na aba <strong>Regras</strong>.</li>
-                                    <li>Substitua as regras existentes por estas para permitir o cadastro:</li>
-                                </ol>
-                            </div>
-                            <div className="bg-gray-100 text-gray-800 p-3 rounded-md overflow-x-auto font-mono text-xs my-2 border">
-                                <pre><code>
-{`rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      // Permite que qualquer um crie um usuário,
-      // mas apenas o próprio usuário pode ler ou modificar seus dados.
-      allow read, update, delete: if request.auth.uid == userId;
-      allow create: if true;
-    }
-  }
-}`}
-                                </code></pre>
-                            </div>
-                            <p className="text-sm">
-                                Isso permite que novos usuários se cadastrem. Lembre-se de ajustar as regras para suas necessidades de produção.
-                            </p>
-                        </div>
-                    </div>
-                );
-            } else {
+            }
+            else {
                 setError('Ocorreu um erro ao criar a conta. Tente novamente.');
             }
         } finally {
@@ -230,7 +177,7 @@ service cloud.firestore {
                     </div>
                     <div className="md:col-span-2">
                         <label className="text-sm font-medium text-gray-700">Email Pessoal (para login)</label>
-                        <input name="email" type="email" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="seu.email@provedor.com" required />
+                        <input name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="seu.email@provedor.com" required />
                     </div>
                     <div>
                         <label className="text-sm font-medium text-gray-700">Senha</label>

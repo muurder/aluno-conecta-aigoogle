@@ -1,28 +1,5 @@
+// This file is a remnant of a previous Firebase integration and is no longer in use.
+// The application has been migrated to Supabase for its backend services.
+// Keeping this file empty to resolve TypeScript errors from un-used code.
 
-
-// Import the functions you need from the SDKs you need
-import firebase from "firebase/compat/app";
-import "firebase/compat/auth";
-import "firebase/compat/firestore";
-
-// Your web app's Firebase configuration is now read from Environment Variables
-// This makes the code safe to be shared on GitHub.
-// For local development, create a .env.local file in the root of your project.
-export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-// Initialize Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-
-// Export Firebase services
-export const auth = firebase.auth();
-export const db = firebase.firestore();
+export {};

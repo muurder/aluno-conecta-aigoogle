@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -22,11 +23,9 @@ const Login: React.FC = () => {
       await auth.login(email, password);
       navigate('/');
     } catch (err: any) {
-      console.error("Login Error:", err.code);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        setError('E-mail pessoal não encontrado. Verifique o e-mail digitado ou cadastre-se.');
-      } else if (err.code === 'auth/wrong-password') {
-        setError('Senha incorreta. Por favor, tente novamente.');
+      console.error("Login Error:", err);
+      if (err.message.includes('Invalid login credentials')) {
+        setError('E-mail ou senha inválidos. Por favor, verifique seus dados.');
       } else {
         setError('Ocorreu um erro ao tentar fazer login. Tente novamente mais tarde.');
       }
