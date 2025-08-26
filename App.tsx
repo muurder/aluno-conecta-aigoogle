@@ -56,7 +56,7 @@ BEGIN
   );
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 3. Cria um gatilho (trigger) que executa a função acima após cada novo registro
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -130,9 +130,22 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                     </pre>
                                 </div>
                             </div>
+                            
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Configure o Acesso (CORS)</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Para que o app se comunique com o Supabase localmente, você precisa autorizar a URL de desenvolvimento.
+                                </p>
+                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
+                                    <li>No painel do Supabase, vá para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Project Settings &gt; API</code>.</li>
+                                    <li>Na seção <code className="text-sm font-mono">Configuration</code>, encontre <code className="text-sm font-mono">CORS settings</code>.</li>
+                                    <li>Adicione a URL <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando) como uma nova origem.</li>
+                                    <li>Clique em "Save".</li>
+                                </ol>
+                            </div>
 
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Crie a Tabela e as Funções no Banco de Dados</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Crie a Tabela e as Funções no Banco de Dados</h3>
                                 <p className="text-gray-600 text-sm mb-2">
                                     No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo. Ele irá criar a tabela <code className="text-sm font-mono">profiles</code>, configurar um gatilho para criar perfis automaticamente e definir as permissões de acesso (RLS).
                                 </p>
@@ -147,6 +160,19 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                         <code>{sqlScript}</code>
                                     </pre>
                                 </div>
+                            </div>
+                            
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Defina o Primeiro Administrador</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Para acessar o painel de administração, você precisa definir um usuário como administrador manualmente.
+                                </p>
+                                <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
+                                    <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
+                                    <li>No painel do Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Table Editor</code> e selecione a tabela <code className="text-sm font-mono">profiles</code>.</li>
+                                    <li>Encontre a linha correspondente ao seu usuário recém-criado.</li>
+                                    <li>Clique duas vezes na célula da coluna <code className="text-sm font-mono">is_admin</code> e mude o valor de <code className="text-sm font-mono">false</code> para <code className="text-sm font-mono">true</code>. Salve a alteração.</li>
+                                </ol>
                             </div>
 
                             <div className="border-t pt-4 text-center">
