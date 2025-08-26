@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -35,11 +36,27 @@ CREATE TABLE public.profiles (
   CONSTRAINT profiles_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
 );
 
--- 2. Ativa a segurança a nível de linha (RLS)
+-- 2. Cria uma função para inserir automaticamente um novo perfil quando um usuário se registra
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (uid, email)
+  VALUES (new.id, new.email);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 3. Cria um gatilho (trigger) que executa a função acima após cada novo registro
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 4. Ativa a segurança a nível de linha (RLS) na tabela de perfis
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 3. Define as políticas de acesso
-CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = uid);
+-- 5. Define as políticas de acesso (Policies)
+-- A política de INSERT não é mais necessária para os usuários, pois o trigger cuida disso.
 CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = uid);
 CREATE POLICY "Users can read their own profile." ON public.profiles FOR SELECT USING (auth.uid() = uid);
 CREATE POLICY "Admins can read all profiles." ON public.profiles FOR SELECT USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));
@@ -103,9 +120,9 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Crie a Tabela de Usuários no Banco de Dados</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Crie a Tabela e as Funções no Banco de Dados</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo para criar a tabela <code className="text-sm font-mono">profiles</code> e configurar as permissões de acesso (RLS).
+                                    No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo. Ele irá criar a tabela <code className="text-sm font-mono">profiles</code>, configurar um gatilho para criar perfis automaticamente e definir as permissões de acesso (RLS).
                                 </p>
                                 <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-60 relative">
                                     <button

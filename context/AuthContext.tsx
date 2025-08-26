@@ -1,6 +1,7 @@
 
 
 
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabase';
 import type { User } from '../types';
@@ -120,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<User> => {
+      // Step 1: Create the user in auth.users. The DB trigger will create the basic profile row.
       const { data, error: signUpError } = await supabase.auth.signUp({
           email: email,
           password: pass,
@@ -128,24 +130,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (signUpError) throw signUpError;
       if (!data.user) throw new Error("User creation failed, Supabase user is null.");
 
-      const newUser: User = {
+      // Step 2: Prepare the full user object for the app state.
+      const fullUser: User = {
           uid: data.user.id,
           email: data.user.email!,
           ...userData
       };
 
-      const profileData = mapUserToSupabaseProfile(newUser);
-
-      const { error: insertError } = await supabase.from('profiles').insert(profileData);
+      // Step 3: Prepare the data to UPDATE the profile row created by the trigger.
+      const profileUpdateData = {
+          institutional_login: userData.institutionalLogin,
+          rgm: userData.rgm,
+          full_name: userData.fullName,
+          university: userData.university,
+          course: userData.course,
+          campus: userData.campus,
+          validity: userData.validity,
+          photo: userData.photo,
+          status: userData.status,
+      };
       
-      if (insertError) {
-          console.error("Error inserting profile:", insertError);
-          // Potentially delete the auth user if profile creation fails
-          throw insertError;
+      // Step 4: Update the new profile with the rest of the form data.
+      const { error: updateError } = await supabase
+          .from('profiles')
+          .update(profileUpdateData)
+          .eq('uid', data.user.id);
+      
+      if (updateError) {
+          console.error("Error updating profile after sign up:", updateError);
+          // This is a critical error. The user exists in auth, but their profile is incomplete.
+          // In a real-world app, you might want a cleanup process or a retry mechanism.
+          throw updateError;
       }
       
-      setUser(newUser);
-      return newUser;
+      setUser(fullUser);
+      return fullUser;
   };
   
   const updateUser = async (newUserData: User) => {
