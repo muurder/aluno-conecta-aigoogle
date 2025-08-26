@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -161,9 +162,6 @@ const Register: React.FC = () => {
                 ) : (
                 <>
                     <div className="text-center">
-                        {selectedLogo && (
-                            <img src={selectedLogo} alt="Logotipo da Faculdade" className="h-16 mx-auto mb-4 object-contain" />
-                        )}
                         <h1 className="text-3xl font-bold text-gray-800">Criar conta</h1>
                         <p className="text-gray-500 mt-2">Preencha seus dados</p>
                     </div>
@@ -204,6 +202,11 @@ const Register: React.FC = () => {
                                 {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
                             </select>
                         </div>
+                        {selectedLogo && (
+                            <div className="md:col-span-2 flex justify-center items-center h-16 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                                <img src={selectedLogo} alt="Logotipo da Faculdade" className="max-h-full object-contain" />
+                            </div>
+                        )}
                         <div className="md:col-span-2 relative">
                             <label className="text-sm font-medium text-gray-700">Email Institucional (gerado)</label>
                             <input name="institutionalEmailDisplay" value={institutionalEmail || ''} readOnly className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100 pr-10" placeholder="Gerado a partir do nome completo" />
