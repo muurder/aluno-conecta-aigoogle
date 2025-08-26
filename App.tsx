@@ -116,14 +116,20 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  // Checks if all the environment variables for Firebase are set.
+  // Checks if all the environment variables for Firebase are set AND not placeholders.
   const isFirebaseConfigured = 
     import.meta.env.VITE_FIREBASE_API_KEY &&
+    import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY_DO_FIREBASE' &&
     import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN !== 'SEU_AUTH_DOMAIN_DO_FIREBASE' &&
     import.meta.env.VITE_FIREBASE_PROJECT_ID &&
+    import.meta.env.VITE_FIREBASE_PROJECT_ID !== 'SEU_PROJECT_ID_DO_FIREBASE' &&
     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET !== 'SEU_STORAGE_BUCKET_DO_FIREBASE' &&
     import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-    import.meta.env.VITE_FIREBASE_APP_ID;
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID !== 'SEU_MESSAGING_SENDER_ID_DO_FIREBASE' &&
+    import.meta.env.VITE_FIREBASE_APP_ID &&
+    import.meta.env.VITE_FIREBASE_APP_ID !== 'SEU_APP_ID_DO_FIREBASE';
 
   if (!isFirebaseConfigured) {
     return <FirebaseConfigWarning />;
