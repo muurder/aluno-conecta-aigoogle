@@ -1,5 +1,5 @@
 {
-  "name": "Student Portal",
+  "name": "Portal do Estudante",
   "description": "A modern, mobile-first student portal application that provides access to virtual ID cards, course information, and university services. Built with React and Tailwind CSS.",
   "requestFramePermissions": []
 }
