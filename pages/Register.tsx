@@ -2,13 +2,14 @@
 
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
-import { CameraIcon, ArrowPathIcon, SparklesIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, ArrowPathIcon, SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 type FormData = Omit<User, 'uid' | 'email'>;
 
@@ -149,12 +150,12 @@ const Register: React.FC = () => {
             <div className="w-full max-w-lg mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
                 {registrationSuccess ? (
                     <div className="text-center p-4">
-                        <EnvelopeIcon className="mx-auto h-16 w-16 text-green-500 mb-4" />
-                        <h2 className="text-2xl font-bold text-gray-800">Conta Criada!</h2>
-                        <p className="mt-4 text-gray-700">Enviamos um e-mail de confirmação para <strong className="break-all">{email}</strong>.</p>
-                        <p className="mt-2 text-gray-600">Por favor, clique no link enviado para ativar sua conta e poder fazer login.</p>
+                        <CheckCircleIcon className="mx-auto h-16 w-16 text-green-500 mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-800">Conta Criada com Sucesso!</h2>
+                        <p className="mt-4 text-gray-700">Sua conta foi criada e agora está aguardando a aprovação de um administrador.</p>
+                        <p className="mt-2 text-gray-600">Após a aprovação, você poderá acessar o portal fazendo login com suas credenciais.</p>
                         <button onClick={() => navigate('/login')} className="mt-8 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
-                            Ir para a tela de Login
+                            Voltar para o Login
                         </button>
                     </div>
                 ) : (
