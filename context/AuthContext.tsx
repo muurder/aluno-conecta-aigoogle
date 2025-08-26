@@ -1,12 +1,47 @@
 
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import firebase from 'firebase/compat/app';
-import { auth, db } from '../firebase';
-import type { User } from '../types';
 
-// Define Firebase User type for v8/compat mode
-type FirebaseUser = firebase.User;
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { supabase } from '../supabase';
+import type { User } from '../types';
+import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
+
+// Helper to map Supabase profile data (snake_case) to our app's User type (camelCase)
+const mapSupabaseProfileToUser = (profile: any, authUser: SupabaseUser): User => {
+    return {
+        uid: authUser.id,
+        email: authUser.email!,
+        institutionalLogin: profile.institutional_login,
+        rgm: profile.rgm,
+        fullName: profile.full_name,
+        university: profile.university,
+        course: profile.course,
+        campus: profile.campus,
+        validity: profile.validity,
+        photo: profile.photo,
+        status: profile.status,
+        isAdmin: profile.is_admin,
+    };
+};
+
+// Helper to map our app's User type to Supabase profile data
+const mapUserToSupabaseProfile = (user: User) => {
+    return {
+        uid: user.uid,
+        institutional_login: user.institutionalLogin,
+        rgm: user.rgm,
+        full_name: user.fullName,
+        email: user.email,
+        university: user.university,
+        course: user.course,
+        campus: user.campus,
+        validity: user.validity,
+        photo: user.photo,
+        status: user.status,
+        is_admin: user.isAdmin,
+    };
+};
+
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -14,7 +49,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (userData: Omit<User, 'uid'>, pass: string) => Promise<User>;
+  register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => Promise<User>;
   updateUser: (newUserData: User) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
@@ -22,12 +57,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Função auxiliar para buscar dados do Firestore
-const getUserProfile = async (firebaseUser: FirebaseUser): Promise<User | null> => {
-    const userDocRef = db.collection('users').doc(firebaseUser.uid);
-    const userDoc = await userDocRef.get();
-    if (userDoc.exists) {
-        return userDoc.data() as User;
+const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User | null> => {
+    const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('uid', supabaseUser.id)
+        .single();
+    
+    if (error) {
+        console.error("Error fetching user profile:", error.message);
+        return null;
+    }
+    
+    if (profile) {
+        return mapSupabaseProfileToUser(profile, supabaseUser);
     }
     return null;
 }
@@ -38,78 +81,134 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        const userProfile = await getUserProfile(firebaseUser);
-        setUser(userProfile);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+    const getInitialSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            const userProfile = await getUserProfile(session.user);
+            setUser(userProfile);
+        }
+        setLoading(false);
+    };
+    
+    getInitialSession();
 
-    return () => unsubscribe();
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        setLoading(true);
+        if (event === 'SIGNED_IN' && session?.user) {
+          const userProfile = await getUserProfile(session.user);
+          setUser(userProfile);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, pass: string) => {
-    // A lógica foi simplificada para usar o e-mail diretamente.
-    // Isso remove a necessidade de uma consulta prévia ao Firestore,
-    // que estava sendo bloqueada pelas regras de segurança para usuários não autenticados.
-    await auth.signInWithEmailAndPassword(email, pass);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
   };
 
   const logout = async () => {
-    await auth.signOut();
+    await supabase.auth.signOut();
   };
 
-  const register = async (userData: Omit<User, 'uid'>, pass: string): Promise<User> => {
-    // O "primeiro usuário é admin" foi removido. Essa verificação exigia
-    // permissão de leitura na coleção de usuários antes da autenticação,
-    // o que causava o erro 'permission-denied'.
-    // O primeiro usuário agora deve ser definido como admin manualmente no console do Firebase.
-    const userCredential = await auth.createUserWithEmailAndPassword(userData.email, pass);
-    const firebaseUser = userCredential.user;
+  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<User> => {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: pass,
+      });
 
-    if (!firebaseUser) {
-        throw new Error("User creation failed, Firebase user is null.");
-    }
-    
-    const newUser: User = {
-        uid: firebaseUser.uid,
-        ...userData, // userData from registration form already has status: 'pending'
-    };
-    
-    await db.collection('users').doc(firebaseUser.uid).set(newUser);
-    setUser(newUser);
-    return newUser;
+      if (signUpError) throw signUpError;
+      if (!data.user) throw new Error("User creation failed, Supabase user is null.");
+
+      const newUser: User = {
+          uid: data.user.id,
+          email: data.user.email!,
+          ...userData
+      };
+
+      const profileData = mapUserToSupabaseProfile(newUser);
+
+      const { error: insertError } = await supabase.from('profiles').insert(profileData);
+      
+      if (insertError) {
+          console.error("Error inserting profile:", insertError);
+          // Potentially delete the auth user if profile creation fails
+          throw insertError;
+      }
+      
+      setUser(newUser);
+      return newUser;
   };
   
   const updateUser = async (newUserData: User) => {
-      const userDocRef = db.collection('users').doc(newUserData.uid);
-      await userDocRef.update({ ...newUserData });
+      const profileData = mapUserToSupabaseProfile(newUserData);
+      // Remove uid from the update payload as it's the primary key and shouldn't be changed
+      const { uid, ...updateData } = profileData; 
+
+      const { error } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('uid', newUserData.uid);
+
+      if (error) throw error;
+
       if (user?.uid === newUserData.uid) {
           setUser(newUserData);
       }
   };
 
   const getAllUsers = async (): Promise<User[]> => {
-    const usersCol = db.collection('users');
-    const userSnapshot = await usersCol.get();
-    const userList = userSnapshot.docs.map(doc => doc.data() as User);
-    return userList;
+    const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+    if (error) {
+      console.error("Error fetching all users:", error);
+      throw error;
+    }
+    
+    // In Supabase, we can't easily fetch the auth user email for all users from the client
+    // due to security policies. We'll use the email stored in the profile.
+    return profiles.map(profile => ({
+      uid: profile.uid,
+      email: profile.email, // Using email from profile table
+      institutionalLogin: profile.institutional_login,
+      rgm: profile.rgm,
+      fullName: profile.full_name,
+      university: profile.university,
+      course: profile.course,
+      campus: profile.campus,
+      validity: profile.validity,
+      photo: profile.photo,
+      status: profile.status,
+      isAdmin: profile.is_admin,
+    }));
   };
 
   const deleteUser = async (uid: string) => {
-    // ATENÇÃO: Isso deleta apenas o perfil do Firestore.
-    // Deletar o usuário da Autenticação do Firebase requer privilégios de admin
-    // e geralmente é feito a partir de um backend (Cloud Function) por segurança.
-    const userDocRef = db.collection('users').doc(uid);
-    await userDocRef.delete();
+    // SECURITY NOTE: This deletes only the profile from the database.
+    // Deleting the actual user from Supabase Auth requires admin privileges and
+    // should be done from a secure backend environment (e.g., a Supabase Edge Function)
+    // to avoid exposing service_role keys on the client.
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('uid', uid);
+    
+    if (error) throw error;
   };
 
   return (
     <AuthContext.Provider value={{ isAuthenticated: !!user, user, loading, login, logout, register, updateUser, getAllUsers, deleteUser }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

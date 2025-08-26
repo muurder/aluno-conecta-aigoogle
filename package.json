@@ -12,7 +12,7 @@
     "react": "^19.1.1",
     "react-router-dom": "6.23.1",
     "@google/genai": "latest",
-    "firebase": "10.12.2",
+    "@supabase/supabase-js": "2.43.4",
     "react-dom": "^19.1.1",
     "@heroicons/react": "^2.2.0"
   },

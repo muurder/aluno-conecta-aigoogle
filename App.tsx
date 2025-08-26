@@ -1,6 +1,5 @@
 
-
-import React from 'react';
+import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
@@ -19,58 +18,118 @@ import AdminEditUser from './pages/AdminEditUser';
 
 const isProduction = import.meta.env.PROD;
 
-// This component now shows a different warning for production and local development environments.
-const FirebaseConfigWarning: React.FC = () => (
-  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-lg shadow-2xl p-8 max-w-lg text-center">
-      {isProduction ? (
-        <>
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h2>
-          <p className="text-gray-700 mb-4">
-            O aplicativo não pôde ser iniciado devido a um problema de configuração no servidor.
-          </p>
-          <p className="text-gray-600">
-            Por favor, entre em contato com o administrador do sistema para resolver o problema.
-          </p>
-        </>
-      ) : (
-        <>
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Atenção: Configuração Local Incompleta</h2>
-          <p className="text-gray-700 mb-4">
-            Para rodar o "Portal do Aluno" no seu computador, você precisa das chaves de API.
-          </p>
-          <p className="text-gray-600 text-sm mb-6">
-            (Isso é diferente das chaves que você configurou na Vercel, que são para o site online).
-          </p>
-          
-          <p className="text-gray-700 mb-2 font-semibold">Como resolver:</p>
-          <ol className="text-left list-decimal list-inside text-gray-700 mb-6 space-y-1">
-              <li>Crie um arquivo chamado <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto.</li>
-              <li>Copie e cole o texto abaixo nele, substituindo pelas suas chaves.</li>
-          </ol>
-
-          <div className="text-left bg-gray-100 p-4 rounded-md overflow-x-auto">
-            <pre className="text-xs text-gray-600">
-              <code>
-{`# .env.local
-# Cole suas chaves do Firebase e Gemini aqui
-
-VITE_FIREBASE_API_KEY="SUA_API_KEY_DO_FIREBASE"
-VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN_DO_FIREBASE"
-VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID_DO_FIREBASE"
-VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET_DO_FIREBASE"
-VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID_DO_FIREBASE"
-VITE_FIREBASE_APP_ID="SEU_APP_ID_DO_FIREBASE"
-VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
-              </code>
-            </pre>
-          </div>
-           <p className="text-xs text-gray-500 mt-4">Este arquivo <code className="text-xs">.env.local</code> é seguro e não será enviado para o GitHub.</p>
-        </>
-      )}
-    </div>
-  </div>
+const sqlScript = `-- 1. Cria a tabela para guardar os perfis dos usuários
+CREATE TABLE public.profiles (
+  uid uuid NOT NULL PRIMARY KEY,
+  institutional_login TEXT,
+  rgm TEXT,
+  full_name TEXT,
+  email TEXT,
+  university TEXT,
+  course TEXT,
+  campus TEXT,
+  validity TEXT,
+  photo TEXT,
+  status TEXT DEFAULT 'pending',
+  is_admin BOOLEAN DEFAULT false,
+  CONSTRAINT profiles_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
 );
+
+-- 2. Ativa a segurança a nível de linha (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- 3. Define as políticas de acesso
+CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = uid);
+CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = uid);
+CREATE POLICY "Users can read their own profile." ON public.profiles FOR SELECT USING (auth.uid() = uid);
+CREATE POLICY "Admins can read all profiles." ON public.profiles FOR SELECT USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));
+CREATE POLICY "Admins can update any profile." ON public.profiles FOR UPDATE USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));
+CREATE POLICY "Admins can delete any profile." ON public.profiles FOR DELETE USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));`;
+
+const SupabaseConfigWarning: React.FC = () => {
+    const [copyText, setCopyText] = useState('Copiar SQL');
+
+    const handleCopySql = () => {
+        navigator.clipboard.writeText(sqlScript);
+        setCopyText('Copiado!');
+        setTimeout(() => setCopyText('Copiar SQL'), 2000);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-2xl p-8 max-w-3xl w-full text-left">
+                {isProduction ? (
+                    <div className="text-center">
+                        <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração do Servidor</h2>
+                        <p className="text-gray-700">O aplicativo não pode se conectar ao banco de dados.</p>
+                        <p className="text-gray-600 mt-2">Por favor, entre em contato com o administrador do sistema.</p>
+                    </div>
+                ) : (
+                    <>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">Guia de Configuração do Supabase</h2>
+                        <p className="text-gray-600 mb-8">
+                            Siga estes passos para configurar o backend do "Portal do Aluno" e rodar o projeto localmente.
+                        </p>
+                        
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 1:</strong> Crie seu Projeto no Supabase</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Acesse <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">supabase.com</a>, crie uma conta (ou faça login) e inicie um novo projeto.
+                                </p>
+                            </div>
+
+                             <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 2:</strong> Configure suas Variáveis de Ambiente</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    No seu projeto Supabase, navegue até <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Project Settings &gt; API</code>. Você encontrará sua URL e chave <code className="text-sm font-mono">anon</code>.
+                                </p>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Crie um arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto e cole o conteúdo abaixo, substituindo pelos seus dados.
+                                </p>
+                                <div className="bg-gray-100 p-4 rounded-md overflow-x-auto">
+                                    <pre className="text-sm text-gray-700">
+                                        <code>
+{`# .env.local
+# Cole suas chaves do Supabase aqui
+VITE_SUPABASE_URL="SUA_URL_DO_PROJETO_SUPABASE"
+VITE_SUPABASE_ANON_KEY="SUA_CHAVE_ANON_DO_SUPABASE"
+
+# Cole sua chave do Gemini aqui (para o assistente virtual)
+VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
+                                        </code>
+                                    </pre>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Crie a Tabela de Usuários no Banco de Dados</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo para criar a tabela <code className="text-sm font-mono">profiles</code> e configurar as permissões de acesso (RLS).
+                                </p>
+                                <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-60 relative">
+                                    <button
+                                        onClick={handleCopySql}
+                                        className="absolute top-2 right-2 bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold py-1 px-2 rounded transition-colors"
+                                    >
+                                        {copyText}
+                                    </button>
+                                    <pre className="text-xs">
+                                        <code>{sqlScript}</code>
+                                    </pre>
+                                </div>
+                            </div>
+
+                            <div className="border-t pt-4 text-center">
+                                <p className="text-gray-700 font-semibold">Após seguir estes passos, atualize a página.</p>
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
 
 
 const AppRoutes: React.FC = () => {
@@ -116,23 +175,16 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  // Checks if all the environment variables for Firebase are set AND not placeholders.
-  const isFirebaseConfigured = 
-    import.meta.env.VITE_FIREBASE_API_KEY &&
-    import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY_DO_FIREBASE' &&
-    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
-    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN !== 'SEU_AUTH_DOMAIN_DO_FIREBASE' &&
-    import.meta.env.VITE_FIREBASE_PROJECT_ID &&
-    import.meta.env.VITE_FIREBASE_PROJECT_ID !== 'SEU_PROJECT_ID_DO_FIREBASE' &&
-    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
-    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET !== 'SEU_STORAGE_BUCKET_DO_FIREBASE' &&
-    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID !== 'SEU_MESSAGING_SENDER_ID_DO_FIREBASE' &&
-    import.meta.env.VITE_FIREBASE_APP_ID &&
-    import.meta.env.VITE_FIREBASE_APP_ID !== 'SEU_APP_ID_DO_FIREBASE';
+  // Checks if all the environment variables for Supabase are set.
+  const isSupabaseConfigured = 
+    import.meta.env.VITE_SUPABASE_URL &&
+    import.meta.env.VITE_SUPABASE_URL !== 'SUA_URL_DO_PROJETO_SUPABASE' &&
+    import.meta.env.VITE_SUPABASE_ANON_KEY &&
+    import.meta.env.VITE_SUPABASE_ANON_KEY !== 'SUA_CHAVE_ANON_DO_SUPABASE';
 
-  if (!isFirebaseConfigured) {
-    return <FirebaseConfigWarning />;
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseConfigWarning />;
   }
   
   return (
