@@ -36,12 +36,24 @@ CREATE TABLE public.profiles (
   CONSTRAINT profiles_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
 );
 
--- 2. Cria uma função para inserir automaticamente um novo perfil quando um usuário se registra
+-- 2. Cria uma função para inserir um perfil completo quando um usuário se registra
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (uid, email)
-  VALUES (new.id, new.email);
+  INSERT INTO public.profiles (uid, email, full_name, institutional_login, rgm, university, course, campus, validity, photo, status)
+  VALUES (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'institutional_login',
+    new.raw_user_meta_data->>'rgm',
+    new.raw_user_meta_data->>'university',
+    new.raw_user_meta_data->>'course',
+    new.raw_user_meta_data->>'campus',
+    new.raw_user_meta_data->>'validity',
+    new.raw_user_meta_data->>'photo',
+    'pending' -- Seta o status inicial como pendente
+  );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
