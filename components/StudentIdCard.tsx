@@ -16,7 +16,7 @@ const StudentIdCard: React.FC<StudentIdCardProps> = ({ user }) => {
         <div className="absolute -bottom-20 -right-16 w-48 h-48 bg-white/40 rounded-full opacity-50 blur-xl"></div>
         
         <div className="relative z-10 flex flex-col h-full">
-            <header className="flex justify-start items-center mb-6 h-8">
+            <header className="flex justify-start items-center mb-6 h-10">
                 {logo ? (
                     <img src={logo} alt={`${user.university} Logo`} className="max-h-full object-contain opacity-70" />
                 ) : (
