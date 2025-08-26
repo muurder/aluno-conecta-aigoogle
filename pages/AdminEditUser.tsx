@@ -158,7 +158,7 @@ const AdminEditUser: React.FC = () => {
                 <div>
                     <label className="text-sm font-medium text-gray-700">Campus</label>
                     <select name="campus" value={formData.campus} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                        {UNIVERSITY_DETAILS[formData.university].campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
+                        {UNIVERSITY_DETAILS[formData.university]?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
                     </select>
                 </div>
                 <div>

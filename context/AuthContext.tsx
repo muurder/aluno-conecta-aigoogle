@@ -1,7 +1,7 @@
 
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import firebase from 'firebase/app';
+import firebase from 'firebase/compat/app';
 import { auth, db } from '../firebase';
 import type { User } from '../types';
 
