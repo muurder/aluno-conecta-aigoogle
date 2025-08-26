@@ -1,7 +1,5 @@
 
 
-
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabase';
 import type { User } from '../types';
@@ -50,7 +48,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => Promise<User>;
+  register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => Promise<void>;
   updateUser: (newUserData: User) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
@@ -120,64 +118,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<User> => {
-      // Step 1: Create the user in auth.users. The DB trigger will create the basic profile row.
-      const { data, error: signUpError } = await supabase.auth.signUp({
+  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
+      // Prepara os dados do usuário para serem enviados como metadados.
+      // As chaves devem corresponder ao que o gatilho SQL espera (snake_case).
+      const userMetaData = {
+        full_name: userData.fullName,
+        institutional_login: userData.institutionalLogin,
+        rgm: userData.rgm,
+        university: userData.university,
+        course: userData.course,
+        campus: userData.campus,
+        validity: userData.validity,
+        photo: userData.photo,
+        status: 'pending',
+      };
+      
+      // Cria o usuário na autenticação, passando todos os dados do perfil em `options.data`.
+      // O gatilho no banco de dados lerá esses dados para criar a linha completa na tabela 'profiles'.
+      const { error: signUpError } = await supabase.auth.signUp({
           email: email,
           password: pass,
+          options: {
+              data: userMetaData
+          }
       });
 
       if (signUpError) throw signUpError;
-      if (!data.user) throw new Error("User creation failed, Supabase user is null.");
 
-      // Step 2: Immediately sign in to establish a session. This is crucial for RLS policies to work.
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: pass,
-      });
-
-      if (signInError) {
-        console.error("Error signing in after registration:", signInError);
-        // Even if sign-in fails, the user was created. This is a state to handle,
-        // but for now, we throw to indicate a problem with the registration flow.
-        throw new Error("Could not sign in after creating account. Profile update aborted.");
-      }
-
-      // Step 3: Prepare the full user object for the app state.
-      const fullUser: User = {
-          uid: data.user.id,
-          email: data.user.email!,
-          ...userData
-      };
-
-      // Step 4: Prepare the data to UPDATE the profile row created by the trigger.
-      const profileUpdateData = {
-          institutional_login: userData.institutionalLogin,
-          rgm: userData.rgm,
-          full_name: userData.fullName,
-          university: userData.university,
-          course: userData.course,
-          campus: userData.campus,
-          validity: userData.validity,
-          photo: userData.photo,
-          status: userData.status,
-      };
-      
-      // Step 5: Update the new profile with the rest of the form data. This should now succeed due to the active session.
-      const { error: updateError } = await supabase
-          .from('profiles')
-          .update(profileUpdateData)
-          .eq('uid', data.user.id);
-      
-      if (updateError) {
-          console.error("Error updating profile after sign up:", updateError);
-          // This is a critical error. The user exists in auth, but their profile is incomplete.
-          // In a real-world app, you might want a cleanup process or a retry mechanism.
-          throw updateError;
-      }
-      
-      setUser(fullUser);
-      return fullUser;
+      // Não é mais necessário fazer login ou atualizar o perfil manualmente.
+      // O gatilho cuida de tudo. O usuário receberá um e-mail de confirmação do Supabase.
   };
   
   const updateUser = async (newUserData: User) => {
