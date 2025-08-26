@@ -21,7 +21,7 @@ const isProduction = import.meta.env.PROD;
 
 const sqlScript = `-- ================================================================================================
 --  SCRIPT DE CONFIGURAÇÃO DO BANCO DE DADOS PARA O PORTAL DO ALUNO
---  Versão: 3.2 - Corrigido
+--  Versão: 3.3 - Corrigido RLS
 --  Descrição: Este script limpa configurações antigas e cria a estrutura necessária.
 --  É seguro executar este script múltiplas vezes.
 -- ================================================================================================
@@ -32,9 +32,9 @@ DROP POLICY IF EXISTS "Users can read their own profile." ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
 DROP POLICY IF EXISTS "Admins can manage all profiles." ON public.profiles;
 
--- Remove a função antiga. A opção CASCADE remove automaticamente o gatilho em 'auth.users'
--- que depende desta função, evitando erros de permissão.
+-- Remove as funções antigas. A opção CASCADE remove automaticamente objetos dependentes.
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.is_user_admin();
 
 -- Remove a tabela de perfis antiga.
 DROP TABLE IF EXISTS public.profiles;
@@ -88,6 +88,21 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- 2.4. Cria a função auxiliar para checar se o usuário é admin.
+-- Esta função é SECURITY DEFINER para quebrar a recursão infinita na política RLS de administrador.
+CREATE OR REPLACE FUNCTION public.is_user_admin()
+RETURNS boolean AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN false;
+  END IF;
+  RETURN (SELECT is_admin FROM public.profiles WHERE uid = auth.uid());
+EXCEPTION WHEN OTHERS THEN
+  RETURN false;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+COMMENT ON FUNCTION public.is_user_admin() IS 'Verifica se o usuário logado é um administrador, de forma segura para RLS.';
+
 
 -- PASSO 3: Configuração da segurança a nível de linha (RLS).
 
@@ -101,10 +116,9 @@ CREATE POLICY "Users can read their own profile." ON public.profiles
 CREATE POLICY "Users can update their own profile." ON public.profiles
   FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
 
+-- Política de Admin corrigida para usar a função auxiliar e evitar recursão.
 CREATE POLICY "Admins can manage all profiles." ON public.profiles
-  FOR ALL USING (
-    exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true)
-  );
+  FOR ALL USING (public.is_user_admin() = true);
 COMMENT ON POLICY "Users can read their own profile." ON public.profiles IS 'Permite que os usuários leiam seus próprios dados de perfil.';
 COMMENT ON POLICY "Users can update their own profile." ON public.profiles IS 'Permite que os usuários atualizem seus próprios dados de perfil.';
 COMMENT ON POLICY "Admins can manage all profiles." ON public.profiles IS 'Concede acesso total (CRUD) aos usuários administradores.';`;
