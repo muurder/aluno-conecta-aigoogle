@@ -1,7 +1,3 @@
-
-
-
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../supabase';
 import type { User, Post, Comment, Reaction } from '../types';
@@ -72,66 +68,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('uid', session.user.id)
-                .single();
-            
-            if (error) {
-                console.error("Error fetching initial profile:", error.message);
-                if (error.message.toLowerCase().includes('network')) {
-                    setProfileError('cors');
-                } else {
-                    setProfileError('generic');
-                }
-                setUser(null);
-            } else if (profile) {
-                setUser(mapSupabaseProfileToUser(profile, session.user));
-            } else {
-                console.error("Profile not found on initial load for user:", session.user.id);
-                setProfileError('no_profile');
-                setUser(null);
-            }
-        }
-        setLoading(false);
-    };
-    
-    getInitialSession();
-
+    // onAuthStateChange é chamado uma vez na inscrição com a sessão inicial.
+    // Isso lida tanto com o carregamento inicial quanto com eventos de autenticação subsequentes.
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        setLoading(true);
-        if (event === 'SIGNED_IN' && session?.user) {
+      async (event, session) => {
+        if (session?.user) {
           const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('uid', session.user.id)
-              .single();
+            .from('profiles')
+            .select('*')
+            .eq('uid', session.user.id)
+            .single();
 
           if (error) {
-              console.error("Error fetching user profile:", error.message);
-              if (error.message.toLowerCase().includes('network')) {
-                  setProfileError('cors');
-              } else {
-                  setProfileError('generic');
-              }
-              setUser(null);
-          } else if (profile) {
-              setUser(mapSupabaseProfileToUser(profile, session.user));
-              setProfileError(null);
-          } else {
+            console.error("Error fetching profile:", error.message);
+            if (error.message.toLowerCase().includes('network')) {
+              setProfileError('cors');
+            } else if (error.code === 'PGRST116') { // 'exact one row not found'
               console.error("Profile not found for user:", session.user.id);
               setProfileError('no_profile');
-              setUser(null);
+            } else {
+              setProfileError('generic');
+            }
+            setUser(null);
+          } else if (profile) {
+            setUser(mapSupabaseProfileToUser(profile, session.user));
+            setProfileError(null);
+          } else {
+             console.error("Profile found was null, but no error reported from Supabase for user:", session.user.id);
+             setProfileError('no_profile');
+             setUser(null);
           }
-        } else if (event === 'SIGNED_OUT') {
+        } else {
+          // Nenhuma sessão ou usuário desconectado
           setUser(null);
           setProfileError(null);
         }
+        // O carregamento inicial termina após a primeira verificação do estado de autenticação.
         setLoading(false);
       }
     );
@@ -140,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authListener.subscription.unsubscribe();
     };
   }, []);
+
 
   const login = async (email: string, pass: string) => {
     setProfileError(null);
