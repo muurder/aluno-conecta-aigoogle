@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -22,28 +23,40 @@ const isProduction = import.meta.env.PROD;
 
 const sqlScript = `-- ================================================================================================
 --  SCRIPT DE CONFIGURAÇÃO DO BANCO DE DADOS PARA O PORTAL DO ALUNO
---  Versão: 3.3 - Corrigido RLS
+--  Versão: 4.0 - Adicionado Mural do Curso (Posts, Comentários, Reações)
 --  Descrição: Este script limpa configurações antigas e cria a estrutura necessária.
 --  É seguro executar este script múltiplas vezes.
 -- ================================================================================================
 
 -- PASSO 1: Limpeza de objetos antigos para garantir uma instalação limpa.
 -- Remove as políticas RLS antigas, se existirem.
+DROP POLICY IF EXISTS "Allow authenticated users to read posts." ON public.posts;
+DROP POLICY IF EXISTS "Allow admins to create posts." ON public.posts;
+DROP POLICY IF EXISTS "Allow admins to delete their own posts." ON public.posts;
+DROP POLICY IF EXISTS "Allow authenticated users to read comments." ON public.comments;
+DROP POLICY IF EXISTS "Allow authenticated users to insert comments." ON public.comments;
+DROP POLICY IF EXISTS "Users can delete their own comments, admins can delete any." ON public.comments;
+DROP POLICY IF EXISTS "Allow authenticated users to read reactions." ON public.reactions;
+DROP POLICY IF EXISTS "Allow authenticated users to insert reactions." ON public.reactions;
+DROP POLICY IF EXISTS "Allow users to delete their own reactions." ON public.reactions;
 DROP POLICY IF EXISTS "Users can read their own profile." ON public.profiles;
 DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
 DROP POLICY IF EXISTS "Admins can manage all profiles." ON public.profiles;
+
+-- Remove as tabelas antigas. A opção CASCADE remove objetos dependentes como policies.
+DROP TABLE IF EXISTS public.reactions;
+DROP TABLE IF EXISTS public.comments;
+DROP TABLE IF EXISTS public.posts;
+DROP TABLE IF EXISTS public.profiles;
 
 -- Remove as funções antigas. A opção CASCADE remove automaticamente objetos dependentes.
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.is_user_admin();
 
--- Remove a tabela de perfis antiga.
-DROP TABLE IF EXISTS public.profiles;
-
 
 -- PASSO 2: Criação da nova estrutura do banco de dados.
 
--- 2.1. Cria a tabela para guardar os perfis dos usuários.
+-- 2.1. Tabela de Perfis de Usuários
 CREATE TABLE public.profiles (
   uid uuid NOT NULL PRIMARY KEY,
   institutional_login TEXT,
@@ -61,7 +74,40 @@ CREATE TABLE public.profiles (
 );
 COMMENT ON TABLE public.profiles IS 'Armazena informações de perfil público para cada usuário.';
 
--- 2.2. Cria a função que será executada pelo gatilho para popular a tabela de perfis.
+-- 2.2. Tabela de Posts do Mural
+CREATE TABLE public.posts (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  author_uid uuid NOT NULL REFERENCES public.profiles(uid) ON DELETE CASCADE,
+  content TEXT,
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+COMMENT ON TABLE public.posts IS 'Armazena os posts do mural criados por administradores.';
+
+-- 2.3. Tabela de Comentários
+CREATE TABLE public.comments (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  author_uid uuid NOT NULL REFERENCES public.profiles(uid) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+COMMENT ON TABLE public.comments IS 'Armazena os comentários dos usuários em cada post.';
+
+-- 2.4. Tabela de Reações
+CREATE TABLE public.reactions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_uid uuid NOT NULL REFERENCES public.profiles(uid) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  UNIQUE(post_id, user_uid) -- Garante que um usuário só pode ter uma reação por post.
+);
+COMMENT ON TABLE public.reactions IS 'Armazena as reações (emojis) dos usuários nos posts.';
+
+
+-- PASSO 3: Gatilhos e Funções do Banco de Dados.
+
+-- 3.1. Função para criar um perfil ao registrar um novo usuário.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -84,13 +130,12 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 COMMENT ON FUNCTION public.handle_new_user() IS 'Cria um perfil para um novo usuário na tabela public.profiles.';
 
--- 2.3. Cria o gatilho (trigger) que executa a função acima após cada novo registro na tabela auth.users.
+-- 3.2. Gatilho (trigger) que executa a função acima após cada novo registro.
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 2.4. Cria a função auxiliar para checar se o usuário é admin.
--- Esta função é SECURITY DEFINER para quebrar a recursão infinita na política RLS de administrador.
+-- 3.3. Função auxiliar para checar se o usuário é admin (evita recursão em RLS).
 CREATE OR REPLACE FUNCTION public.is_user_admin()
 RETURNS boolean AS $$
 BEGIN
@@ -105,24 +150,33 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 COMMENT ON FUNCTION public.is_user_admin() IS 'Verifica se o usuário logado é um administrador, de forma segura para RLS.';
 
 
--- PASSO 3: Configuração da segurança a nível de linha (RLS).
+-- PASSO 4: Configuração da Segurança a Nível de Linha (RLS).
 
--- 3.1. Ativa a RLS na tabela de perfis.
+-- 4.1. Ativa RLS em todas as tabelas relevantes.
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
 
--- 3.2. Define as políticas de acesso (Policies).
-CREATE POLICY "Users can read their own profile." ON public.profiles
-  FOR SELECT USING (auth.uid() = uid);
+-- 4.2. Políticas para a tabela de Perfis (profiles).
+CREATE POLICY "Users can read their own profile." ON public.profiles FOR SELECT USING (auth.uid() = uid);
+CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
+CREATE POLICY "Admins can manage all profiles." ON public.profiles FOR ALL USING (public.is_user_admin() = true);
 
-CREATE POLICY "Users can update their own profile." ON public.profiles
-  FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
+-- 4.3. Políticas para a tabela de Posts (posts).
+CREATE POLICY "Allow authenticated users to read posts." ON public.posts FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow admins to create posts." ON public.posts FOR INSERT TO authenticated WITH CHECK (public.is_user_admin() = true);
+CREATE POLICY "Allow admins to delete their own posts." ON public.posts FOR DELETE TO authenticated USING (public.is_user_admin() = true AND auth.uid() = author_uid);
 
--- Política de Admin corrigida para usar a função auxiliar e evitar recursão.
-CREATE POLICY "Admins can manage all profiles." ON public.profiles
-  FOR ALL USING (public.is_user_admin() = true);
-COMMENT ON POLICY "Users can read their own profile." ON public.profiles IS 'Permite que os usuários leiam seus próprios dados de perfil.';
-COMMENT ON POLICY "Users can update their own profile." ON public.profiles IS 'Permite que os usuários atualizem seus próprios dados de perfil.';
-COMMENT ON POLICY "Admins can manage all profiles." ON public.profiles IS 'Concede acesso total (CRUD) aos usuários administradores.';`;
+-- 4.4. Políticas para a tabela de Comentários (comments).
+CREATE POLICY "Allow authenticated users to read comments." ON public.comments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert comments." ON public.comments FOR INSERT TO authenticated WITH CHECK (auth.uid() is not null);
+CREATE POLICY "Users can delete their own comments, admins can delete any." ON public.comments FOR DELETE TO authenticated USING (auth.uid() = author_uid OR public.is_user_admin() = true);
+
+-- 4.5. Políticas para a tabela de Reações (reactions).
+CREATE POLICY "Allow authenticated users to read reactions." ON public.reactions FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert reactions." ON public.reactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_uid);
+CREATE POLICY "Allow users to delete their own reactions." ON public.reactions FOR DELETE TO authenticated USING (auth.uid() = user_uid);`;
 
 const SupabaseConfigWarning: React.FC = () => {
     const [copyText, setCopyText] = useState('Copiar SQL');
@@ -186,15 +240,14 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                     Para que o app se comunique com o Supabase localmente, você precisa autorizar a URL de desenvolvimento. A interface do Supabase pode mudar, mas os passos são geralmente estes:
                                 </p>
                                  <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1.5">
-                                    <li>No painel do Supabase, clique no ícone de engrenagem (<strong className="text-gray-800">Settings</strong>) na parte inferior do menu esquerdo.</li>
-                                    <li>Na página de configurações, procure no menu lateral por <strong className="text-gray-800">API</strong> (pode estar na seção "Project Settings") e clique.</li>
-                                    <li>Role a página de API para baixo até encontrar a seção <strong className="text-gray-800">URL Configuration</strong>.</li>
-                                    <li>Dentro dessa seção, você verá <strong className="text-gray-800">CORS settings</strong>. Adicione a URL <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando) e salve.</li>
+                                    <li>No painel do Supabase, vá para <strong className="text-gray-800">Project Settings &gt; API</strong>.</li>
+                                    <li>Role a página até a seção <strong className="text-gray-800">URL Configuration</strong>.</li>
+                                    <li>Em <strong className="text-gray-800">CORS settings</strong>, adicione a URL <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando) e salve.</li>
                                 </ol>
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Crie a Tabela e as Funções no Banco de Dados</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Execute o Script do Banco de Dados</h3>
                                 <p className="text-gray-600 text-sm mb-2">
                                     No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo. Ele irá limpar qualquer configuração anterior e criar a estrutura correta.
                                 </p>
@@ -210,11 +263,26 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                     </pre>
                                 </div>
                             </div>
+
+                             <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Configure o Armazenamento de Imagens</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Para que os administradores possam postar imagens no mural, você precisa criar um "Bucket" no Supabase Storage.
+                                </p>
+                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1.5">
+                                    <li>No menu esquerdo do Supabase, clique no ícone de <strong className="text-gray-800">Storage</strong>.</li>
+                                    <li>Clique em <strong className="text-gray-800">New Bucket</strong>.</li>
+                                     <li>Nomeie o bucket como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">post_images</code> e marque a opção <strong className="text-gray-800">Public bucket</strong>.</li>
+                                    <li>Clique em <strong className="text-gray-800">Create bucket</strong>.</li>
+                                    <li>Após criar, clique nos três pontos (...) ao lado do bucket e selecione <strong className="text-gray-800">Policies</strong>.</li>
+                                    <li>Clique em <strong className="text-gray-800">New Policy</strong> e use o template <strong className="text-gray-800">"Give users access to their own files"</strong>. Na política de INSERT, modifique a condição para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">(bucket_id = 'post_images') AND (storage.foldername(name))[1] = (SELECT (is_admin)::text FROM public.profiles WHERE (profiles.uid = auth.uid()))</code>. Isso permitirá que apenas administradores façam upload.</li>
+                                </ol>
+                            </div>
                             
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Defina o Primeiro Administrador</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 6:</strong> Defina o Primeiro Administrador</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    Para acessar o painel de administração, você precisa definir um usuário como administrador manualmente.
+                                    Para acessar o painel de administração e postar no mural, você precisa definir um usuário como administrador manualmente.
                                 </p>
                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
                                     <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
