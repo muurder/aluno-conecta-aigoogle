@@ -1,4 +1,5 @@
 
+
 export const universityNames = [
   "Anhanguera", "Anhembi Morumbi", "Estacio", "Fiesp", "FMU", "São Judas", 
   "Unicid", "Unicsul", "Unifesp", "USP"
@@ -21,4 +22,31 @@ export interface User {
   photo: string | null;
   status: UserStatus;
   isAdmin?: boolean;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  author_uid: string;
+  content: string;
+  created_at: string;
+  author: Pick<User, 'fullName' | 'photo'>;
+}
+
+export interface Reaction {
+  id: string;
+  post_id: string;
+  user_uid: string;
+  emoji: string;
+}
+
+export interface Post {
+  id: string;
+  author_uid: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  author: Pick<User, 'fullName' | 'photo'>;
+  comments: Comment[];
+  reactions: Reaction[];
 }
