@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -25,7 +20,7 @@ const isProduction = import.meta.env.PROD;
 
 const sqlScript = `-- ================================================================================================
 --  SCRIPT DE CONFIGURAÇÃO DO BANCO DE DADOS PARA O PORTAL DO ALUNO
---  Versão: 4.0 - Adicionado Mural do Curso (Posts, Comentários, Reações)
+--  Versão: 4.1 - Padronizado nome da tabela de perfis para 'profile' (singular)
 --  Descrição: Este script limpa configurações antigas e cria a estrutura necessária.
 --  É seguro executar este script múltiplas vezes.
 -- ================================================================================================
@@ -41,15 +36,15 @@ DROP POLICY IF EXISTS "Users can delete their own comments, admins can delete an
 DROP POLICY IF EXISTS "Allow authenticated users to read reactions." ON public.reactions;
 DROP POLICY IF EXISTS "Allow authenticated users to insert reactions." ON public.reactions;
 DROP POLICY IF EXISTS "Allow users to delete their own reactions." ON public.reactions;
-DROP POLICY IF EXISTS "Users can read their own profile." ON public.profiles;
-DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
-DROP POLICY IF EXISTS "Admins can manage all profiles." ON public.profiles;
+DROP POLICY IF EXISTS "Users can read their own profile." ON public.profile;
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profile;
+DROP POLICY IF EXISTS "Admins can manage all profiles." ON public.profile;
 
 -- Remove as tabelas antigas. A opção CASCADE remove objetos dependentes como policies.
 DROP TABLE IF EXISTS public.reactions;
 DROP TABLE IF EXISTS public.comments;
 DROP TABLE IF EXISTS public.posts;
-DROP TABLE IF EXISTS public.profiles;
+DROP TABLE IF EXISTS public.profile;
 
 -- Remove as funções antigas. A opção CASCADE remove automaticamente objetos dependentes.
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
@@ -59,7 +54,7 @@ DROP FUNCTION IF EXISTS public.is_user_admin();
 -- PASSO 2: Criação da nova estrutura do banco de dados.
 
 -- 2.1. Tabela de Perfis de Usuários
-CREATE TABLE public.profiles (
+CREATE TABLE public.profile (
   uid uuid NOT NULL PRIMARY KEY,
   institutional_login TEXT,
   rgm TEXT,
@@ -72,14 +67,14 @@ CREATE TABLE public.profiles (
   photo TEXT,
   status TEXT DEFAULT 'pending' NOT NULL,
   is_admin BOOLEAN DEFAULT false NOT NULL,
-  CONSTRAINT profiles_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
+  CONSTRAINT profile_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
 );
-COMMENT ON TABLE public.profiles IS 'Armazena informações de perfil público para cada usuário.';
+COMMENT ON TABLE public.profile IS 'Armazena informações de perfil público para cada usuário.';
 
 -- 2.2. Tabela de Posts do Mural
 CREATE TABLE public.posts (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  author_uid uuid NOT NULL REFERENCES public.profiles(uid) ON DELETE CASCADE,
+  author_uid uuid NOT NULL REFERENCES public.profile(uid) ON DELETE CASCADE,
   content TEXT,
   image_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
@@ -90,7 +85,7 @@ COMMENT ON TABLE public.posts IS 'Armazena os posts do mural criados por adminis
 CREATE TABLE public.comments (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  author_uid uuid NOT NULL REFERENCES public.profiles(uid) ON DELETE CASCADE,
+  author_uid uuid NOT NULL REFERENCES public.profile(uid) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -100,7 +95,7 @@ COMMENT ON TABLE public.comments IS 'Armazena os comentários dos usuários em c
 CREATE TABLE public.reactions (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  user_uid uuid NOT NULL REFERENCES public.profiles(uid) ON DELETE CASCADE,
+  user_uid uuid NOT NULL REFERENCES public.profile(uid) ON DELETE CASCADE,
   emoji TEXT NOT NULL,
   UNIQUE(post_id, user_uid) -- Garante que um usuário só pode ter uma reação por post.
 );
@@ -113,7 +108,7 @@ COMMENT ON TABLE public.reactions IS 'Armazena as reações (emojis) dos usuári
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (uid, email, full_name, institutional_login, rgm, university, course, campus, validity, photo, status)
+  INSERT INTO public.profile (uid, email, full_name, institutional_login, rgm, university, course, campus, validity, photo, status)
   VALUES (
     new.id,
     new.email,
@@ -130,7 +125,7 @@ BEGIN
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-COMMENT ON FUNCTION public.handle_new_user() IS 'Cria um perfil para um novo usuário na tabela public.profiles.';
+COMMENT ON FUNCTION public.handle_new_user() IS 'Cria um perfil para um novo usuário na tabela public.profile.';
 
 -- 3.2. Gatilho (trigger) que executa a função acima após cada novo registro.
 CREATE TRIGGER on_auth_user_created
@@ -144,7 +139,7 @@ BEGIN
   IF auth.uid() IS NULL THEN
     RETURN false;
   END IF;
-  RETURN (SELECT is_admin FROM public.profiles WHERE uid = auth.uid());
+  RETURN (SELECT is_admin FROM public.profile WHERE uid = auth.uid());
 EXCEPTION WHEN OTHERS THEN
   RETURN false;
 END;
@@ -155,15 +150,15 @@ COMMENT ON FUNCTION public.is_user_admin() IS 'Verifica se o usuário logado é 
 -- PASSO 4: Configuração da Segurança a Nível de Linha (RLS).
 
 -- 4.1. Ativa RLS em todas as tabelas relevantes.
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
 
--- 4.2. Políticas para a tabela de Perfis (profiles).
-CREATE POLICY "Users can read their own profile." ON public.profiles FOR SELECT USING (auth.uid() = uid);
-CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
-CREATE POLICY "Admins can manage all profiles." ON public.profiles FOR ALL USING (public.is_user_admin() = true);
+-- 4.2. Políticas para a tabela de Perfis (profile).
+CREATE POLICY "Users can read their own profile." ON public.profile FOR SELECT USING (auth.uid() = uid);
+CREATE POLICY "Users can update their own profile." ON public.profile FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
+CREATE POLICY "Admins can manage all profiles." ON public.profile FOR ALL USING (public.is_user_admin() = true);
 
 -- 4.3. Políticas para a tabela de Posts (posts).
 CREATE POLICY "Allow authenticated users to read posts." ON public.posts FOR SELECT TO authenticated USING (true);
@@ -290,7 +285,7 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                      <li>Nomeie o bucket como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">post_images</code> e marque a opção <strong className="text-gray-800">Public bucket</strong>.</li>
                                     <li>Clique em <strong className="text-gray-800">Create bucket</strong>.</li>
                                     <li>Após criar, clique nos três pontos (...) ao lado do bucket e selecione <strong className="text-gray-800">Policies</strong>.</li>
-                                    <li>Clique em <strong className="text-gray-800">New Policy</strong> e use o template <strong className="text-gray-800">"Give users access to their own files"</strong>. Na política de INSERT, modifique a condição para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">(bucket_id = 'post_images') AND (storage.foldername(name))[1] = (SELECT (is_admin)::text FROM public.profiles WHERE (profiles.uid = auth.uid()))</code>. Isso permitirá que apenas administradores façam upload.</li>
+                                    <li>Clique em <strong className="text-gray-800">New Policy</strong> e use o template <strong className="text-gray-800">"Give users access to their own files"</strong>. Na política de INSERT, modifique a condição para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">(bucket_id = 'post_images') AND (storage.foldername(name))[1] = (SELECT (is_admin)::text FROM public.profile WHERE (profile.uid = auth.uid()))</code>. Isso permitirá que apenas administradores façam upload.</li>
                                 </ol>
                             </div>
                             
@@ -301,7 +296,7 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                 </p>
                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
                                     <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
-                                    <li>No painel do Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Table Editor</code> e selecione a tabela <code className="text-sm font-mono">profiles</code>.</li>
+                                    <li>No painel do Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Table Editor</code> e selecione a tabela <code className="text-sm font-mono">profile</code>.</li>
                                     <li>Encontre a linha correspondente ao seu usuário recém-criado.</li>
                                     <li>Clique duas vezes na célula da coluna <code className="text-sm font-mono">is_admin</code> e mude o valor de <code className="text-sm font-mono">false</code> para <code className="text-sm font-mono">true</code>. Salve a alteração.</li>
                                 </ol>
@@ -367,24 +362,22 @@ const App: React.FC = () => {
     import.meta.env.VITE_SUPABASE_URL &&
     import.meta.env.VITE_SUPABASE_URL !== 'SUA_URL_DO_PROJETO_SUPABASE' &&
     import.meta.env.VITE_SUPABASE_ANON_KEY &&
+// Fix: Completed the check for the Supabase anon key placeholder.
     import.meta.env.VITE_SUPABASE_ANON_KEY !== 'SUA_CHAVE_ANON_DO_SUPABASE';
-
 
   if (!isSupabaseConfigured) {
     return <SupabaseConfigWarning />;
   }
-  
+// Fix: Added the main application structure to be rendered when Supabase is configured.
+// This ensures the component always returns a valid ReactNode.
   return (
-    <AuthProvider>
-      <div className="min-h-[100dvh] font-sans bg-slate-100">
-        <div className="relative max-w-sm mx-auto min-h-[100dvh] bg-white shadow-lg overflow-hidden flex flex-col">
-          <HashRouter>
-            <AppRoutes />
-          </HashRouter>
-        </div>
-      </div>
-    </AuthProvider>
+    <HashRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </HashRouter>
   );
 };
 
+// Fix: Added a default export for the App component.
 export default App;
