@@ -1,8 +1,9 @@
 
+
 // Import the functions you need from the SDKs you need
-import firebase from "firebase/app";
-import "firebase/auth";
-import "firebase/firestore";
+import firebase from "firebase/compat/app";
+import "firebase/compat/auth";
+import "firebase/compat/firestore";
 
 // Your web app's Firebase configuration is now read from Environment Variables
 // This makes the code safe to be shared on GitHub.
@@ -19,15 +20,6 @@ export const firebaseConfig = {
 // Initialize Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
-}
-
-if (import.meta.env.PROD) {
-  const opts = firebase.app().options as any;
-  console.log("Firebase options (prod):", {
-    projectId: opts.projectId,
-    authDomain: opts.authDomain,
-    storageBucket: opts.storageBucket,
-  });
 }
 
 
