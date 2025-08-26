@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -293,7 +294,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <div className="min-h-[100dvh] font-sans bg-slate-100">
-        <div className="relative max-w-sm mx-auto min-h-[100dvh] bg-white shadow-lg overflow-hidden">
+        <div className="relative max-w-sm mx-auto min-h-[100dvh] bg-white shadow-lg overflow-hidden flex flex-col">
           <HashRouter>
             <AppRoutes />
           </HashRouter>

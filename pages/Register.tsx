@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -143,7 +145,7 @@ const Register: React.FC = () => {
     };
     
     return (
-        <div className="min-h-full flex flex-col justify-center bg-gradient-to-b from-cyan-50 to-blue-100 p-4">
+        <div className="flex-grow flex flex-col justify-center bg-gradient-to-b from-cyan-50 to-blue-100 p-4">
             <div className="w-full max-w-lg mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
                 {registrationSuccess ? (
                     <div className="text-center p-4">

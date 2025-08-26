@@ -1,4 +1,5 @@
 
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +22,7 @@ const PendingApproval: React.FC = () => {
   };
 
   return (
-    <div className="min-h-full flex items-center justify-center bg-gray-50 p-4">
+    <div className="flex-grow flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg text-center space-y-6">
         <ClockIcon className="mx-auto h-16 w-16 text-yellow-500" />
         <h1 className="text-2xl font-bold text-gray-800">Aguardando aprovação do administrador</h1>

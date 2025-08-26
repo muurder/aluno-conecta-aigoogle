@@ -15,7 +15,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     // 100dvh + padding-bottom para não ficar escondido pelo nav fixo
     <div
-      className="relative min-h-[100dvh] bg-gray-50"
+      className="relative flex-grow flex flex-col bg-gray-50"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 64px)' }}
     >
       {showHeader && (
