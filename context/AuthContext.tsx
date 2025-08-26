@@ -71,9 +71,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .select('*')
                 .eq('uid', session.user.id)
                 .single();
-            if (profile && !error) {
+            
+            if (error) {
+                console.error("Error fetching initial profile:", error.message);
+                if (error.message.toLowerCase().includes('network')) {
+                    setProfileError('cors');
+                } else {
+                    setProfileError('generic');
+                }
+                setUser(null);
+            } else if (profile) {
                 setUser(mapSupabaseProfileToUser(profile, session.user));
             } else {
+                console.error("Profile not found on initial load for user:", session.user.id);
+                setProfileError('no_profile');
                 setUser(null);
             }
         }
@@ -110,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          setProfileError(null);
         }
         setLoading(false);
       }
