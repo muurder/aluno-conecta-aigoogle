@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (session?.user) {
           const { data: profile, error } = await supabase
-            .from('profiles')
+            .from('profile')
             .select('*')
             .eq('uid', session.user.id)
             .single();
@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         for (let i = 0; i < 5; i++) { // Sondar por 5 segundos
             await new Promise(res => setTimeout(res, 1000));
             const { error: profileError } = await supabase
-                .from('profiles')
+                .from('profile')
                 .select('uid')
                 .eq('uid', signUpData.user.id)
                 .single();
@@ -182,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { uid, ...updateData } = profileData; 
 
       const { error } = await supabase
-          .from('profiles')
+          .from('profile')
           .update(updateData)
           .eq('uid', newUserData.uid);
 
@@ -195,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getAllUsers = async (): Promise<User[]> => {
     const { data: profiles, error } = await supabase
-        .from('profiles')
+        .from('profile')
         .select('*');
 
     if (error) {
@@ -221,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteUser = async (uid: string) => {
     const { error } = await supabase
-      .from('profiles')
+      .from('profile')
       .delete()
       .eq('uid', uid);
     
@@ -234,10 +234,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('posts')
         .select(`
           *,
-          author:profiles (full_name, photo),
+          author:profile (full_name, photo),
           comments (
             *,
-            author:profiles (full_name, photo)
+            author:profile (full_name, photo)
           ),
           reactions (*)
         `)
@@ -293,7 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .insert({ post_id: postId, author_uid: user.uid, content })
       .select(`
         *,
-        author:profiles (full_name, photo)
+        author:profile (full_name, photo)
       `)
       .single();
       
