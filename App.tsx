@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -237,13 +239,26 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Configure o Acesso (CORS)</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    Para que o app se comunique com o Supabase localmente, você precisa autorizar a URL de desenvolvimento. A interface do Supabase pode mudar, mas os passos são geralmente estes:
+                                    Para que seu aplicativo possa se comunicar com o Supabase, você precisa autorizar as URLs de onde ele será acessado.
                                 </p>
-                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1.5">
+                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-2">
                                     <li>No painel do Supabase, vá para <strong className="text-gray-800">Project Settings &gt; API</strong>.</li>
                                     <li>Role a página até a seção <strong className="text-gray-800">URL Configuration</strong>.</li>
-                                    <li>Em <strong className="text-gray-800">CORS settings</strong>, adicione a URL <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando) e salve.</li>
+                                    <li>
+                                        Em <strong className="text-gray-800">CORS settings</strong>, você precisa adicionar as URLs do seu ambiente de desenvolvimento e produção:
+                                        <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
+                                            <li>
+                                                <strong>Desenvolvimento:</strong> Adicione <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando).
+                                            </li>
+                                            <li>
+                                                <strong>Produção (Vercel):</strong> Após fazer o deploy, adicione a URL do seu site, como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">https://seu-projeto.vercel.app</code>.
+                                            </li>
+                                        </ul>
+                                    </li>
                                 </ol>
+                                <div className="mt-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 text-sm rounded-r-lg">
+                                    <p><strong className="font-bold">Importante:</strong> O erro de CORS que você está vendo acontece porque a URL onde seu app está rodando (seja no Vercel ou localmente) não está na lista de permissões do Supabase.</p>
+                                </div>
                             </div>
 
                             <div>
