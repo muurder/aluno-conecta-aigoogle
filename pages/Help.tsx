@@ -70,7 +70,7 @@ const Help: React.FC = () => {
     };
     
     return (
-        <div className="min-h-full flex flex-col bg-gray-100">
+        <div className="flex-grow flex flex-col bg-gray-100">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-20">
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -48,7 +49,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-full flex flex-col bg-gray-50">
+        <div className="flex-grow flex flex-col bg-gray-50">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-10">
                 <button onClick={() => navigate('/profile')} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />

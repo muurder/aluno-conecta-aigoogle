@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -72,7 +73,7 @@ const EditProfile: React.FC = () => {
     const labelClasses = "block text-sm font-medium text-gray-600 mb-1";
 
     return (
-        <div className="min-h-full flex flex-col bg-white">
+        <div className="flex-grow flex flex-col bg-white">
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />

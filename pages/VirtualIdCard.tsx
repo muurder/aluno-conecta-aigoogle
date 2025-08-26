@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +21,7 @@ const VirtualIdCard: React.FC = () => {
   );
   
   return (
-    <div className="min-h-full flex flex-col bg-gray-50">
+    <div className="flex-grow flex flex-col bg-gray-50">
         <header className="p-4 flex items-center justify-between text-gray-700">
             <button onClick={() => navigate(-1)} className="mr-4">
                 <ArrowLeftIcon className="w-6 h-6" />
