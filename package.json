@@ -12,9 +12,10 @@
     "react": "^19.1.1",
     "react-router-dom": "6.23.1",
     "@google/genai": "latest",
-    "@supabase/supabase-js": "2.43.4",
     "react-dom": "^19.1.1",
-    "@heroicons/react": "^2.2.0"
+    "@heroicons/react": "^2.2.0",
+    "firebase": "^12.1.0",
+    "@supabase/supabase-js": "^2.56.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

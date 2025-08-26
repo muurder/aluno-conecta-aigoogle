@@ -1,44 +1,49 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { supabase } from '../supabase';
+import { auth, db, storage } from '../firebase';
 import type { User, Post, Comment, Reaction } from '../types';
-import type { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { 
+    onAuthStateChanged, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    signOut,
+    User as FirebaseAuthUser
+} from 'firebase/auth';
+import { 
+    doc, 
+    getDoc, 
+    setDoc, 
+    updateDoc, 
+    collection, 
+    getDocs, 
+    deleteDoc, 
+    addDoc,
+    query,
+    orderBy,
+    serverTimestamp,
+    Timestamp
+} from 'firebase/firestore';
+import { 
+    ref, 
+    uploadString, 
+    getDownloadURL, 
+    deleteObject,
+    uploadBytes
+} from 'firebase/storage';
 
-// Helper to map Supabase profile data (snake_case) to our app's User type (camelCase)
-const mapSupabaseProfileToUser = (profile: any, authUser: SupabaseUser): User => {
-    return {
-        uid: authUser.id,
-        email: authUser.email!,
-        institutionalLogin: profile.institutional_login,
-        rgm: profile.rgm,
-        fullName: profile.full_name,
-        university: profile.university,
-        course: profile.course,
-        campus: profile.campus,
-        validity: profile.validity,
-        photo: profile.photo,
-        status: profile.status,
-        isAdmin: profile.is_admin,
-    };
-};
-
-// Helper to map our app's User type to Supabase profile data
-const mapUserToSupabaseProfile = (user: User) => {
-    return {
-        uid: user.uid,
-        institutional_login: user.institutionalLogin,
-        rgm: user.rgm,
-        full_name: user.fullName,
-        email: user.email,
-        university: user.university,
-        course: user.course,
-        campus: user.campus,
-        validity: user.validity,
-        photo: user.photo,
-        status: user.status,
-        is_admin: user.isAdmin,
-    };
-};
-
+const mapFirestoreDocToUser = (docData: any, uid: string, authUser: FirebaseAuthUser): User => ({
+    uid,
+    email: authUser.email!,
+    institutionalLogin: docData.institutionalLogin,
+    rgm: docData.rgm,
+    fullName: docData.fullName,
+    university: docData.university,
+    course: docData.course,
+    campus: docData.campus,
+    validity: docData.validity,
+    photo: docData.photo,
+    status: docData.status,
+    isAdmin: docData.isAdmin || false,
+});
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -51,12 +56,11 @@ interface AuthContextType {
   updateUser: (newUserData: User) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
-  // Mural / Feed functions
   getPosts: () => Promise<Post[]>;
   createPost: (content: string, imageFile?: File) => Promise<void>;
-  deletePost: (postId: string) => Promise<void>;
+  deletePost: (postId: string, imageUrl?: string | null) => Promise<void>;
   addComment: (postId: string, content: string) => Promise<Comment>;
-  deleteComment: (commentId: string) => Promise<void>;
+  deleteComment: (postId: string, commentId: string) => Promise<void>;
   toggleReaction: (postId: string, emoji: string) => Promise<void>;
 }
 
@@ -68,282 +72,205 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
-    // onAuthStateChange é chamado uma vez na inscrição com a sessão inicial.
-    // Isso lida tanto com o carregamento inicial quanto com eventos de autenticação subsequentes.
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const { data: profile, error } = await supabase
-            .from('profile')
-            .select('*')
-            .eq('uid', session.user.id)
-            .single();
-
-          if (error) {
-            console.error("Error fetching profile:", error.message);
-            if (error.message.toLowerCase().includes('network')) {
-              setProfileError('cors');
-            } else if (error.code === 'PGRST116') { // 'exact one row not found'
-              console.error("Profile not found for user:", session.user.id);
-              setProfileError('no_profile');
-            } else {
-              setProfileError('generic');
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+        if (authUser) {
+            const userDocRef = doc(db, 'users', authUser.uid);
+            try {
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    setUser(mapFirestoreDocToUser(userDoc.data(), authUser.uid, authUser));
+                    setProfileError(null);
+                } else {
+                    console.error("User profile not found in Firestore for UID:", authUser.uid);
+                    setProfileError('no_profile');
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error("Error fetching user profile from Firestore:", error);
+                setProfileError('generic');
+                setUser(null);
             }
-            setUser(null);
-          } else if (profile) {
-            setUser(mapSupabaseProfileToUser(profile, session.user));
-            setProfileError(null);
-          } else {
-             console.error("Profile found was null, but no error reported from Supabase for user:", session.user.id);
-             setProfileError('no_profile');
-             setUser(null);
-          }
         } else {
-          // Nenhuma sessão ou usuário desconectado
-          setUser(null);
-          setProfileError(null);
+            setUser(null);
+            setProfileError(null);
         }
-        // O carregamento inicial termina após a primeira verificação do estado de autenticação.
         setLoading(false);
-      }
-    );
+    });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
-
 
   const login = async (email: string, pass: string) => {
     setProfileError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
+    await signInWithEmailAndPassword(auth, email, pass);
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
   };
 
-  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
-      const userMetaData = {
-        full_name: userData.fullName,
-        institutional_login: userData.institutionalLogin,
-        rgm: userData.rgm,
-        university: userData.university,
-        course: userData.course,
-        campus: userData.campus,
-        validity: userData.validity,
-        photo: userData.photo,
-        status: 'pending',
-      };
+  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      const newUser = userCredential.user;
       
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: pass,
-          options: {
-              data: userMetaData
-          }
-      });
-
-      if (signUpError) throw signUpError;
-      
-      // Após um signup bem-sucedido, o Supabase loga o usuário, mas o gatilho do banco de dados
-      // para criar o perfil é assíncrono. Nós fazemos uma sondagem por alguns segundos para garantir
-      // que o perfil exista antes de considerar o registro completo. Isso também nos permite
-      // capturar erros de CORS/rede imediatamente na origem.
-      if (signUpData.user) {
-        for (let i = 0; i < 5; i++) { // Sondar por 5 segundos
-            await new Promise(res => setTimeout(res, 1000));
-            const { error: profileError } = await supabase
-                .from('profile')
-                .select('uid')
-                .eq('uid', signUpData.user.id)
-                .single();
-
-            if (!profileError) {
-                // Perfil encontrado, sucesso! onAuthStateChange cuidará do resto.
-                return;
-            }
-            
-            // Se o erro for algo diferente de 'perfil não encontrado', é um problema crítico (como CORS).
-            if (profileError.code !== 'PGRST116') {
-                console.error("Falha na busca de perfil pós-cadastro:", profileError);
-                throw profileError; 
-            }
-            // Caso contrário, é PGRST116 (não encontrado), então continuamos sondando.
-        }
-        // Se o loop terminar, o perfil nunca foi encontrado.
-        throw new Error('O perfil do usuário não foi criado a tempo. Verifique o gatilho do banco de dados `handle_new_user`.');
+      let photoURL: string | null = null;
+      if (userData.photo && userData.photo.startsWith('data:image')) {
+          const storageRef = ref(storage, `profile_photos/${newUser.uid}`);
+          await uploadString(storageRef, userData.photo, 'data_url');
+          photoURL = await getDownloadURL(storageRef);
       }
+      
+      const userProfileData = {
+        ...userData,
+        photo: photoURL,
+        email: email,
+        isAdmin: false,
+      };
+
+      await setDoc(doc(db, 'users', newUser.uid), userProfileData);
   };
   
   const updateUser = async (newUserData: User) => {
-      const profileData = mapUserToSupabaseProfile(newUserData);
-      const { uid, ...updateData } = profileData; 
+      let finalUserData = { ...newUserData };
 
-      const { error } = await supabase
-          .from('profile')
-          .update(updateData)
-          .eq('uid', newUserData.uid);
-
-      if (error) throw error;
-
+      if (newUserData.photo && newUserData.photo.startsWith('data:image')) {
+          const storageRef = ref(storage, `profile_photos/${newUserData.uid}`);
+          await uploadString(storageRef, newUserData.photo, 'data_url');
+          const photoURL = await getDownloadURL(storageRef);
+          finalUserData.photo = photoURL;
+      }
+      
+      const userDocRef = doc(db, 'users', newUserData.uid);
+      await updateDoc(userDocRef, finalUserData);
+      
       if (user?.uid === newUserData.uid) {
-          setUser(newUserData);
+          setUser(finalUserData);
       }
   };
 
   const getAllUsers = async (): Promise<User[]> => {
-    const { data: profiles, error } = await supabase
-        .from('profile')
-        .select('*');
-
-    if (error) {
-      console.error("Error fetching all users:", error);
-      throw error;
-    }
-    
-    return profiles.map(profile => ({
-      uid: profile.uid,
-      email: profile.email,
-      institutionalLogin: profile.institutional_login,
-      rgm: profile.rgm,
-      fullName: profile.full_name,
-      university: profile.university,
-      course: profile.course,
-      campus: profile.campus,
-      validity: profile.validity,
-      photo: profile.photo,
-      status: profile.status,
-      isAdmin: profile.is_admin,
-    }));
+    const usersCollection = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCollection);
+    return userSnapshot.docs.map(doc => ({
+      ...doc.data(),
+      uid: doc.id
+    } as User));
   };
 
   const deleteUser = async (uid: string) => {
-    const { error } = await supabase
-      .from('profile')
-      .delete()
-      .eq('uid', uid);
-    
-    if (error) throw error;
+    const userDocRef = doc(db, 'users', uid);
+    await deleteDoc(userDocRef);
   };
 
-  // Mural / Feed functions
   const getPosts = async (): Promise<Post[]> => {
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          author:profile (full_name, photo),
-          comments (
-            *,
-            author:profile (full_name, photo)
-          ),
-          reactions (*)
-        `)
-        .order('created_at', { ascending: false });
+    const postsQuery = query(collection(db, 'posts'), orderBy('created_at', 'desc'));
+    const postSnapshot = await getDocs(postsQuery);
 
-      if (error) throw error;
-      return data as unknown as Post[];
+    const posts: Post[] = await Promise.all(postSnapshot.docs.map(async (postDoc) => {
+        const postData = postDoc.data();
+        
+        const authorDoc = await getDoc(doc(db, 'users', postData.author_uid));
+        const author = authorDoc.exists() ? { fullName: authorDoc.data().fullName, photo: authorDoc.data().photo } : { fullName: 'Unknown', photo: null };
+
+        const commentsQuery = query(collection(db, 'posts', postDoc.id, 'comments'), orderBy('created_at', 'asc'));
+        const commentsSnapshot = await getDocs(commentsQuery);
+        const comments: Comment[] = await Promise.all(commentsSnapshot.docs.map(async (commentDoc) => {
+            const commentData = commentDoc.data();
+            const commentAuthorDoc = await getDoc(doc(db, 'users', commentData.author_uid));
+            const commentAuthor = commentAuthorDoc.exists() ? { fullName: commentAuthorDoc.data().fullName, photo: commentAuthorDoc.data().photo } : { fullName: 'Unknown', photo: null };
+            return {
+                id: commentDoc.id,
+                ...commentData,
+                created_at: (commentData.created_at as Timestamp)?.toDate().toISOString() ?? new Date().toISOString(),
+                author: commentAuthor,
+            } as Comment;
+        }));
+
+        const reactionsSnapshot = await getDocs(collection(db, 'posts', postDoc.id, 'reactions'));
+        const reactions: Reaction[] = reactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reaction));
+
+        return {
+            id: postDoc.id,
+            ...postData,
+            created_at: (postData.created_at as Timestamp)?.toDate().toISOString() ?? new Date().toISOString(),
+            author,
+            comments,
+            reactions,
+        } as Post;
+    }));
+
+    return posts;
   };
 
   const createPost = async (content: string, imageFile?: File) => {
-    if (!user) throw new Error("User must be logged in to create a post.");
+    if (!user) throw new Error("User must be logged in.");
 
     let imageUrl: string | null = null;
     if (imageFile) {
-      const fileName = `${user.uid}/${Date.now()}_${imageFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('post_images')
-        .upload(fileName, imageFile);
-      
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('post_images')
-        .getPublicUrl(fileName);
-      imageUrl = publicUrl;
+        const fileName = `post_images/${user.uid}/${Date.now()}_${imageFile.name}`;
+        const storageRef = ref(storage, fileName);
+        await uploadBytes(storageRef, imageFile);
+        imageUrl = await getDownloadURL(storageRef);
     }
-
-    const { error: postError } = await supabase
-      .from('posts')
-      .insert({
+    
+    await addDoc(collection(db, 'posts'), {
         author_uid: user.uid,
         content,
         image_url: imageUrl,
-      });
-    
-    if (postError) throw postError;
+        created_at: serverTimestamp()
+    });
   };
 
-  const deletePost = async (postId: string) => {
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId);
-    
-    if (error) throw error;
+  const deletePost = async (postId: string, imageUrl?: string | null) => {
+    const postRef = doc(db, 'posts', postId);
+    await deleteDoc(postRef);
+
+    if (imageUrl) {
+        try {
+            const imageRef = ref(storage, imageUrl);
+            await deleteObject(imageRef);
+        } catch (error) {
+            console.error("Failed to delete post image from storage:", error);
+        }
+    }
   };
 
   const addComment = async (postId: string, content: string): Promise<Comment> => {
-    if (!user) throw new Error("User must be logged in to comment.");
+    if (!user) throw new Error("User must be logged in.");
+    const commentData = {
+        post_id: postId,
+        author_uid: user.uid,
+        content,
+        created_at: serverTimestamp()
+    };
+    const docRef = await addDoc(collection(db, 'posts', postId, 'comments'), commentData);
     
-    const { data, error } = await supabase
-      .from('comments')
-      .insert({ post_id: postId, author_uid: user.uid, content })
-      .select(`
-        *,
-        author:profile (full_name, photo)
-      `)
-      .single();
-      
-    if (error) throw error;
-    return data as unknown as Comment;
+    return {
+        ...commentData,
+        id: docRef.id,
+        created_at: new Date().toISOString(),
+        author: { fullName: user.fullName, photo: user.photo }
+    };
   };
 
-  const deleteComment = async (commentId: string) => {
-     const { error } = await supabase
-      .from('comments')
-      .delete()
-      .eq('id', commentId);
-    
-    if (error) throw error;
+  const deleteComment = async (postId: string, commentId: string) => {
+    await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
   };
-
+  
   const toggleReaction = async (postId: string, emoji: string) => {
-    if (!user) throw new Error("User must be logged in to react.");
+    if (!user) throw new Error("User must be logged in.");
     
-    // Check if a reaction from this user already exists on this post
-    const { data: existingReaction, error: fetchError } = await supabase
-      .from('reactions')
-      .select('id, emoji')
-      .eq('post_id', postId)
-      .eq('user_uid', user.uid)
-      .single();
+    const reactionRef = doc(db, 'posts', postId, 'reactions', user.uid);
+    const reactionDoc = await getDoc(reactionRef);
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = 'exact one row not found'
-      throw fetchError;
-    }
-
-    // If reaction exists and is the same emoji, delete it (unlike)
-    if (existingReaction && existingReaction.emoji === emoji) {
-      const { error: deleteError } = await supabase
-        .from('reactions')
-        .delete()
-        .eq('id', existingReaction.id);
-      if (deleteError) throw deleteError;
+    if (reactionDoc.exists() && reactionDoc.data().emoji === emoji) {
+        await deleteDoc(reactionRef);
     } else {
-        // Upsert: update if exists, insert if not. This handles changing reaction emoji or adding a new one.
-        const { error: upsertError } = await supabase
-            .from('reactions')
-            .upsert({
-                id: existingReaction?.id, // Supabase needs id for update, will ignore for insert
-                post_id: postId,
-                user_uid: user.uid,
-                emoji: emoji,
-            }, { onConflict: 'post_id,user_uid' });
-        
-        if (upsertError) throw upsertError;
+        await setDoc(reactionRef, {
+            post_id: postId,
+            user_uid: user.uid,
+            emoji: emoji
+        });
     }
   };
 

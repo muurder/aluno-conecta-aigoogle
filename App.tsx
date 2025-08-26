@@ -18,172 +18,49 @@ import AdminEditUser from './pages/AdminEditUser';
 
 const isProduction = import.meta.env.PROD;
 
-const sqlScript = `-- ================================================================================================
---  SCRIPT DE CONFIGURAÇÃO DO BANCO DE DADOS PARA O PORTAL DO ALUNO
---  Versão: 4.1 - Padronizado nome da tabela de perfis para 'profile' (singular)
---  Descrição: Este script limpa configurações antigas e cria a estrutura necessária.
---  É seguro executar este script múltiplas vezes.
--- ================================================================================================
+const FirebaseConfigWarning: React.FC = () => {
+    const firestoreRules = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Perfis: Usuários podem ler e escrever seus próprios perfis. Admins podem ler/escrever todos.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      allow create: if request.auth != null;
+    }
 
--- PASSO 1: Limpeza de objetos antigos para garantir uma instalação limpa.
--- Remove as políticas RLS antigas, se existirem.
-DROP POLICY IF EXISTS "Allow authenticated users to read posts." ON public.posts;
-DROP POLICY IF EXISTS "Allow admins to create posts." ON public.posts;
-DROP POLICY IF EXISTS "Allow admins to delete their own posts." ON public.posts;
-DROP POLICY IF EXISTS "Allow authenticated users to read comments." ON public.comments;
-DROP POLICY IF EXISTS "Allow authenticated users to insert comments." ON public.comments;
-DROP POLICY IF EXISTS "Users can delete their own comments, admins can delete any." ON public.comments;
-DROP POLICY IF EXISTS "Allow authenticated users to read reactions." ON public.reactions;
-DROP POLICY IF EXISTS "Allow authenticated users to insert reactions." ON public.reactions;
-DROP POLICY IF EXISTS "Allow users to delete their own reactions." ON public.reactions;
-DROP POLICY IF EXISTS "Users can read their own profile." ON public.profile;
-DROP POLICY IF EXISTS "Users can update their own profile." ON public.profile;
-DROP POLICY IF EXISTS "Admins can manage all profiles." ON public.profile;
-
--- Remove as tabelas antigas. A opção CASCADE remove objetos dependentes como policies.
-DROP TABLE IF EXISTS public.reactions;
-DROP TABLE IF EXISTS public.comments;
-DROP TABLE IF EXISTS public.posts;
-DROP TABLE IF EXISTS public.profile;
-
--- Remove as funções antigas. A opção CASCADE remove automaticamente objetos dependentes.
-DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
-DROP FUNCTION IF EXISTS public.is_user_admin();
-
-
--- PASSO 2: Criação da nova estrutura do banco de dados.
-
--- 2.1. Tabela de Perfis de Usuários
-CREATE TABLE public.profile (
-  uid uuid NOT NULL PRIMARY KEY,
-  institutional_login TEXT,
-  rgm TEXT,
-  full_name TEXT,
-  email TEXT,
-  university TEXT,
-  course TEXT,
-  campus TEXT,
-  validity TEXT,
-  photo TEXT,
-  status TEXT DEFAULT 'pending' NOT NULL,
-  is_admin BOOLEAN DEFAULT false NOT NULL,
-  CONSTRAINT profile_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
-);
-COMMENT ON TABLE public.profile IS 'Armazena informações de perfil público para cada usuário.';
-
--- 2.2. Tabela de Posts do Mural
-CREATE TABLE public.posts (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  author_uid uuid NOT NULL REFERENCES public.profile(uid) ON DELETE CASCADE,
-  content TEXT,
-  image_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-COMMENT ON TABLE public.posts IS 'Armazena os posts do mural criados por administradores.';
-
--- 2.3. Tabela de Comentários
-CREATE TABLE public.comments (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  author_uid uuid NOT NULL REFERENCES public.profile(uid) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-COMMENT ON TABLE public.comments IS 'Armazena os comentários dos usuários em cada post.';
-
--- 2.4. Tabela de Reações
-CREATE TABLE public.reactions (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  post_id uuid NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  user_uid uuid NOT NULL REFERENCES public.profile(uid) ON DELETE CASCADE,
-  emoji TEXT NOT NULL,
-  UNIQUE(post_id, user_uid) -- Garante que um usuário só pode ter uma reação por post.
-);
-COMMENT ON TABLE public.reactions IS 'Armazena as reações (emojis) dos usuários nos posts.';
-
-
--- PASSO 3: Gatilhos e Funções do Banco de Dados.
-
--- 3.1. Função para criar um perfil ao registrar um novo usuário.
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profile (uid, email, full_name, institutional_login, rgm, university, course, campus, validity, photo, status)
-  VALUES (
-    new.id,
-    new.email,
-    new.raw_user_meta_data->>'full_name',
-    new.raw_user_meta_data->>'institutional_login',
-    new.raw_user_meta_data->>'rgm',
-    new.raw_user_meta_data->>'university',
-    new.raw_user_meta_data->>'course',
-    new.raw_user_meta_data->>'campus',
-    new.raw_user_meta_data->>'validity',
-    new.raw_user_meta_data->>'photo',
-    'pending' -- Seta o status inicial como 'pendente'
-  );
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-COMMENT ON FUNCTION public.handle_new_user() IS 'Cria um perfil para um novo usuário na tabela public.profile.';
-
--- 3.2. Gatilho (trigger) que executa a função acima após cada novo registro.
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- 3.3. Função auxiliar para checar se o usuário é admin (evita recursão em RLS).
-CREATE OR REPLACE FUNCTION public.is_user_admin()
-RETURNS boolean AS $$
-BEGIN
-  IF auth.uid() IS NULL THEN
-    RETURN false;
-  END IF;
-  RETURN (SELECT is_admin FROM public.profile WHERE uid = auth.uid());
-EXCEPTION WHEN OTHERS THEN
-  RETURN false;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-COMMENT ON FUNCTION public.is_user_admin() IS 'Verifica se o usuário logado é um administrador, de forma segura para RLS.';
-
-
--- PASSO 4: Configuração da Segurança a Nível de Linha (RLS).
-
--- 4.1. Ativa RLS em todas as tabelas relevantes.
-ALTER TABLE public.profile ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reactions ENABLE ROW LEVEL SECURITY;
-
--- 4.2. Políticas para a tabela de Perfis (profile).
-CREATE POLICY "Users can read their own profile." ON public.profile FOR SELECT USING (auth.uid() = uid);
-CREATE POLICY "Users can update their own profile." ON public.profile FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
-CREATE POLICY "Admins can manage all profiles." ON public.profile FOR ALL USING (public.is_user_admin() = true);
-
--- 4.3. Políticas para a tabela de Posts (posts).
-CREATE POLICY "Allow authenticated users to read posts." ON public.posts FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow admins to create posts." ON public.posts FOR INSERT TO authenticated WITH CHECK (public.is_user_admin() = true);
-CREATE POLICY "Allow admins to delete their own posts." ON public.posts FOR DELETE TO authenticated USING (public.is_user_admin() = true AND auth.uid() = author_uid);
-
--- 4.4. Políticas para a tabela de Comentários (comments).
-CREATE POLICY "Allow authenticated users to read comments." ON public.comments FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow authenticated users to insert comments." ON public.comments FOR INSERT TO authenticated WITH CHECK (auth.uid() is not null);
-CREATE POLICY "Users can delete their own comments, admins can delete any." ON public.comments FOR DELETE TO authenticated USING (auth.uid() = author_uid OR public.is_user_admin() = true);
-
--- 4.5. Políticas para a tabela de Reações (reactions).
-CREATE POLICY "Allow authenticated users to read reactions." ON public.reactions FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow authenticated users to insert reactions." ON public.reactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_uid);
-CREATE POLICY "Allow users to delete their own reactions." ON public.reactions FOR DELETE TO authenticated USING (auth.uid() = user_uid);`;
-
-const SupabaseConfigWarning: React.FC = () => {
-    const [copyText, setCopyText] = useState('Copiar SQL');
-
-    const handleCopySql = () => {
-        navigator.clipboard.writeText(sqlScript);
-        setCopyText('Copiado!');
-        setTimeout(() => setCopyText('Copiar SQL'), 2000);
-    };
-
+    // Posts: Usuários autenticados podem ler. Admins podem criar/deletar.
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      
+      // Comentários: Usuários autenticados podem ler/criar. Podem deletar seus próprios comentários, admins podem deletar qualquer um.
+      match /comments/{commentId} {
+        allow read, create: if request.auth != null;
+        allow delete: if request.auth != null && (resource.data.author_uid == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      }
+      
+      // Reações: Usuários autenticados podem ler. Podem criar/deletar suas próprias reações.
+      match /reactions/{reactionId} {
+         allow read: if request.auth != null;
+         allow create, delete: if request.auth != null && request.resource.data.user_uid == request.auth.uid;
+      }
+    }
+  }
+}`;
+    const storageRules = `rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /post_images/{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    match /profile_photos/{userId} {
+      allow read;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}`;
+    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-lg shadow-2xl p-8 max-w-3xl w-full text-left">
@@ -195,34 +72,43 @@ const SupabaseConfigWarning: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        <h2 className="text-3xl font-bold text-gray-800 mb-2">Guia de Configuração do Supabase</h2>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-2">Guia de Configuração do Firebase</h2>
                         <p className="text-gray-600 mb-8">
-                            Siga estes passos para configurar o backend do "Portal do Aluno" e rodar o projeto localmente.
+                            Siga estes passos para configurar o backend do "Portal do Aluno" com o Firebase.
                         </p>
                         
                         <div className="space-y-6">
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 1:</strong> Crie seu Projeto no Supabase</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 1:</strong> Crie seu Projeto no Firebase</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    Acesse <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">supabase.com</a>, crie uma conta (ou faça login) e inicie um novo projeto.
+                                    Acesse <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">console.firebase.google.com</a>, crie uma conta (ou faça login) e inicie um novo projeto.
                                 </p>
                             </div>
 
                              <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 2:</strong> Configure suas Variáveis de Ambiente</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    No seu projeto Supabase, navegue até <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Project Settings &gt; API</code>. Você encontrará sua URL e chave <code className="text-sm font-mono">anon</code>.
-                                </p>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    Crie um arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto e cole o conteúdo abaixo, substituindo pelos seus dados.
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 2:</strong> Adicione um App Web e Obtenha as Chaves</h3>
+                                <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
+                                    <li>No painel do seu projeto, clique no ícone da Web (<code className="text-sm font-mono">&lt;/&gt;</code>) para adicionar um novo aplicativo da Web.</li>
+                                    <li>Dê um nome ao seu aplicativo e registre-o.</li>
+                                    <li>O Firebase exibirá um objeto de configuração. Copie os valores dele.</li>
+                                </ol>
+                            </div>
+                            
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Configure suas Variáveis de Ambiente</h3>
+                                 <p className="text-gray-600 text-sm mb-2">
+                                    Crie um arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto e cole o conteúdo abaixo, substituindo pelos dados do seu Firebase.
                                 </p>
                                 <div className="bg-gray-100 p-4 rounded-md overflow-x-auto">
                                     <pre className="text-sm text-gray-700">
                                         <code>
 {`# .env.local
-# Cole suas chaves do Supabase aqui
-VITE_SUPABASE_URL="SUA_URL_DO_PROJETO_SUPABASE"
-VITE_SUPABASE_ANON_KEY="SUA_CHAVE_ANON_DO_SUPABASE"
+VITE_FIREBASE_API_KEY="SUA_API_KEY"
+VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN"
+VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID"
+VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET"
+VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_SENDER_ID"
+VITE_FIREBASE_APP_ID="SEU_APP_ID"
 
 # Cole sua chave do Gemini aqui (para o assistente virtual)
 VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
@@ -232,73 +118,36 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                             </div>
                             
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Configure o Acesso (CORS)</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    Para que seu aplicativo possa se comunicar com o Supabase, você precisa autorizar as URLs de onde ele será acessado.
-                                </p>
-                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-2">
-                                    <li>No painel do Supabase, vá para <strong className="text-gray-800">Project Settings &gt; API</strong>.</li>
-                                    <li>Role a página até a seção <strong className="text-gray-800">URL Configuration</strong>.</li>
-                                    <li>
-                                        Em <strong className="text-gray-800">CORS settings</strong>, você precisa adicionar as URLs do seu ambiente de desenvolvimento e produção:
-                                        <ul className="list-disc list-inside mt-2 ml-4 space-y-1">
-                                            <li>
-                                                <strong>Desenvolvimento:</strong> Adicione <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando).
-                                            </li>
-                                            <li>
-                                                <strong>Produção (Vercel):</strong> Após fazer o deploy, adicione a URL do seu site, como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">https://seu-projeto.vercel.app</code>.
-                                            </li>
-                                        </ul>
-                                    </li>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Ative os Serviços do Firebase</h3>
+                                <ol className="list-decimal list-inside text-gray-600 text-sm space-y-2">
+                                    <li>No menu esquerdo, vá para <strong className="text-gray-800">Authentication</strong>, clique em "Começar" e ative o provedor <strong className="text-gray-800">E-mail/senha</strong>.</li>
+                                    <li>No menu esquerdo, vá para <strong className="text-gray-800">Firestore Database</strong>, clique em "Criar banco de dados", inicie em <strong className="text-gray-800">modo de produção</strong> e escolha um local.</li>
+                                    <li>No menu esquerdo, vá para <strong className="text-gray-800">Storage</strong>, clique em "Começar" e siga as instruções para criar um bucket de armazenamento.</li>
                                 </ol>
-                                <div className="mt-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 text-sm rounded-r-lg">
-                                    <p><strong className="font-bold">Importante:</strong> O erro de CORS que você está vendo acontece porque a URL onde seu app está rodando (seja no Vercel ou localmente) não está na lista de permissões do Supabase.</p>
-                                </div>
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Execute o Script do Banco de Dados</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Configure as Regras de Segurança</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo. Ele irá limpar qualquer configuração anterior e criar a estrutura correta.
+                                   Copie e cole as regras abaixo nas seções apropriadas do seu painel Firebase para garantir que os dados estejam seguros.
                                 </p>
-                                <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-60 relative">
-                                    <button
-                                        onClick={handleCopySql}
-                                        className="absolute top-2 right-2 bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold py-1 px-2 rounded transition-colors"
-                                    >
-                                        {copyText}
-                                    </button>
-                                    <pre className="text-xs">
-                                        <code>{sqlScript}</code>
-                                    </pre>
-                                </div>
-                            </div>
-
-                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Configure o Armazenamento de Imagens</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    Para que os administradores possam postar imagens no mural, você precisa criar um "Bucket" no Supabase Storage.
-                                </p>
-                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1.5">
-                                    <li>No menu esquerdo do Supabase, clique no ícone de <strong className="text-gray-800">Storage</strong>.</li>
-                                    <li>Clique em <strong className="text-gray-800">New Bucket</strong>.</li>
-                                     <li>Nomeie o bucket como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">post_images</code> e marque a opção <strong className="text-gray-800">Public bucket</strong>.</li>
-                                    <li>Clique em <strong className="text-gray-800">Create bucket</strong>.</li>
-                                    <li>Após criar, clique nos três pontos (...) ao lado do bucket e selecione <strong className="text-gray-800">Policies</strong>.</li>
-                                    <li>Clique em <strong className="text-gray-800">New Policy</strong> e use o template <strong className="text-gray-800">"Give users access to their own files"</strong>. Na política de INSERT, modifique a condição para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">(bucket_id = 'post_images') AND (storage.foldername(name))[1] = (SELECT (is_admin)::text FROM public.profile WHERE (profile.uid = auth.uid()))</code>. Isso permitirá que apenas administradores façam upload.</li>
-                                </ol>
+                                <h4 className="font-semibold text-gray-700 mt-3 mb-1">Regras do Firestore:</h4>
+                                <p className="text-xs text-gray-500 mb-2">Vá para Firestore Database &gt; Regras e substitua o conteúdo.</p>
+                                <div className="bg-gray-800 text-white p-3 rounded-md max-h-40 overflow-auto"><pre className="text-xs"><code>{firestoreRules}</code></pre></div>
+                                
+                                <h4 className="font-semibold text-gray-700 mt-4 mb-1">Regras do Storage:</h4>
+                                <p className="text-xs text-gray-500 mb-2">Vá para Storage &gt; Regras e substitua o conteúdo.</p>
+                                <div className="bg-gray-800 text-white p-3 rounded-md max-h-40 overflow-auto"><pre className="text-xs"><code>{storageRules}</code></pre></div>
                             </div>
                             
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 6:</strong> Defina o Primeiro Administrador</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    Para acessar o painel de administração e postar no mural, você precisa definir um usuário como administrador manualmente.
-                                </p>
                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
                                     <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
-                                    <li>No painel do Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Table Editor</code> e selecione a tabela <code className="text-sm font-mono">profile</code>.</li>
-                                    <li>Encontre a linha correspondente ao seu usuário recém-criado.</li>
-                                    <li>Clique duas vezes na célula da coluna <code className="text-sm font-mono">is_admin</code> e mude o valor de <code className="text-sm font-mono">false</code> para <code className="text-sm font-mono">true</code>. Salve a alteração.</li>
+                                    <li>No painel do Firebase, vá para <strong className="text-gray-800">Firestore Database</strong>.</li>
+                                    <li>Você verá uma coleção chamada <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">users</code>. Clique nela.</li>
+                                    <li>Encontre o documento que corresponde ao seu UID de usuário (você pode encontrá-lo na aba <strong className="text-gray-800">Authentication &gt; Users</strong>).</li>
+                                    <li>Dentro do documento, clique em <strong className="text-gray-800">Adicionar campo</strong>. Defina o nome do campo como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">isAdmin</code>, o tipo como <code className="text-sm font-mono">boolean</code>, e o valor como <code className="text-sm font-mono">true</code>.</li>
                                 </ol>
                             </div>
 
@@ -357,27 +206,28 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  // Checks if all the environment variables for Supabase are set.
-  const isSupabaseConfigured = 
-    import.meta.env.VITE_SUPABASE_URL &&
-    import.meta.env.VITE_SUPABASE_URL !== 'SUA_URL_DO_PROJETO_SUPABASE' &&
-    import.meta.env.VITE_SUPABASE_ANON_KEY &&
-// Fix: Completed the check for the Supabase anon key placeholder.
-    import.meta.env.VITE_SUPABASE_ANON_KEY !== 'SUA_CHAVE_ANON_DO_SUPABASE';
+  const isFirebaseConfigured = 
+    import.meta.env.VITE_FIREBASE_API_KEY &&
+    import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY' &&
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
+    import.meta.env.VITE_FIREBASE_PROJECT_ID &&
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
+    import.meta.env.VITE_FIREBASE_APP_ID;
 
-  if (!isSupabaseConfigured) {
-    return <SupabaseConfigWarning />;
+  if (!isFirebaseConfigured) {
+    return <FirebaseConfigWarning />;
   }
-// Fix: Added the main application structure to be rendered when Supabase is configured.
-// This ensures the component always returns a valid ReactNode.
+
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <div className="mx-auto max-w-sm h-[100dvh] flex flex-col bg-gray-100 shadow-2xl">
+           <AppRoutes />
+        </div>
       </AuthProvider>
     </HashRouter>
   );
 };
 
-// Fix: Added a default export for the App component.
 export default App;
