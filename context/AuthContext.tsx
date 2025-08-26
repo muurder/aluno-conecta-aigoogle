@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'pending',
       };
       
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: email,
           password: pass,
           options: {
@@ -146,6 +146,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (signUpError) throw signUpError;
+      
+      // Após um signup bem-sucedido, o Supabase loga o usuário, mas o gatilho do banco de dados
+      // para criar o perfil é assíncrono. Nós fazemos uma sondagem por alguns segundos para garantir
+      // que o perfil exista antes de considerar o registro completo. Isso também nos permite
+      // capturar erros de CORS/rede imediatamente na origem.
+      if (signUpData.user) {
+        for (let i = 0; i < 5; i++) { // Sondar por 5 segundos
+            await new Promise(res => setTimeout(res, 1000));
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .select('uid')
+                .eq('uid', signUpData.user.id)
+                .single();
+
+            if (!profileError) {
+                // Perfil encontrado, sucesso! onAuthStateChange cuidará do resto.
+                return;
+            }
+            
+            // Se o erro for algo diferente de 'perfil não encontrado', é um problema crítico (como CORS).
+            if (profileError.code !== 'PGRST116') {
+                console.error("Falha na busca de perfil pós-cadastro:", profileError);
+                throw profileError; 
+            }
+            // Caso contrário, é PGRST116 (não encontrado), então continuamos sondando.
+        }
+        // Se o loop terminar, o perfil nunca foi encontrado.
+        throw new Error('O perfil do usuário não foi criado a tempo. Verifique o gatilho do banco de dados `handle_new_user`.');
+      }
   };
   
   const updateUser = async (newUserData: User) => {
