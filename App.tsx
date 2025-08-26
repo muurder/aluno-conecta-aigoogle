@@ -19,7 +19,30 @@ import AdminEditUser from './pages/AdminEditUser';
 
 const isProduction = import.meta.env.PROD;
 
-const sqlScript = `-- 1. Cria a tabela para guardar os perfis dos usuários
+const sqlScript = `-- ================================================================================================
+--  SCRIPT DE CONFIGURAÇÃO DO BANCO DE DADOS PARA O PORTAL DO ALUNO
+--  Versão: 3.2 - Corrigido
+--  Descrição: Este script limpa configurações antigas e cria a estrutura necessária.
+--  É seguro executar este script múltiplas vezes.
+-- ================================================================================================
+
+-- PASSO 1: Limpeza de objetos antigos para garantir uma instalação limpa.
+-- Remove as políticas RLS antigas, se existirem.
+DROP POLICY IF EXISTS "Users can read their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile." ON public.profiles;
+DROP POLICY IF EXISTS "Admins can manage all profiles." ON public.profiles;
+
+-- Remove a função antiga. A opção CASCADE remove automaticamente o gatilho em 'auth.users'
+-- que depende desta função, evitando erros de permissão.
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+
+-- Remove a tabela de perfis antiga.
+DROP TABLE IF EXISTS public.profiles;
+
+
+-- PASSO 2: Criação da nova estrutura do banco de dados.
+
+-- 2.1. Cria a tabela para guardar os perfis dos usuários.
 CREATE TABLE public.profiles (
   uid uuid NOT NULL PRIMARY KEY,
   institutional_login TEXT,
@@ -31,12 +54,13 @@ CREATE TABLE public.profiles (
   campus TEXT,
   validity TEXT,
   photo TEXT,
-  status TEXT DEFAULT 'pending',
-  is_admin BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'pending' NOT NULL,
+  is_admin BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT profiles_uid_fkey FOREIGN KEY (uid) REFERENCES auth.users (id) ON DELETE CASCADE
 );
+COMMENT ON TABLE public.profiles IS 'Armazena informações de perfil público para cada usuário.';
 
--- 2. Cria uma função para inserir um perfil completo quando um usuário se registra
+-- 2.2. Cria a função que será executada pelo gatilho para popular a tabela de perfis.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -52,28 +76,38 @@ BEGIN
     new.raw_user_meta_data->>'campus',
     new.raw_user_meta_data->>'validity',
     new.raw_user_meta_data->>'photo',
-    'pending' -- Seta o status inicial como pendente
+    'pending' -- Seta o status inicial como 'pendente'
   );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+COMMENT ON FUNCTION public.handle_new_user() IS 'Cria um perfil para um novo usuário na tabela public.profiles.';
 
--- 3. Cria um gatilho (trigger) que executa a função acima após cada novo registro
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- 2.3. Cria o gatilho (trigger) que executa a função acima após cada novo registro na tabela auth.users.
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 4. Ativa a segurança a nível de linha (RLS) na tabela de perfis
+
+-- PASSO 3: Configuração da segurança a nível de linha (RLS).
+
+-- 3.1. Ativa a RLS na tabela de perfis.
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 5. Define as políticas de acesso (Policies)
--- A política de INSERT não é mais necessária para os usuários, pois o trigger cuida disso.
-CREATE POLICY "Users can update their own profile." ON public.profiles FOR UPDATE USING (auth.uid() = uid);
-CREATE POLICY "Users can read their own profile." ON public.profiles FOR SELECT USING (auth.uid() = uid);
-CREATE POLICY "Admins can read all profiles." ON public.profiles FOR SELECT USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));
-CREATE POLICY "Admins can update any profile." ON public.profiles FOR UPDATE USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));
-CREATE POLICY "Admins can delete any profile." ON public.profiles FOR DELETE USING (exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true));`;
+-- 3.2. Define as políticas de acesso (Policies).
+CREATE POLICY "Users can read their own profile." ON public.profiles
+  FOR SELECT USING (auth.uid() = uid);
+
+CREATE POLICY "Users can update their own profile." ON public.profiles
+  FOR UPDATE USING (auth.uid() = uid) WITH CHECK (auth.uid() = uid);
+
+CREATE POLICY "Admins can manage all profiles." ON public.profiles
+  FOR ALL USING (
+    exists (select 1 from profiles where profiles.uid = auth.uid() and is_admin = true)
+  );
+COMMENT ON POLICY "Users can read their own profile." ON public.profiles IS 'Permite que os usuários leiam seus próprios dados de perfil.';
+COMMENT ON POLICY "Users can update their own profile." ON public.profiles IS 'Permite que os usuários atualizem seus próprios dados de perfil.';
+COMMENT ON POLICY "Admins can manage all profiles." ON public.profiles IS 'Concede acesso total (CRUD) aos usuários administradores.';`;
 
 const SupabaseConfigWarning: React.FC = () => {
     const [copyText, setCopyText] = useState('Copiar SQL');
@@ -147,7 +181,7 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Crie a Tabela e as Funções no Banco de Dados</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo. Ele irá criar a tabela <code className="text-sm font-mono">profiles</code>, configurar um gatilho para criar perfis automaticamente e definir as permissões de acesso (RLS).
+                                    No painel do seu projeto Supabase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">SQL Editor</code>, clique em "New query" e cole o script abaixo. Ele irá limpar qualquer configuração anterior e criar a estrutura correta.
                                 </p>
                                 <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-60 relative">
                                     <button

@@ -46,6 +46,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
+  profileError: string | null;
   login: (email: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => Promise<void>;
@@ -56,35 +57,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const getUserProfile = async (supabaseUser: SupabaseUser): Promise<User | null> => {
-    const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('uid', supabaseUser.id)
-        .single();
-    
-    if (error) {
-        console.error("Error fetching user profile:", error.message);
-        return null;
-    }
-    
-    if (profile) {
-        return mapSupabaseProfileToUser(profile, supabaseUser);
-    }
-    return null;
-}
-
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     const getInitialSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-            const userProfile = await getUserProfile(session.user);
-            setUser(userProfile);
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('uid', session.user.id)
+                .single();
+            if (profile && !error) {
+                setUser(mapSupabaseProfileToUser(profile, session.user));
+            } else {
+                setUser(null);
+            }
         }
         setLoading(false);
     };
@@ -95,8 +86,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event: AuthChangeEvent, session: Session | null) => {
         setLoading(true);
         if (event === 'SIGNED_IN' && session?.user) {
-          const userProfile = await getUserProfile(session.user);
-          setUser(userProfile);
+          const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('uid', session.user.id)
+              .single();
+
+          if (error) {
+              console.error("Error fetching user profile:", error.message);
+              if (error.message.toLowerCase().includes('network')) {
+                  setProfileError('cors');
+              } else {
+                  setProfileError('generic');
+              }
+              setUser(null);
+          } else if (profile) {
+              setUser(mapSupabaseProfileToUser(profile, session.user));
+              setProfileError(null);
+          } else {
+              console.error("Profile not found for user:", session.user.id);
+              setProfileError('no_profile');
+              setUser(null);
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
@@ -110,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, pass: string) => {
+    setProfileError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
   };
@@ -119,8 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
-      // Prepara os dados do usuário para serem enviados como metadados.
-      // As chaves devem corresponder ao que o gatilho SQL espera (snake_case).
       const userMetaData = {
         full_name: userData.fullName,
         institutional_login: userData.institutionalLogin,
@@ -133,8 +143,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'pending',
       };
       
-      // Cria o usuário na autenticação, passando todos os dados do perfil em `options.data`.
-      // O gatilho no banco de dados lerá esses dados para criar a linha completa na tabela 'profiles'.
       const { error: signUpError } = await supabase.auth.signUp({
           email: email,
           password: pass,
@@ -144,14 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (signUpError) throw signUpError;
-
-      // Não é mais necessário fazer login ou atualizar o perfil manualmente.
-      // O gatilho cuida de tudo. O usuário receberá um e-mail de confirmação do Supabase.
   };
   
   const updateUser = async (newUserData: User) => {
       const profileData = mapUserToSupabaseProfile(newUserData);
-      // Remove uid from the update payload as it's the primary key and shouldn't be changed
       const { uid, ...updateData } = profileData; 
 
       const { error } = await supabase
@@ -176,11 +180,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
     
-    // In Supabase, we can't easily fetch the auth user email for all users from the client
-    // due to security policies. We'll use the email stored in the profile.
     return profiles.map(profile => ({
       uid: profile.uid,
-      email: profile.email, // Using email from profile table
+      email: profile.email,
       institutionalLogin: profile.institutional_login,
       rgm: profile.rgm,
       fullName: profile.full_name,
@@ -195,10 +197,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteUser = async (uid: string) => {
-    // SECURITY NOTE: This deletes only the profile from the database.
-    // Deleting the actual user from Supabase Auth requires admin privileges and
-    // should be done from a secure backend environment (e.g., a Supabase Edge Function)
-    // to avoid exposing service_role keys on the client.
     const { error } = await supabase
       .from('profiles')
       .delete()
@@ -208,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, loading, login, logout, register, updateUser, getAllUsers, deleteUser }}>
+    <AuthContext.Provider value={{ isAuthenticated: !!user, user, loading, login, logout, register, updateUser, getAllUsers, deleteUser, profileError }}>
       {children}
     </AuthContext.Provider>
   );

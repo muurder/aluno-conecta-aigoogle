@@ -1,7 +1,8 @@
 
 
 
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
@@ -9,19 +10,42 @@ import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/rea
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<React.ReactNode>('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const auth = useAuth();
+  const { login, profileError } = useAuth();
+
+  useEffect(() => {
+    if (profileError === 'cors') {
+        setError(
+             <div className="text-left text-sm">
+                <p className="font-bold mb-2">Falha de Conexão (Erro de CORS)</p>
+                <p className="mb-2">O aplicativo não conseguiu buscar seus dados após o login. Isso geralmente ocorre porque o domínio do aplicativo (<code className="bg-red-200 text-red-900 rounded p-1 font-mono text-xs">http://localhost:5173</code>) não está autorizado no seu projeto Supabase.</p>
+                <p><strong>Para corrigir:</strong></p>
+                <ol className="list-decimal list-inside mt-1 space-y-1">
+                    <li>Acesse seu painel do Supabase.</li>
+                    <li>Navegue para <code className="text-xs font-mono">Project Settings &gt; API</code>.</li>
+                    <li>Na seção <code className="text-xs font-mono">CORS settings</code>, adicione a URL exata do seu ambiente de desenvolvimento e salve.</li>
+                </ol>
+             </div>
+        );
+    } else if (profileError === 'no_profile') {
+        setError('Login autorizado, mas não encontramos seu perfil de usuário. O gatilho do banco de dados pode não ter sido executado corretamente. Verifique o guia de configuração.');
+    } else if (profileError === 'generic') {
+        setError('Ocorreu um erro inesperado ao carregar seu perfil. Tente novamente.');
+    }
+  }, [profileError]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await auth.login(email, password);
-      navigate('/');
+      await login(email, password);
+      // A navegação agora é controlada pelo componente AppRoutes com base
+      // no estado de autenticação, tornando o fluxo mais robusto.
     } catch (err: any) {
       console.error("Login Error:", err);
       if (err.message.includes('Invalid login credentials')) {
@@ -49,7 +73,7 @@ const Login: React.FC = () => {
           <p className="text-gray-500 mt-2">Acesse seu Portal do Aluno</p>
         </div>
         
-        {error && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{error}</p>}
+        {error && <div className="text-red-700 bg-red-100 p-4 rounded-lg border border-red-200">{error}</div>}
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
