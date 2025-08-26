@@ -1,7 +1,6 @@
 
 
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -18,15 +17,17 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (profileError === 'cors') {
+        const origin = window.location.origin;
         setError(
              <div className="text-left text-sm">
-                <p className="font-bold mb-2">Falha de Conexão (Erro de CORS)</p>
-                <p className="mb-2">O aplicativo não conseguiu buscar seus dados após o login. Isso geralmente ocorre porque o domínio do aplicativo (<code className="bg-red-200 text-red-900 rounded p-1 font-mono text-xs">http://localhost:5173</code>) não está autorizado no seu projeto Supabase.</p>
-                <p><strong>Para corrigir:</strong></p>
-                <ol className="list-decimal list-inside mt-1 space-y-1">
-                    <li>Acesse seu painel do Supabase.</li>
-                    <li>Navegue para <code className="text-xs font-mono">Project Settings &gt; API</code>.</li>
-                    <li>Na seção <code className="text-xs font-mono">CORS settings</code>, adicione a URL exata do seu ambiente de desenvolvimento e salve.</li>
+                <p className="font-bold text-base mb-2">Falha de Conexão (Erro de CORS)</p>
+                <p className="mb-3">O aplicativo não conseguiu buscar seus dados. Isso geralmente ocorre porque o domínio do aplicativo (<code className="bg-red-200 text-red-900 rounded p-1 font-mono text-xs">{origin}</code>) não está autorizado no seu projeto Supabase.</p>
+                <p className="font-semibold">Para corrigir:</p>
+                <ol className="list-decimal list-inside mt-2 space-y-1.5 text-gray-700">
+                    <li>Acesse seu painel do Supabase e clique no ícone de engrenagem (<strong className="font-semibold text-gray-800">Settings</strong>) no menu.</li>
+                    <li>Na nova tela, no menu lateral, encontre e clique em <strong className="font-semibold text-gray-800">API</strong>.</li>
+                    <li>Role a página para baixo até a seção <strong className="font-semibold text-gray-800">URL Configuration</strong>.</li>
+                    <li>Em <strong className="font-semibold text-gray-800">CORS settings</strong>, adicione a URL exata <code className="bg-gray-200 text-gray-900 rounded p-1 font-mono text-xs">{origin}</code> e salve.</li>
                 </ol>
              </div>
         );

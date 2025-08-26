@@ -168,13 +168,13 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Configure o Acesso (CORS)</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    Para que o app se comunique com o Supabase localmente, você precisa autorizar a URL de desenvolvimento.
+                                    Para que o app se comunique com o Supabase localmente, você precisa autorizar a URL de desenvolvimento. A interface do Supabase pode mudar, mas os passos são geralmente estes:
                                 </p>
-                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
-                                    <li>No painel do Supabase, vá para <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Project Settings &gt; API</code>.</li>
-                                    <li>Na seção <code className="text-sm font-mono">Configuration</code>, encontre <code className="text-sm font-mono">CORS settings</code>.</li>
-                                    <li>Adicione a URL <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando) como uma nova origem.</li>
-                                    <li>Clique em "Save".</li>
+                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1.5">
+                                    <li>No painel do Supabase, clique no ícone de engrenagem (<strong className="text-gray-800">Settings</strong>) na parte inferior do menu esquerdo.</li>
+                                    <li>Na página de configurações, procure no menu lateral por <strong className="text-gray-800">API</strong> (pode estar na seção "Project Settings") e clique.</li>
+                                    <li>Role a página de API para baixo até encontrar a seção <strong className="text-gray-800">URL Configuration</strong>.</li>
+                                    <li>Dentro dessa seção, você verá <strong className="text-gray-800">CORS settings</strong>. Adicione a URL <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">http://localhost:5173</code> (ou a porta que você estiver usando) e salve.</li>
                                 </ol>
                             </div>
 
