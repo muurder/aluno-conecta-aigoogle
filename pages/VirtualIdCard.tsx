@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
-import { ArrowDownTrayIcon, ShareIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, ArrowTopRightOnSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { User } from '../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -23,7 +23,7 @@ const VirtualIdCard: React.FC = () => {
 
       setIsProcessing(true);
       try {
-          const canvas = await html2canvas(cardElement, { scale: 3, useCORS: true }); // Higher scale & CORS for better quality
+          const canvas = await html2canvas(cardElement, { scale: 3 }); // Higher scale for better quality
           const imgData = canvas.toDataURL('image/png');
 
           const pdf = new jsPDF({
@@ -47,6 +47,27 @@ const VirtualIdCard: React.FC = () => {
       }
   };
 
+  const handleOpenInNewTab = () => {
+      const cardElement = cardRef.current;
+      if (!cardElement || isProcessing) return;
+
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+          newWindow.document.write(`
+              <html>
+                  <head>
+                      <title>Carteirinha Virtual - ${user?.fullName}</title>
+                      <script src="https://cdn.tailwindcss.com"></script>
+                  </head>
+                  <body class="bg-gray-200 flex items-center justify-center min-h-screen p-4">
+                      ${cardElement.outerHTML}
+                  </body>
+              </html>
+          `);
+          newWindow.document.close();
+      }
+  };
+
   const handleShare = async () => {
       const cardElement = cardRef.current;
       if (!cardElement || isProcessing) return;
@@ -58,7 +79,7 @@ const VirtualIdCard: React.FC = () => {
 
       setIsProcessing(true);
       try {
-          const canvas = await html2canvas(cardElement, { scale: 2, useCORS: true });
+          const canvas = await html2canvas(cardElement, { scale: 2 });
           canvas.toBlob(async (blob) => {
               if (blob) {
                   const file = new File([blob], `carteirinha-${user?.rgm}.png`, { type: 'image/png' });
@@ -150,6 +171,7 @@ const VirtualIdCard: React.FC = () => {
                         </div>
                     )}
                     <ActionButton icon={<ArrowDownTrayIcon className="w-5 h-5" />} label="Baixar" onClick={handleDownloadPdf} disabled={isProcessing} />
+                    <ActionButton icon={<ArrowTopRightOnSquareIcon className="w-5 h-5" />} label="Visualizar" onClick={handleOpenInNewTab} disabled={isProcessing} />
                     <ActionButton icon={<ShareIcon className="w-5 h-5" />} label="Compartilhar" onClick={handleShare} disabled={isProcessing} />
                 </div>
             </div>
