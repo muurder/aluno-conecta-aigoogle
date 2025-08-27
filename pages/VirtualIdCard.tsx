@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -50,9 +47,24 @@ const VirtualIdCard: React.FC = () => {
   const QRCodeGenerator: React.FC = () => {
     if (!user) return null;
     
-    // Gera a URL de validação com os dados do usuário codificados em Base64
-    const userJsonString = JSON.stringify(user);
-    const encodedUserData = btoa(unescape(encodeURIComponent(userJsonString))); // Garante compatibilidade com caracteres especiais
+    // Explicitamente seleciona os dados do aluno para garantir que o QR code seja sempre válido
+    // para identificação, independentemente do status de administrador.
+    const studentDataForQr = {
+      uid: user.uid,
+      institutionalLogin: user.institutionalLogin,
+      rgm: user.rgm,
+      fullName: user.fullName,
+      email: user.email,
+      university: user.university,
+      course: user.course,
+      campus: user.campus,
+      validity: user.validity,
+      photo: user.photo,
+      status: user.status,
+    };
+
+    const userJsonString = JSON.stringify(studentDataForQr);
+    const encodedUserData = btoa(unescape(encodeURIComponent(userJsonString)));
     const validationUrl = `${window.location.origin}${window.location.pathname}#/validate-id/${encodedUserData}`;
 
     return (
