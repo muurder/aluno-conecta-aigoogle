@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
-import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon, MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon, MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import BottomNav from '../components/BottomNav';
+
+type FilterStatus = 'all' | 'pending' | 'approved';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -11,6 +13,10 @@ const AdminDashboard: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
+
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -29,15 +35,18 @@ const AdminDashboard: React.FC = () => {
     }, [fetchUsers]);
 
     const filteredUsers = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return users;
-        }
-        return users.filter(user =>
-            user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.institutionalLogin.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [users, searchTerm]);
+        return users
+            .filter(user => {
+                if (activeFilter === 'pending') return user.status === 'pending';
+                if (activeFilter === 'approved') return user.status === 'approved';
+                return true;
+            })
+            .filter(user =>
+                user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.institutionalLogin.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+    }, [users, searchTerm, activeFilter]);
 
     const handleApprove = async (user: User) => {
         await updateUser({ ...user, status: 'approved' });
@@ -51,6 +60,14 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleSendNotification = () => {
+        console.log("Sending push notification to all users:", notificationMessage);
+        // Here you would integrate with a service like Firebase Cloud Messaging
+        alert(`Notificação enviada (simulação):\n"${notificationMessage}"`);
+        setNotificationMessage('');
+        setShowNotificationModal(false);
+    };
+
     const StatusBadge: React.FC<{ status: User['status'] }> = ({ status }) => {
         const baseClasses = 'px-2 py-1 text-xs font-semibold rounded-full';
         if (status === 'approved') {
@@ -58,9 +75,46 @@ const AdminDashboard: React.FC = () => {
         }
         return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pendente</span>;
     };
+    
+    const FilterButton: React.FC<{ filter: FilterStatus; label: string }> = ({ filter, label }) => (
+        <button
+            onClick={() => setActiveFilter(filter)}
+            className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors ${
+                activeFilter === filter ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
+    const NotificationModal = () => (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
+                <h2 className="text-lg font-bold text-gray-800 mb-4">Enviar Notificação Push</h2>
+                <textarea
+                    value={notificationMessage}
+                    onChange={(e) => setNotificationMessage(e.target.value)}
+                    placeholder="Digite a mensagem da notificação..."
+                    className="w-full p-2 border border-gray-300 rounded-md resize-y min-h-[100px] focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex justify-end gap-3 mt-4">
+                    <button onClick={() => setShowNotificationModal(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancelar
+                    </button>
+                    <button onClick={handleSendNotification} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Enviar
+                    </button>
+                </div>
+                 <button onClick={() => setShowNotificationModal(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                    <XMarkIcon className="w-6 h-6"/>
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-screen bg-gray-100">
+            {showNotificationModal && <NotificationModal />}
             <header className="p-4 bg-white shadow-sm sticky top-0 z-10 border-b">
                  <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -83,9 +137,24 @@ const AdminDashboard: React.FC = () => {
                     />
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
+                <div className="flex items-center justify-center gap-2 mt-4">
+                    <FilterButton filter="all" label="Todos" />
+                    <FilterButton filter="pending" label="Pendentes" />
+                    <FilterButton filter="approved" label="Aprovados" />
+                </div>
             </header>
 
             <main className="flex-grow p-4 overflow-y-auto pb-24">
+                 <div className="bg-white p-4 rounded-lg shadow-md border mb-6">
+                    <h2 className="text-md font-bold text-gray-700 mb-3">Funções de Admin</h2>
+                    <div className="flex flex-col gap-2">
+                        <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                            <BellAlertIcon className="w-5 h-5" />
+                            <span>Enviar Notificação Push</span>
+                        </button>
+                    </div>
+                </div>
+
                 {loading ? (
                     <p className="text-center text-gray-500 mt-8">Carregando usuários...</p>
                 ) : filteredUsers.length === 0 ? (
