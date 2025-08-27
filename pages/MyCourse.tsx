@@ -153,7 +153,7 @@ const PostCard: React.FC<{ post: Post; onUpdate: () => void; }> = ({ post, onUpd
                                 <p className="text-sm text-gray-700">{comment.content}</p>
                             </div>
                             {(user?.uid === comment.author_uid || user?.isAdmin) && (
-                                <button onClick={async () => { await deleteComment(comment.id); onUpdate(); }} className="p-1 text-gray-400 hover:text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><XMarkIcon className="w-4 h-4" /></button>
+                                <button onClick={async () => { await deleteComment(post.id, comment.id); onUpdate(); }} className="p-1 text-gray-400 hover:text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><XMarkIcon className="w-4 h-4" /></button>
                             )}
                         </div>
                      ))}

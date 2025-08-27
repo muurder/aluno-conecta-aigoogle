@@ -19,62 +19,20 @@ import AdminEditUser from './pages/AdminEditUser';
 const isProduction = import.meta.env.PROD;
 
 const FirebaseConfigWarning: React.FC = () => {
-    const firestoreRules = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Perfis: Usuários podem ler e escrever seus próprios perfis. Admins podem ler/escrever todos.
-    match /users/{userId} {
-      allow read, update, delete: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
-      allow create: if request.auth != null;
-    }
-
-    // Posts: Usuários autenticados podem ler. Admins podem criar/deletar.
-    match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-      
-      // Comentários: Usuários autenticados podem ler/criar. Podem deletar seus próprios comentários, admins podem deletar qualquer um.
-      match /comments/{commentId} {
-        allow read, create: if request.auth != null;
-        allow delete: if request.auth != null && (resource.data.author_uid == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
-      }
-      
-      // Reações: Usuários autenticados podem ler. Podem criar/deletar suas próprias reações.
-      match /reactions/{reactionId} {
-         allow read: if request.auth != null;
-         allow create, delete: if request.auth != null && request.resource.data.user_uid == request.auth.uid;
-      }
-    }
-  }
-}`;
-    const storageRules = `rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /post_images/{allPaths=**} {
-      allow read;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-    match /profile_photos/{userId} {
-      allow read;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}`;
-    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-lg shadow-2xl p-8 max-w-3xl w-full text-left">
                 {isProduction ? (
                     <div className="text-center">
                         <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração do Servidor</h2>
-                        <p className="text-gray-700">O aplicativo não pode se conectar ao banco de dados.</p>
+                        <p className="text-gray-700">O aplicativo não pode se conectar aos serviços de backend.</p>
                         <p className="text-gray-600 mt-2">Por favor, entre em contato com o administrador do sistema.</p>
                     </div>
                 ) : (
                     <>
                         <h2 className="text-3xl font-bold text-gray-800 mb-2">Guia de Configuração do Firebase</h2>
                         <p className="text-gray-600 mb-8">
-                            Siga estes passos para configurar o backend do "Portal do Aluno" com o Firebase.
+                            Siga estes passos para configurar o backend do "Portal do Aluno" com o Firebase e rodar o projeto localmente.
                         </p>
                         
                         <div className="space-y-6">
@@ -86,28 +44,23 @@ service firebase.storage {
                             </div>
 
                              <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 2:</strong> Adicione um App Web e Obtenha as Chaves</h3>
-                                <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
-                                    <li>No painel do seu projeto, clique no ícone da Web (<code className="text-sm font-mono">&lt;/&gt;</code>) para adicionar um novo aplicativo da Web.</li>
-                                    <li>Dê um nome ao seu aplicativo e registre-o.</li>
-                                    <li>O Firebase exibirá um objeto de configuração. Copie os valores dele.</li>
-                                </ol>
-                            </div>
-                            
-                            <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Configure suas Variáveis de Ambiente</h3>
-                                 <p className="text-gray-600 text-sm mb-2">
-                                    Crie um arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto e cole o conteúdo abaixo, substituindo pelos dados do seu Firebase.
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 2:</strong> Configure suas Variáveis de Ambiente</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    No seu projeto Firebase, crie um novo "Aplicativo da Web". O Firebase fornecerá um objeto de configuração com suas chaves.
+                                </p>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Crie um arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto e cole o conteúdo abaixo, substituindo pelos seus dados.
                                 </p>
                                 <div className="bg-gray-100 p-4 rounded-md overflow-x-auto">
                                     <pre className="text-sm text-gray-700">
                                         <code>
 {`# .env.local
+# Cole suas chaves do Firebase aqui
 VITE_FIREBASE_API_KEY="SUA_API_KEY"
 VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN"
 VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID"
 VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET"
-VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_SENDER_ID"
+VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID"
 VITE_FIREBASE_APP_ID="SEU_APP_ID"
 
 # Cole sua chave do Gemini aqui (para o assistente virtual)
@@ -118,36 +71,95 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                             </div>
                             
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Ative os Serviços do Firebase</h3>
-                                <ol className="list-decimal list-inside text-gray-600 text-sm space-y-2">
-                                    <li>No menu esquerdo, vá para <strong className="text-gray-800">Authentication</strong>, clique em "Começar" e ative o provedor <strong className="text-gray-800">E-mail/senha</strong>.</li>
-                                    <li>No menu esquerdo, vá para <strong className="text-gray-800">Firestore Database</strong>, clique em "Criar banco de dados", inicie em <strong className="text-gray-800">modo de produção</strong> e escolha um local.</li>
-                                    <li>No menu esquerdo, vá para <strong className="text-gray-800">Storage</strong>, clique em "Começar" e siga as instruções para criar um bucket de armazenamento.</li>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Ative os Serviços do Firebase</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    No painel do Firebase, ative os seguintes serviços:
+                                </p>
+                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-2">
+                                    <li>
+                                      <strong className="text-gray-800">Authentication:</strong> Vá para a seção "Authentication", clique em "Primeiros passos" e ative o provedor de "E-mail/senha".
+                                    </li>
+                                    <li>
+                                      <strong className="text-gray-800">Firestore Database:</strong> Vá para "Firestore Database", clique em "Criar banco de dados", inicie em <strong className="font-semibold">modo de produção</strong> e escolha um local.
+                                    </li>
+                                     <li>
+                                      <strong className="text-gray-800">Storage:</strong> Vá para "Storage", clique em "Primeiros passos" e configure-o com as regras de segurança padrão.
+                                    </li>
                                 </ol>
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Configure as Regras de Segurança</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Configure as Regras de Segurança</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                   Copie e cole as regras abaixo nas seções apropriadas do seu painel Firebase para garantir que os dados estejam seguros.
+                                    Para que o aplicativo funcione, você precisa definir regras de segurança para o Firestore e o Storage.
                                 </p>
-                                <h4 className="font-semibold text-gray-700 mt-3 mb-1">Regras do Firestore:</h4>
-                                <p className="text-xs text-gray-500 mb-2">Vá para Firestore Database &gt; Regras e substitua o conteúdo.</p>
-                                <div className="bg-gray-800 text-white p-3 rounded-md max-h-40 overflow-auto"><pre className="text-xs"><code>{firestoreRules}</code></pre></div>
-                                
-                                <h4 className="font-semibold text-gray-700 mt-4 mb-1">Regras do Storage:</h4>
-                                <p className="text-xs text-gray-500 mb-2">Vá para Storage &gt; Regras e substitua o conteúdo.</p>
-                                <div className="bg-gray-800 text-white p-3 rounded-md max-h-40 overflow-auto"><pre className="text-xs"><code>{storageRules}</code></pre></div>
+                                 <p className="text-gray-600 text-sm mb-2">
+                                    <strong className="text-gray-800">Firestore:</strong> Vá para a aba "Regras" do Firestore e substitua o conteúdo pelo seguinte:
+                                </p>
+                                <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-40">
+                                    <pre className="text-xs">
+                                        <code>
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Perfis: Usuários podem ler e editar seu próprio perfil. Admins podem ler todos.
+    match /profile/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow read, list: if get(/databases/$(database)/documents/profile/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Posts: Todos autenticados podem ler. Apenas admins podem criar/deletar.
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create, delete: if get(/databases/$(database)/documents/profile/$(request.auth.uid)).data.isAdmin == true;
+      
+      // Comentários: Todos autenticados podem ler/criar. Donos e admins podem deletar.
+      match /comments/{commentId} {
+        allow read, create: if request.auth != null;
+        allow delete: if request.auth != null && (request.auth.uid == resource.data.author_uid || get(/databases/$(database)/documents/profile/$(request.auth.uid)).data.isAdmin == true);
+      }
+      
+      // Reações: Todos autenticados podem ler/escrever. Donos podem deletar.
+      match /reactions/{userId} {
+        allow read, write: if request.auth != null;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}`}
+                                        </code>
+                                    </pre>
+                                </div>
+                                 <p className="text-gray-600 text-sm mb-2 mt-4">
+                                    <strong className="text-gray-800">Storage:</strong> Vá para a aba "Regras" do Storage e substitua o conteúdo pelo seguinte para permitir que usuários autenticados façam upload:
+                                </p>
+                                 <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-40">
+                                    <pre className="text-xs">
+                                        <code>
+{`rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+  }
+}`}
+                                        </code>
+                                    </pre>
+                                </div>
                             </div>
                             
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 6:</strong> Defina o Primeiro Administrador</h3>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Defina o Primeiro Administrador</h3>
+                                <p className="text-gray-600 text-sm mb-2">
+                                    Para acessar o painel de administração e postar no mural, você precisa definir um usuário como administrador manualmente.
+                                </p>
                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
                                     <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
-                                    <li>No painel do Firebase, vá para <strong className="text-gray-800">Firestore Database</strong>.</li>
-                                    <li>Você verá uma coleção chamada <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">users</code>. Clique nela.</li>
-                                    <li>Encontre o documento que corresponde ao seu UID de usuário (você pode encontrá-lo na aba <strong className="text-gray-800">Authentication &gt; Users</strong>).</li>
-                                    <li>Dentro do documento, clique em <strong className="text-gray-800">Adicionar campo</strong>. Defina o nome do campo como <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">isAdmin</code>, o tipo como <code className="text-sm font-mono">boolean</code>, e o valor como <code className="text-sm font-mono">true</code>.</li>
+                                    <li>No painel do Firebase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Firestore Database</code>.</li>
+                                    <li>Selecione a coleção <code className="text-sm font-mono">profile</code> e encontre o documento correspondente ao seu UID.</li>
+                                    <li>Edite o campo <code className="text-sm font-mono">isAdmin</code> de <code className="text-sm font-mono">false</code> para <code className="text-sm font-mono">true</code> (tipo booleano).</li>
                                 </ol>
                             </div>
 
@@ -206,9 +218,9 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // Checks if all the environment variables for Firebase are set.
   const isFirebaseConfigured = 
-    import.meta.env.VITE_FIREBASE_API_KEY &&
-    import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY' &&
+    import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY' &&
     import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
     import.meta.env.VITE_FIREBASE_PROJECT_ID &&
     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
@@ -222,9 +234,7 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <div className="mx-auto max-w-sm h-[100dvh] flex flex-col bg-gray-100 shadow-2xl">
-           <AppRoutes />
-        </div>
+        <AppRoutes />
       </AuthProvider>
     </HashRouter>
   );
