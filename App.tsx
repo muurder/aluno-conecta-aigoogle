@@ -69,6 +69,12 @@ API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                         </code>
                                     </pre>
                                 </div>
+                                <div className="mt-4 bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                                    <h4 className="font-bold text-yellow-800">Nota para Deploy (Produção)</h4>
+                                    <p className="text-sm text-yellow-700 mt-1">
+                                        Se você está publicando esta aplicação em plataformas como <strong>Vercel</strong> ou <strong>Netlify</strong>, você deve configurar estas mesmas variáveis de ambiente (com o prefixo <code className="bg-yellow-200 text-yellow-900 font-mono p-0.5 rounded-sm text-xs">VITE_</code>) diretamente no painel de configurações do seu projeto na plataforma. O arquivo <code className="bg-yellow-200 text-yellow-900 font-mono p-0.5 rounded-sm text-xs">.env.local</code> é usado apenas para desenvolvimento local.
+                                    </p>
+                                </div>
                             </div>
                             
                             <div>
