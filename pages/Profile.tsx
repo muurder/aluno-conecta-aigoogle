@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -21,7 +20,7 @@ const Profile: React.FC = () => {
     <div className="bg-gradient-to-b from-cyan-400 to-teal-500 p-6 text-center relative overflow-hidden">
         <img src={balao1} className="absolute top-8 left-8 w-20 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
         <img src={balao2} className="absolute top-12 right-12 w-16 h-auto opacity-80 pointer-events-none" alt="Decorative chat bubble" />
-        <div className="relative">
+        <div className="relative mb-4">
             <div className="relative w-28 h-28 mx-auto">
                 {user?.photo ? (
                     <img src={user.photo} alt="Profile" className="w-28 h-28 rounded-full object-cover shadow-lg" />

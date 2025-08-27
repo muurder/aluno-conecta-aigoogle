@@ -9,7 +9,6 @@ import {
     BuildingLibraryIcon,
     BuildingOffice2Icon,
     CalculatorIcon,
-    // FIX: Imported ChartBarIcon to resolve 'Cannot find name' error.
     ChartBarIcon,
     ChatBubbleLeftRightIcon,
     CodeBracketIcon,
@@ -56,16 +55,27 @@ export const UNIVERSITY_DETAILS: Record<UniversityName, { domain: string; campus
 };
 
 export const COURSE_LIST: string[] = [
-    "Administração", "Análise e Desenvolvimento de Sistemas", "Arquitetura e Urbanismo", 
-    "Biblioteconomia", "Biomedicina", "Ciência de Dados", "Ciências Contábeis", 
-    "Ciências da Computação", "Comunicação Social", "Design", "Direito", "Educação Física", 
-    "Enfermagem", "Engenharia Civil", "Engenharia de Computação", "Engenharia de Produção", 
-    "Engenharia Elétrica", "Engenharia Mecânica", "Farmácia", "Fisioterapia", "Fonoaudiologia", 
-    "Gastronomia", "Geografia", "História", "Jornalismo", "Logística", "Marketing", 
-    "Medicina Veterinária", "Nutrição", "Odontologia", "Pedagogia", "Psicologia", 
-    "Publicidade e Propaganda", "Relações Internacionais", "Serviço Social", 
-    "Sistemas de Informação", "Turismo"
+    // Graduação
+    "Administração", "Análise e Desenvolvimento de Sistemas", "Arquitetura e Urbanismo",
+    "Biblioteconomia", "Biomedicina", "Ciência de Dados", "Ciências Contábeis",
+    "Ciências da Computação", "Comunicação Social", "Design", "Design de Interiores", "Direito", "Educação Física",
+    "Enfermagem", "Engenharia Civil", "Engenharia de Computação", "Engenharia de Produção",
+    "Engenharia Elétrica", "Engenharia Mecânica", "Farmácia", "Fisioterapia", "Fonoaudiologia",
+    "Gastronomia", "Geografia", "História", "Jornalismo", "Logística", "Marketing",
+    "Medicina Veterinária", "Nutrição", "Odontologia", "Paisagismo", "Pedagogia", "Psicologia",
+    "Publicidade e Propaganda", "Relações Internacionais", "Serviço Social",
+    "Sistemas de Informação", "Turismo",
+    // Pós-graduação
+    "MBA em Gestão de Projetos", "MBA em Data Science & Analytics", "MBA em Engenharia de Software",
+    "MBA em UX/UI & Product Design", "MBA em Marketing Digital & Growth", "MBA em Finanças, Controladoria e Auditoria",
+    "MBA em Logística & Supply Chain", "MBA em Gestão de Pessoas & Liderança",
+    "Especialização em Direito Digital e LGPD", "Especialização em Direito Tributário",
+    "Especialização em Docência no Ensino Superior", "Especialização em Psicologia Organizacional",
+    "Especialização em Enfermagem em UTI", "Especialização em Fisioterapia Traumato-Ortopédica",
+    "Especialização em Arquitetura da Paisagem", "Especialização em Design de Interiores",
+    "Especialização em Nutrição Clínica", "Especialização em Implantodontia (Odontologia)"
 ];
+
 
 // Maps course names to specific Heroicons for a more personalized UI
 export const COURSE_ICONS: Record<string, React.ReactNode> = {
@@ -80,6 +90,7 @@ export const COURSE_ICONS: Record<string, React.ReactNode> = {
     "Ciências da Computação": <ComputerDesktopIcon className="w-6 h-6" />,
     "Comunicação Social": <ChatBubbleLeftRightIcon className="w-6 h-6" />,
     "Design": <PaintBrushIcon className="w-6 h-6" />,
+    "Design de Interiores": <HomeModernIcon className="w-6 h-6" />,
     "Direito": <ScaleIcon className="w-6 h-6" />,
     "Educação Física": <TrophyIcon className="w-6 h-6" />,
     "Enfermagem": <HeartIcon className="w-6 h-6" />,
@@ -91,7 +102,7 @@ export const COURSE_ICONS: Record<string, React.ReactNode> = {
     "Farmácia": <BeakerIcon className="w-6 h-6" />,
     "Fisioterapia": <HeartIcon className="w-6 h-6" />,
     "Fonoaudiologia": <MicrophoneIcon className="w-6 h-6" />,
-    "Gastronomia": <BeakerIcon className="w-6 h-6" />, // No direct icon, using a related one
+    "Gastronomia": <BeakerIcon className="w-6 h-6" />,
     "Geografia": <MapIcon className="w-6 h-6" />,
     "História": <ArchiveBoxIcon className="w-6 h-6" />,
     "Jornalismo": <DocumentTextIcon className="w-6 h-6" />,
@@ -100,6 +111,7 @@ export const COURSE_ICONS: Record<string, React.ReactNode> = {
     "Medicina Veterinária": <HeartIcon className="w-6 h-6" />,
     "Nutrição": <HeartIcon className="w-6 h-6" />,
     "Odontologia": <UsersIcon className="w-6 h-6" />,
+    "Paisagismo": <MapIcon className="w-6 h-6" />,
     "Pedagogia": <AcademicCapIcon className="w-6 h-6" />,
     "Psicologia": <UsersIcon className="w-6 h-6" />,
     "Publicidade e Propaganda": <ChatBubbleLeftRightIcon className="w-6 h-6" />,
@@ -107,4 +119,23 @@ export const COURSE_ICONS: Record<string, React.ReactNode> = {
     "Serviço Social": <UsersIcon className="w-6 h-6" />,
     "Sistemas de Informação": <ComputerDesktopIcon className="w-6 h-6" />,
     "Turismo": <MapIcon className="w-6 h-6" />,
+    // Pós-graduação Icons
+    "MBA em Gestão de Projetos": <BriefcaseIcon className="w-6 h-6" />,
+    "MBA em Data Science & Analytics": <ChartBarIcon className="w-6 h-6" />,
+    "MBA em Engenharia de Software": <CodeBracketIcon className="w-6 h-6" />,
+    "MBA em UX/UI & Product Design": <PaintBrushIcon className="w-6 h-6" />,
+    "MBA em Marketing Digital & Growth": <CurrencyDollarIcon className="w-6 h-6" />,
+    "MBA em Finanças, Controladoria e Auditoria": <CalculatorIcon className="w-6 h-6" />,
+    "MBA em Logística & Supply Chain": <ArchiveBoxIcon className="w-6 h-6" />,
+    "MBA em Gestão de Pessoas & Liderança": <UsersIcon className="w-6 h-6" />,
+    "Especialização em Direito Digital e LGPD": <ScaleIcon className="w-6 h-6" />,
+    "Especialização em Direito Tributário": <ScaleIcon className="w-6 h-6" />,
+    "Especialização em Docência no Ensino Superior": <AcademicCapIcon className="w-6 h-6" />,
+    "Especialização em Psicologia Organizacional": <UsersIcon className="w-6 h-6" />,
+    "Especialização em Enfermagem em UTI": <HeartIcon className="w-6 h-6" />,
+    "Especialização em Fisioterapia Traumato-Ortopédica": <HeartIcon className="w-6 h-6" />,
+    "Especialização em Arquitetura da Paisagem": <HomeModernIcon className="w-6 h-6" />,
+    "Especialização em Design de Interiores": <HomeModernIcon className="w-6 h-6" />,
+    "Especialização em Nutrição Clínica": <HeartIcon className="w-6 h-6" />,
+    "Especialização em Implantodontia (Odontologia)": <UsersIcon className="w-6 h-6" />,
 };
