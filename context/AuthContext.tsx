@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
-        const userDocRef = doc(db, 'profile', authUser.uid);
+        const userDocRef = doc(db, 'profiles', authUser.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
@@ -90,12 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'pending',
       };
       
-      await setDoc(doc(db, 'profile', authUser.uid), profileData);
+      await setDoc(doc(db, 'profiles', authUser.uid), profileData);
   };
   
   const updateUser = async (newUserData: User) => {
-      const userDocRef = doc(db, 'profile', newUserData.uid);
-      await updateDoc(userDocRef, newUserData);
+      const userDocRef = doc(db, 'profiles', newUserData.uid);
+      // FIX: Spread the newUserData object to satisfy the type constraints of updateDoc.
+      // This resolves a TypeScript error where the 'User' type was not directly assignable.
+      await updateDoc(userDocRef, { ...newUserData });
 
       if (user?.uid === newUserData.uid) {
           setUser(newUserData);
@@ -103,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getAllUsers = async (): Promise<User[]> => {
-    const usersCollection = collection(db, 'profile');
+    const usersCollection = collection(db, 'profiles');
     const userSnapshot = await getDocs(usersCollection);
     return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
   };
@@ -111,12 +113,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteUser = async (uid: string) => {
     // Note: This only deletes the user's profile from Firestore.
     // Deleting the actual Firebase Auth user requires admin privileges via a backend function.
-    await deleteDoc(doc(db, 'profile', uid));
+    await deleteDoc(doc(db, 'profiles', uid));
   };
 
   // Helper to fetch a single user profile
   const getUserProfile = async (uid: string): Promise<Pick<User, 'fullName' | 'photo'>> => {
-      const userDoc = await getDoc(doc(db, 'profile', uid));
+      const userDoc = await getDoc(doc(db, 'profiles', uid));
       if(userDoc.exists()){
           const data = userDoc.data();
           return { fullName: data.fullName, photo: data.photo };

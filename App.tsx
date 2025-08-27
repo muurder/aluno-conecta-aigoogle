@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -16,7 +17,7 @@ import Help from './pages/Help';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
 
-const isProduction = import.meta.env.PROD;
+const isProduction = process.env.NODE_ENV === 'production';
 
 const FirebaseConfigWarning: React.FC = () => {
     return (
@@ -64,7 +65,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID"
 VITE_FIREBASE_APP_ID="SEU_APP_ID"
 
 # Cole sua chave do Gemini aqui (para o assistente virtual)
-VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
+API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
                                         </code>
                                     </pre>
                                 </div>
@@ -103,20 +104,20 @@ VITE_GEMINI_API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
 service cloud.firestore {
   match /databases/{database}/documents {
     // Perfis: Usuários podem ler e editar seu próprio perfil. Admins podem ler todos.
-    match /profile/{userId} {
+    match /profiles/{userId} {
       allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow read, list: if get(/databases/$(database)/documents/profile/$(request.auth.uid)).data.isAdmin == true;
+      allow read, list: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
     }
     
     // Posts: Todos autenticados podem ler. Apenas admins podem criar/deletar.
     match /posts/{postId} {
       allow read: if request.auth != null;
-      allow create, delete: if get(/databases/$(database)/documents/profile/$(request.auth.uid)).data.isAdmin == true;
+      allow create, delete: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
       
       // Comentários: Todos autenticados podem ler/criar. Donos e admins podem deletar.
       match /comments/{commentId} {
         allow read, create: if request.auth != null;
-        allow delete: if request.auth != null && (request.auth.uid == resource.data.author_uid || get(/databases/$(database)/documents/profile/$(request.auth.uid)).data.isAdmin == true);
+        allow delete: if request.auth != null && (request.auth.uid == resource.data.author_uid || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true);
       }
       
       // Reações: Todos autenticados podem ler/escrever. Donos podem deletar.
@@ -158,7 +159,7 @@ service firebase.storage {
                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
                                     <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
                                     <li>No painel do Firebase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Firestore Database</code>.</li>
-                                    <li>Selecione a coleção <code className="text-sm font-mono">profile</code> e encontre o documento correspondente ao seu UID.</li>
+                                    <li>Selecione a coleção <code className="text-sm font-mono">profiles</code> e encontre o documento correspondente ao seu UID.</li>
                                     <li>Edite o campo <code className="text-sm font-mono">isAdmin</code> de <code className="text-sm font-mono">false</code> para <code className="text-sm font-mono">true</code> (tipo booleano).</li>
                                 </ol>
                             </div>
@@ -220,12 +221,12 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   // Checks if all the environment variables for Firebase are set.
   const isFirebaseConfigured = 
-    import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY' &&
-    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
-    import.meta.env.VITE_FIREBASE_PROJECT_ID &&
-    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
-    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-    import.meta.env.VITE_FIREBASE_APP_ID;
+    process.env.VITE_FIREBASE_API_KEY && process.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY' &&
+    process.env.VITE_FIREBASE_AUTH_DOMAIN &&
+    process.env.VITE_FIREBASE_PROJECT_ID &&
+    process.env.VITE_FIREBASE_STORAGE_BUCKET &&
+    process.env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
+    process.env.VITE_FIREBASE_APP_ID;
 
   if (!isFirebaseConfigured) {
     return <FirebaseConfigWarning />;
