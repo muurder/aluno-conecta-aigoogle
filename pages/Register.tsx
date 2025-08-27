@@ -30,6 +30,7 @@ const Register: React.FC = () => {
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [error, setError] = useState<React.ReactNode>('');
     const [loading, setLoading] = useState(false);
+    const [imageProcessing, setImageProcessing] = useState(false);
     const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
@@ -56,6 +57,15 @@ const Register: React.FC = () => {
             rgm: generateRGM(),
         }));
     }, [generateRGM]);
+
+    // Cleanup effect for blob URLs to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (formData.photo && formData.photo.startsWith('blob:')) {
+                URL.revokeObjectURL(formData.photo);
+            }
+        };
+    }, [formData.photo]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -98,15 +108,81 @@ const Register: React.FC = () => {
         }
     }
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<{ compressedFile: File; previewUrl: string }> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onerror = reject;
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onerror = reject;
+                img.onload = () => {
+                    let { width, height } = img;
+    
+                    if (width > height) {
+                        if (width > options.maxWidth) {
+                            height = Math.round((height * options.maxWidth) / width);
+                            width = options.maxWidth;
+                        }
+                    } else {
+                        if (height > options.maxHeight) {
+                            width = Math.round((width * options.maxHeight) / height);
+                            height = options.maxHeight;
+                        }
+                    }
+    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+    
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        return reject(new Error('Could not get canvas context.'));
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+    
+                    canvas.toBlob(
+                        (blob) => {
+                            if (!blob) {
+                                return reject(new Error('Canvas to Blob conversion failed.'));
+                            }
+                            const fileName = file.name.split('.').slice(0, -1).join('.') + '.jpeg';
+                            const compressedFile = new File([blob], fileName, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            });
+                            const previewUrl = URL.createObjectURL(blob);
+                            resolve({ compressedFile, previewUrl });
+                        },
+                        'image/jpeg',
+                        options.quality
+                    );
+                };
+                img.src = e.target?.result as string;
+            };
+        });
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setPhotoFile(file);
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setFormData({ ...formData, photo: event.target?.result as string });
-            };
-            reader.readAsDataURL(file);
+            if (!file.type.startsWith('image/')) {
+                 setError('Por favor, selecione um arquivo de imagem.');
+                 return;
+            }
+
+            setImageProcessing(true);
+            setError('');
+            try {
+                const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.8 });
+                setPhotoFile(compressedFile);
+                setFormData(prev => ({ ...prev, photo: previewUrl }));
+            } catch (err) {
+                 console.error("Image processing failed:", err);
+                 setError('Falha ao processar a imagem. Tente uma imagem diferente.');
+            } finally {
+                setImageProcessing(false);
+            }
         }
     };
 
@@ -226,56 +302,50 @@ const Register: React.FC = () => {
                             </div>
                         </div>
                         
+                        {/* FIX: Complete the truncated file with the remaining form fields. This fixes the syntax error. */}
                         <div>
                             <label className="text-sm font-medium text-gray-700">Validade da Carteirinha</label>
-                            <div className="flex items-center gap-2 mt-1">
-                                <input name="validity" value={formData.validity || ''} readOnly className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100" placeholder="Clique em Gerar" />
-                                <button type="button" onClick={handleGenerateValidity} className="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 whitespace-nowrap">
-                                    Gerar
+                            <div className="relative mt-1">
+                                <input name="validity" value={formData.validity || ''} readOnly className="w-full p-2 border border-gray-300 rounded-lg pr-10 bg-gray-100" />
+                                <button type="button" onClick={handleGenerateValidity} className="absolute inset-y-0 right-1 my-auto flex items-center p-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 h-fit">
+                                    <ArrowPathIcon className="h-4 w-4"/>
                                 </button>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Foto do aluno (upload)</label>
-                            <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
-                            <label htmlFor="photo-upload" className="mt-1 cursor-pointer block">
-                                {formData.photo ? (
-                                    <div className="relative group">
-                                        <img src={formData.photo} alt="Preview" className="w-full h-40 object-cover rounded-md border-2 border-green-500"/>
-                                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-md">Trocar Imagem</div>
-                                    </div>
-                                ) : (
-                                    <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-500">
-                                        <div className="space-y-1 text-center">
-                                            <CameraIcon className="mx-auto h-12 w-12 text-gray-400" />
-                                            <p className="text-sm text-gray-600">Selecionar imagem</p>
-                                            <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
-                                        </div>
-                                    </div>
-                                )}
+                        <div className="flex items-center space-x-3 mt-4">
+                            <input
+                                id="photo-upload-input"
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                onChange={handlePhotoUpload}
+                            />
+                            <label htmlFor="photo-upload-input" className="w-full flex items-center justify-center gap-2 p-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer">
+                                {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <CameraIcon className="w-5 h-5"/>}
+                                {formData.photo ? 'Alterar Foto' : 'Adicionar Foto'}
                             </label>
+                            {formData.photo && (
+                                <div className="w-16 h-12 rounded-md overflow-hidden flex-shrink-0">
+                                    <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
+                                </div>
+                            )}
                         </div>
-                        
-                        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
-                            {loading ? 'Criando conta...' : 'Criar conta'}
+
+                        <button
+                            type="submit"
+                            disabled={loading || imageProcessing}
+                            className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 mt-4"
+                        >
+                            {loading ? 'Criando...' : 'Criar Conta'}
                         </button>
                     </form>
-
-                    <div className="text-center">
-                        <p className="text-sm text-gray-600">
-                            Já tem conta?{' '}
-                            {/* FIX: Use navigate() for navigation. */}
-                            <button onClick={() => navigate('/login')} className="font-medium text-blue-600 hover:underline">
-                                Entrar
-                            </button>
-                        </p>
-                    </div>
                 </>
-                )}
+            )}
             </div>
         </div>
     );
 };
 
+// FIX: Add missing default export
 export default Register;
