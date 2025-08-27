@@ -43,6 +43,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user) {
       setAllActiveNotifications([]);
+      isInitialLoad.current = true; // Reset on logout
       return;
     }
 
@@ -55,17 +56,26 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
       const notificationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
       
-      if (!isInitialLoad.current && notificationsData.length > allActiveNotifications.length) {
-         setHasNewNotification(true);
-         setTimeout(() => setHasNewNotification(false), 1500); // Duration of animation
-      }
+      setAllActiveNotifications(prevNotifications => {
+        // Only check for new notifications after the initial load
+        if (!isInitialLoad.current) {
+          const newNotificationExists = notificationsData.some(newNotif => 
+            !prevNotifications.find(oldNotif => oldNotif.id === newNotif.id)
+          );
+          
+          if (newNotificationExists) {
+            setHasNewNotification(true);
+            setTimeout(() => setHasNewNotification(false), 1500); // Duration of ring animation
+          }
+        }
+        return notificationsData;
+      });
       
-      setAllActiveNotifications(notificationsData);
       isInitialLoad.current = false;
     });
 
     return () => unsubscribe();
-  }, [user, allActiveNotifications.length]);
+  }, [user]); // FIX: Correct dependency array to avoid infinite loops.
 
   const notifications = useMemo(() => {
     return allActiveNotifications.filter(n => !dismissedIds.has(n.id));
