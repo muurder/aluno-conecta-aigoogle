@@ -205,7 +205,7 @@ const AppRoutes: React.FC = () => {
           )}
           <Route path="/validate-id/:data" element={<ValidateIdCard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        aj</Routes>
+        </Routes>
       </MainLayout>
     );
   }
@@ -214,7 +214,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="l/register" element={<Register />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/validate-id/:data" element={<ValidateIdCard />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
