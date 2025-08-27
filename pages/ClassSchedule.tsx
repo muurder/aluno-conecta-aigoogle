@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { schedulesData, Schedule } from '../schedules';
 import { ArrowLeftIcon, ClockIcon, UserIcon, MapPinIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
 
 const ClassSchedule: React.FC = () => {
-    const navigate = useNavigate();
+    const history = useHistory();
     const { user } = useAuth();
 
     const userSchedule = useMemo(() => {
@@ -35,7 +35,7 @@ const ClassSchedule: React.FC = () => {
     return (
         <div className="flex flex-col h-screen bg-gray-100">
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
-                <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                <button onClick={() => history.goBack()} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-bold text-lg">Horário de Aulas</h1>

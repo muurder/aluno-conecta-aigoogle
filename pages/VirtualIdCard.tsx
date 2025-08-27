@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
-import { useNavigate } from 'react-router-dom';
+// FIX: Update react-router-dom imports to v5. 'useNavigate' is 'useHistory'.
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
@@ -8,8 +8,8 @@ import { User } from '../types';
 
 const VirtualIdCard: React.FC = () => {
   const { user } = useAuth();
-  // FIX: Use useNavigate() for navigation in react-router-dom v6.
-  const navigate = useNavigate();
+  // FIX: Use useHistory() for navigation in react-router-dom v5.
+  const history = useHistory();
   const [activeTab, setActiveTab] = useState<'card' | 'qr'>('card');
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -36,8 +36,8 @@ const VirtualIdCard: React.FC = () => {
   return (
     <div className="flex-grow flex flex-col bg-gray-50">
         <header className="p-4 flex items-center justify-between text-gray-700">
-            {/* FIX: Use navigate(-1) for back navigation in v6. */}
-            <button onClick={() => navigate(-1)} className="mr-4">
+            {/* FIX: Use history.goBack() for back navigation in v5. */}
+            <button onClick={() => history.goBack()} className="mr-4">
                 <ArrowLeftIcon className="w-6 h-6" />
             </button>
             <h1 className="font-semibold text-lg absolute left-1/2 -translate-x-1/2">Carteirinha Virtual</h1>

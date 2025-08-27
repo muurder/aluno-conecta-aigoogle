@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useHistory } from 'react-router-dom';
 import StudentIdCard from '../components/StudentIdCard';
 import type { User } from '../types';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
@@ -47,7 +47,7 @@ const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({
 
 const ValidateIdCard: React.FC = () => {
     const { data } = useParams<{ data: string }>();
-    const navigate = useNavigate();
+    const history = useHistory();
     const [validatedUser, setValidatedUser] = useState<User | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showToast, setShowToast] = useState(false);
@@ -102,7 +102,7 @@ const ValidateIdCard: React.FC = () => {
                 <XCircleIcon className="w-16 h-16 text-red-400 mb-4" />
                 <h1 className="text-xl font-bold text-red-800">Erro de Validação</h1>
                 <p className="text-red-600 mt-2 text-center">{error}</p>
-                 <button onClick={() => navigate('/')} className="mt-8 px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
+                 <button onClick={() => history.push('/')} className="mt-8 px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
                     Voltar
                 </button>
             </div>

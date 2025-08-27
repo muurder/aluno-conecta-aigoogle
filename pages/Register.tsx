@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
-import { useNavigate } from 'react-router-dom';
+// FIX: Update react-router-dom imports to v5. 'useNavigate' is 'useHistory'.
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
@@ -10,8 +10,8 @@ import { CameraIcon, ArrowPathIcon, SparklesIcon, CheckCircleIcon } from '@heroi
 type FormData = Omit<User, 'uid' | 'email' | 'isAdmin'>;
 
 const Register: React.FC = () => {
-    // FIX: Use useNavigate() for navigation in react-router-dom v6.
-    const navigate = useNavigate();
+    // FIX: Use useHistory() for navigation in react-router-dom v5.
+    const history = useHistory();
     const auth = useAuth();
     const [formData, setFormData] = useState({
         status: 'pending' as const,
@@ -223,8 +223,8 @@ const Register: React.FC = () => {
                         <h2 className="text-2xl font-bold text-gray-800">Conta Criada com Sucesso!</h2>
                         <p className="mt-4 text-gray-700">Sua conta foi criada e agora está aguardando a aprovação de um administrador.</p>
                         <p className="mt-2 text-gray-600">Após a aprovação, você poderá acessar o portal fazendo login com suas credenciais.</p>
-                        {/* FIX: Use navigate() for navigation. */}
-                        <button onClick={() => navigate('/login')} className="mt-8 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                        {/* FIX: Use history.push() for navigation. */}
+                        <button onClick={() => history.push('/login')} className="mt-8 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
                             Voltar para o Login
                         </button>
                     </div>

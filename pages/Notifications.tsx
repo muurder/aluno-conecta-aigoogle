@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationsContext';
 import { ArrowLeftIcon, CheckBadgeIcon, TrashIcon, BellSlashIcon } from '@heroicons/react/24/solid';
 import { XMarkIcon, InformationCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
@@ -75,14 +75,14 @@ const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: s
 };
 
 const Notifications: React.FC = () => {
-    const navigate = useNavigate();
+    const history = useHistory();
     const { notifications, markAllAsRead, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
     
     return (
         <div className="flex flex-col h-screen bg-gray-100">
             <header className="p-4 flex items-center justify-between text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 <div className="flex items-center">
-                    <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                    <button onClick={() => history.goBack()} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                         <ArrowLeftIcon className="w-6 h-6" />
                     </button>
                     <h1 className="font-bold text-lg">Notificações</h1>

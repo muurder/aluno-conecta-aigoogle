@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
-// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
-import { useNavigate } from 'react-router-dom';
+// FIX: Update react-router-dom imports to v5. 'useNavigate' is 'useHistory'.
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ClockIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
 const PendingApproval: React.FC = () => {
-  // FIX: Use useNavigate() for navigation in react-router-dom v6.
-  const navigate = useNavigate();
+  // FIX: Use useHistory() for navigation in react-router-dom v5.
+  const history = useHistory();
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -18,8 +18,8 @@ const PendingApproval: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    // FIX: Use navigate() for navigation.
-    navigate('/login');
+    // FIX: Use history.push() for navigation.
+    history.push('/login');
   };
 
   return (
