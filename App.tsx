@@ -148,13 +148,13 @@ const AppRoutes: React.FC = () => {
                     <Route path="/admin/edit-user/:uid" element={<AdminEditUser />} />
                     <Route path="/" element={<MainLayout><Home /></MainLayout>} />
                     <Route path="/my-course" element={<MainLayout><MyCourse /></MainLayout>} />
-                    <Route path="/financial" element={<Financial />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/virtual-id" element={<VirtualIdCard />} />
-                    <Route path="/edit-profile" element={<EditProfile />} />
-                    <Route path="/help" element={<Help />} />
+                    <Route path="/financial" element={<MainLayout><Financial /></MainLayout>} />
+                    <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
+                    <Route path="/virtual-id" element={<MainLayout><VirtualIdCard /></MainLayout>} />
+                    <Route path="/edit-profile" element={<MainLayout><EditProfile /></MainLayout>} />
+                    <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
                     <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-                    <Route path="/class-schedule" element={<ClassSchedule />} />
+                    <Route path="/class-schedule" element={<MainLayout><ClassSchedule /></MainLayout>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             );
@@ -172,13 +172,13 @@ const AppRoutes: React.FC = () => {
                 <Routes>
                     <Route path="/" element={<MainLayout><Home /></MainLayout>} />
                     <Route path="/my-course" element={<MainLayout><MyCourse /></MainLayout>} />
-                    <Route path="/financial" element={<Financial />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/virtual-id" element={<VirtualIdCard />} />
-                    <Route path="/edit-profile" element={<EditProfile />} />
-                    <Route path="/help" element={<Help />} />
+                    <Route path="/financial" element={<MainLayout><Financial /></MainLayout>} />
+                    <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
+                    <Route path="/virtual-id" element={<MainLayout><VirtualIdCard /></MainLayout>} />
+                    <Route path="/edit-profile" element={<MainLayout><EditProfile /></MainLayout>} />
+                    <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
                     <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-                    <Route path="/class-schedule" element={<ClassSchedule />} />
+                    <Route path="/class-schedule" element={<MainLayout><ClassSchedule /></MainLayout>} />
                     {/* Redirect admin routes for regular users */}
                     <Route path="/admin/*" element={<Navigate to="/" replace />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
