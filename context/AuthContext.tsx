@@ -131,22 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
-      
-      let photoURL = userData.photo;
-
-      // Handle photo upload to Firebase Storage if a new photo is provided
-      if (photoURL && photoURL.startsWith('data:image')) {
-          const storageRef = ref(storage, `profile_photos/${authUser.uid}`);
-          const response = await fetch(photoURL);
-          const blob = await response.blob();
-          const snapshot = await uploadBytes(storageRef, blob);
-          photoURL = await getDownloadURL(snapshot.ref);
-      }
 
       // Ensure that status is 'pending' and isAdmin is false for any new registration
       const finalUserData = {
           ...userData,
-          photo: photoURL,
           email: authUser.email!,
           status: 'pending' as const,
           isAdmin: false,
@@ -167,27 +155,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const response = await fetch(photoURL);
         const blob = await response.blob();
         const snapshot = await uploadBytes(storageRef, blob);
-        const newUrl = await getDownloadURL(snapshot.ref);
-        // Add a timestamp to bust browser cache for the updated image
-        photoURL = `${newUrl}&v=${new Date().getTime()}`;
+        photoURL = await getDownloadURL(snapshot.ref);
     }
     
     const userDocRef = doc(db, 'profiles', newUserData.uid);
-    const dataToUpdateInDb = { ...newUserData, photo: photoURL };
-    await updateDoc(userDocRef, dataToUpdateInDb);
+    await updateDoc(userDocRef, { ...newUserData, photo: photoURL });
 
-    // Update local state if it's the current user, using the functional
-    // form of setState to prevent race conditions with stale state.
+    // Update local state if it's the current user
     if (user?.uid === newUserData.uid) {
-        setUser(currentUser => {
-            if (!currentUser) return null; // Should not happen if uid matches
-            // Merge the updates from the form into the latest state from context
-            return {
-                ...currentUser,
-                ...newUserData,
-                photo: photoURL, // Explicitly set the final photo URL
-            };
-        });
+        setUser({ ...newUserData, photo: photoURL });
     }
   };
 
