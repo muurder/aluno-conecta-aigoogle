@@ -35,72 +35,74 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const isInitialLoad = useRef(true);
-  // FIX: Explicitly initialize useRef with undefined. The no-argument version of useRef() can cause errors with some TypeScript/React type versions. The type is for a function that returns void, or is undefined.
-  const unsubStatusRef = useRef<(() => void) | undefined>(undefined);
 
-  // This single, nested listener solves the race condition problem.
-  // It ensures that we always have the global notifications before trying to merge user statuses.
+  // This effect fetches global notifications and merges them with user-specific statuses.
+  // It uses nested listeners to ensure data consistency and avoids race conditions.
+  // The dependency is only on `user`, so listeners are set up once per session.
   useEffect(() => {
-    // On logout, clean up everything
+    // On logout or if no user, clean up state and listeners.
     if (!user) {
       setNotifications([]);
-      if (unsubStatusRef.current) unsubStatusRef.current();
-      isInitialLoad.current = true;
       return;
     }
 
-    const notificationsQuery = db.collection("notifications")
-        .where("active", "==", true)
-        .orderBy("createdAt", "desc");
+    // This ref helps prevent the "new notification" bell animation on the initial data load.
+    isInitialLoad.current = true;
 
-    const unsubNotifications = notificationsQuery.onSnapshot((notificationsSnapshot: QuerySnapshot) => {
-      const allNotifications = notificationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
-
-      // Bell animation logic
-      if (isInitialLoad.current) {
-        isInitialLoad.current = false;
-      } else {
-        const currentIds = new Set(notifications.map(n => n.id));
-        const newNotificationExists = allNotifications.some(newNotif => !currentIds.has(newNotif.id));
-        if (newNotificationExists) {
+    // Listener for global notifications
+    const unsubNotifications = db.collection("notifications")
+      .where("active", "==", true)
+      .orderBy("createdAt", "desc")
+      .onSnapshot((notifSnap: QuerySnapshot) => {
+        
+        // Bell animation logic: trigger only on new documents after the initial load.
+        if (isInitialLoad.current) {
+          isInitialLoad.current = false;
+        } else {
+          const hasAddedChange = notifSnap.docChanges().some(change => change.type === "added");
+          if (hasAddedChange) {
             setHasNewNotification(true);
-            setTimeout(() => setHasNewNotification(false), 1500);
+            setTimeout(() => setHasNewNotification(false), 1500); // Animation duration
+          }
         }
-      }
 
-      // Cleanup previous status listener if it exists to avoid memory leaks
-      if (unsubStatusRef.current) {
-        unsubStatusRef.current();
-      }
+        const allNotifications = notifSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Notification[];
 
-      // Nested listener for user-specific statuses
-      const statusCollectionRef = db.collection('profiles').doc(user.uid).collection('notificationStatus');
-      unsubStatusRef.current = statusCollectionRef.onSnapshot((statusSnapshot: QuerySnapshot) => {
-          const statuses: NotificationStatusMap = {};
-          statusSnapshot.docs.forEach(doc => {
-              statuses[doc.id] = doc.data() as NotificationStatus;
+        // Nested listener for the user's individual notification statuses
+        const unsubStatus = db.collection("profiles")
+          .doc(user.uid)
+          .collection("notificationStatus")
+          .onSnapshot((statusSnap: QuerySnapshot) => {
+            const statusMap: NotificationStatusMap = {};
+            statusSnap.docs.forEach((doc) => {
+              statusMap[doc.id] = doc.data() as NotificationStatus;
+            });
+
+            // Combine global notifications with individual user statuses
+            const mergedNotifications = allNotifications
+              .map((notif) => {
+                const state = statusMap[notif.id];
+                if (state?.dismissed) return null; // Exclude if dismissed by user
+                return {
+                  ...notif,
+                  read: state?.read || false, // Apply read status, default to false
+                };
+              })
+              .filter(Boolean) as Notification[]; // Filter out the null (dismissed) items
+
+            setNotifications(mergedNotifications);
           });
-          
-          // Merge global notifications with user statuses
-          const mergedNotifications = allNotifications
-            .filter(n => !statuses[n.id]?.dismissed)
-            .map(notification => ({
-              ...notification,
-              read: !!statuses[notification.id]?.read
-            }));
-          
-          setNotifications(mergedNotifications);
-      });
-    });
 
-    // Cleanup function for the main effect
-    return () => {
-      unsubNotifications();
-      if (unsubStatusRef.current) {
-        unsubStatusRef.current();
-      }
-    };
-  }, [user, notifications]); // Dependency on `notifications` is for the bell animation logic
+        // The cleanup for the inner listener is returned here.
+        return unsubStatus;
+      });
+
+    // The cleanup for the outer listener.
+    return unsubNotifications;
+  }, [user]);
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;
