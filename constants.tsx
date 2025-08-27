@@ -1,5 +1,33 @@
 import React from 'react';
 import type { UniversityName } from './types';
+import {
+    AcademicCapIcon,
+    AdjustmentsHorizontalIcon,
+    ArchiveBoxIcon,
+    BeakerIcon,
+    BriefcaseIcon,
+    BuildingLibraryIcon,
+    BuildingOffice2Icon,
+    CalculatorIcon,
+    // FIX: Imported ChartBarIcon to resolve 'Cannot find name' error.
+    ChartBarIcon,
+    ChatBubbleLeftRightIcon,
+    CodeBracketIcon,
+    ComputerDesktopIcon,
+    CurrencyDollarIcon,
+    DocumentTextIcon,
+    GlobeAltIcon,
+    HeartIcon,
+    HomeModernIcon,
+    LightBulbIcon,
+    MapIcon,
+    MicrophoneIcon,
+    PaintBrushIcon,
+    ScaleIcon,
+    TrophyIcon,
+    UsersIcon,
+    WrenchScrewdriverIcon
+} from '@heroicons/react/24/outline';
 
 export const UNIVERSITY_LOGOS: Record<UniversityName, string> = {
     "Anhanguera": "/logos/anhanguera.svg",
@@ -38,3 +66,45 @@ export const COURSE_LIST: string[] = [
     "Publicidade e Propaganda", "Relações Internacionais", "Serviço Social", 
     "Sistemas de Informação", "Turismo"
 ];
+
+// Maps course names to specific Heroicons for a more personalized UI
+export const COURSE_ICONS: Record<string, React.ReactNode> = {
+    "Default": <AcademicCapIcon className="w-6 h-6" />,
+    "Administração": <BriefcaseIcon className="w-6 h-6" />,
+    "Análise e Desenvolvimento de Sistemas": <CodeBracketIcon className="w-6 h-6" />,
+    "Arquitetura e Urbanismo": <HomeModernIcon className="w-6 h-6" />,
+    "Biblioteconomia": <BuildingLibraryIcon className="w-6 h-6" />,
+    "Biomedicina": <BeakerIcon className="w-6 h-6" />,
+    "Ciência de Dados": <ChartBarIcon className="w-6 h-6" />,
+    "Ciências Contábeis": <CalculatorIcon className="w-6 h-6" />,
+    "Ciências da Computação": <ComputerDesktopIcon className="w-6 h-6" />,
+    "Comunicação Social": <ChatBubbleLeftRightIcon className="w-6 h-6" />,
+    "Design": <PaintBrushIcon className="w-6 h-6" />,
+    "Direito": <ScaleIcon className="w-6 h-6" />,
+    "Educação Física": <TrophyIcon className="w-6 h-6" />,
+    "Enfermagem": <HeartIcon className="w-6 h-6" />,
+    "Engenharia Civil": <BuildingOffice2Icon className="w-6 h-6" />,
+    "Engenharia de Computação": <ComputerDesktopIcon className="w-6 h-6" />,
+    "Engenharia de Produção": <AdjustmentsHorizontalIcon className="w-6 h-6" />,
+    "Engenharia Elétrica": <LightBulbIcon className="w-6 h-6" />,
+    "Engenharia Mecânica": <WrenchScrewdriverIcon className="w-6 h-6" />,
+    "Farmácia": <BeakerIcon className="w-6 h-6" />,
+    "Fisioterapia": <HeartIcon className="w-6 h-6" />,
+    "Fonoaudiologia": <MicrophoneIcon className="w-6 h-6" />,
+    "Gastronomia": <BeakerIcon className="w-6 h-6" />, // No direct icon, using a related one
+    "Geografia": <MapIcon className="w-6 h-6" />,
+    "História": <ArchiveBoxIcon className="w-6 h-6" />,
+    "Jornalismo": <DocumentTextIcon className="w-6 h-6" />,
+    "Logística": <ArchiveBoxIcon className="w-6 h-6" />,
+    "Marketing": <CurrencyDollarIcon className="w-6 h-6" />,
+    "Medicina Veterinária": <HeartIcon className="w-6 h-6" />,
+    "Nutrição": <HeartIcon className="w-6 h-6" />,
+    "Odontologia": <UsersIcon className="w-6 h-6" />,
+    "Pedagogia": <AcademicCapIcon className="w-6 h-6" />,
+    "Psicologia": <UsersIcon className="w-6 h-6" />,
+    "Publicidade e Propaganda": <ChatBubbleLeftRightIcon className="w-6 h-6" />,
+    "Relações Internacionais": <GlobeAltIcon className="w-6 h-6" />,
+    "Serviço Social": <UsersIcon className="w-6 h-6" />,
+    "Sistemas de Informação": <ComputerDesktopIcon className="w-6 h-6" />,
+    "Turismo": <MapIcon className="w-6 h-6" />,
+};

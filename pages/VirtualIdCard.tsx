@@ -15,19 +15,27 @@ const VirtualIdCard: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadPdf = async () => {
-      if (!cardRef.current || isDownloading) return;
+      const element = cardRef.current;
+      if (!element || isDownloading) return;
       
       setIsDownloading(true);
       try {
-        const canvas = await html2canvas(cardRef.current, { 
-            scale: 3, // Aumenta a resolução da captura para melhor qualidade
-            useCORS: true, // Permite carregar imagens de outras origens
-            backgroundColor: null // Fundo transparente
+        // Scroll to top and wait a bit to ensure the element is fully rendered in the viewport
+        window.scrollTo(0, 0);
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const canvas = await html2canvas(element, { 
+            scale: 3, // Increases resolution for better quality
+            useCORS: true, // Allows loading images from other origins
+            backgroundColor: null, // Transparent background
+            // Explicitly set dimensions to help with rendering accuracy
+            width: element.offsetWidth,
+            height: element.offsetHeight,
         });
 
         const imgData = canvas.toDataURL('image/png');
         
-        // Define as dimensões do PDF com base na imagem capturada para evitar margens indesejadas
+        // Define PDF dimensions based on the captured canvas to avoid unwanted margins
         const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'px',

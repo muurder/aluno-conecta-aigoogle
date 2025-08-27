@@ -51,7 +51,7 @@ const Profile: React.FC = () => {
     <div className="flex flex-col h-full bg-white">
         <ProfileHeader />
         
-        <div className="p-4 -mt-10 relative z-10">
+        <div className="p-4 -mt-6 relative z-10">
             <button onClick={() => navigate('/my-course')} className="w-full text-left bg-white p-4 rounded-lg shadow-md border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition">
                 <span className="font-semibold text-gray-800">{user?.course}</span>
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
