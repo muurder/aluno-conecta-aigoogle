@@ -28,6 +28,11 @@ const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({
                 to { opacity: 1; }
               }
               .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+              @keyframes fade-out {
+                from { opacity: 1; }
+                to { opacity: 0; }
+              }
+              .animate-fade-out { animation: fade-out 0.5s ease-out forwards; }
 
               @keyframes scale-up {
                 from { opacity: 0; transform: scale(0.9); }
@@ -46,35 +51,50 @@ const ValidateIdCard: React.FC = () => {
     const [validatedUser, setValidatedUser] = useState<User | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showToast, setShowToast] = useState(false);
+    const [isValidating, setIsValidating] = useState(true);
 
     useEffect(() => {
-        if (data) {
-            try {
-                // Decodifica a string Base64 e converte de volta para um objeto JSON
-                const decodedData = decodeURIComponent(escape(atob(data)));
-                const userObject = JSON.parse(decodedData);
-                setValidatedUser(userObject);
-                setShowToast(true);
+        const validationTimer = setTimeout(() => {
+            if (data) {
+                try {
+                    const decodedData = decodeURIComponent(escape(atob(data)));
+                    const userObject = JSON.parse(decodedData);
+                    setValidatedUser(userObject);
+                    setShowToast(true);
+                    setIsValidating(false);
 
-                const timer = setTimeout(() => {
-                    // Começa a animação de fade-out antes de realmente remover do DOM
-                    const toastElement = document.querySelector('.animate-fade-in');
-                    if (toastElement) {
-                        toastElement.classList.add('animate-fade-out');
-                    }
-                    setTimeout(() => setShowToast(false), 500); // Espera a animação de fade-out
-                }, 3000); // Duração total do toast visível
+                    const timer = setTimeout(() => {
+                        const toastElement = document.querySelector('.animate-fade-in');
+                        if (toastElement) {
+                            toastElement.classList.add('animate-fade-out');
+                        }
+                        setTimeout(() => setShowToast(false), 500);
+                    }, 3000);
 
-                return () => clearTimeout(timer);
+                    return () => clearTimeout(timer);
 
-            } catch (e) {
-                console.error("Failed to decode user data:", e);
-                setError("O código QR é inválido ou os dados estão corrompidos.");
+                } catch (e) {
+                    console.error("Failed to decode user data:", e);
+                    setError("O código QR é inválido ou os dados estão corrompidos.");
+                    setIsValidating(false);
+                }
+            } else {
+                setError("Nenhum dado de validação fornecido.");
+                setIsValidating(false);
             }
-        } else {
-            setError("Nenhum dado de validação fornecido.");
-        }
+        }, 4000); // 4-second loading period
+
+        return () => clearTimeout(validationTimer);
     }, [data]);
+
+    if (isValidating) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+                <p className="text-lg font-semibold text-gray-700">Validando...</p>
+            </div>
+        );
+    }
 
     if (error) {
         return (
