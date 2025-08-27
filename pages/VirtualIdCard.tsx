@@ -1,57 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StudentIdCard from '../components/StudentIdCard';
-import { ArrowLeftIcon, ArrowPathIcon, DocumentArrowDownIcon } from '@heroicons/react/24/solid';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import { User } from '../types';
 
 const VirtualIdCard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'card' | 'qr'>('card');
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleDownloadPdf = async () => {
-      const element = cardRef.current;
-      if (!element || isDownloading) return;
-      
-      setIsDownloading(true);
-      try {
-        // Scroll to top and wait a bit to ensure the element is fully rendered in the viewport
-        window.scrollTo(0, 0);
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        const canvas = await html2canvas(element, { 
-            scale: 3, // Increases resolution for better quality
-            useCORS: true, // Allows loading images from other origins
-            backgroundColor: null, // Transparent background
-            // Explicitly set dimensions to help with rendering accuracy
-            width: element.offsetWidth,
-            height: element.offsetHeight,
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Define PDF dimensions based on the captured canvas to avoid unwanted margins
-        const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
-        });
-
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`carteirinha-virtual-${user?.fullName?.replace(/\s/g, '_')}.pdf`);
-
-      } catch (error) {
-        console.error("Erro ao gerar PDF:", error);
-        alert("Não foi possível gerar o PDF. Tente novamente.");
-      } finally {
-        setIsDownloading(false);
-      }
-  };
 
   const QRCodeGenerator: React.FC = () => {
     if (!user) return null;
@@ -106,24 +63,18 @@ const VirtualIdCard: React.FC = () => {
 
         <main className="flex-grow flex items-center justify-center p-4">
             {activeTab === 'card' ? (
-                <StudentIdCard ref={cardRef} user={user || {}} />
+                <StudentIdCard user={user || {}} />
             ) : (
                 <QRCodeGenerator />
             )}
         </main>
         
-        <footer className="p-6">
-            {activeTab === 'card' && (
-                 <button 
-                    onClick={handleDownloadPdf}
-                    disabled={isDownloading}
-                    className="w-full bg-blue-900 text-white font-bold p-4 rounded-lg hover:bg-blue-800 shadow-lg flex items-center justify-center gap-2 disabled:bg-blue-400"
-                >
-                    <DocumentArrowDownIcon className="w-6 h-6"/>
-                    {isDownloading ? 'Baixando...' : 'Baixar PDF'}
-                </button>
-            )}
-            {activeTab === 'qr' && (
+        <footer className="p-6 h-[96px] flex items-center justify-center">
+            {activeTab === 'card' ? (
+                 <div className="text-center text-sm text-gray-500">
+                    Apresente esta carteirinha para identificação.
+                 </div>
+            ) : (
                  <button className="w-full bg-gray-700 text-white font-bold p-4 rounded-lg hover:bg-gray-600 shadow-lg">
                     Solicitar carteirinha física
                 </button>
