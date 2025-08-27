@@ -75,53 +75,53 @@ const Help: React.FC = () => {
     };
     
     return (
-        <div className="flex-grow flex flex-col bg-slate-100 h-screen">
-            <header className="p-4 flex items-center text-text-dark bg-background shadow-sm sticky top-0 z-20 border-b border-slate-200">
-                <button onClick={() => navigate(-1)} className="mr-4 text-text-light hover:text-primary">
+        <div className="flex-grow flex flex-col bg-gray-100">
+            <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-20">
+                <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-semibold text-lg">Assistente Virtual</h1>
             </header>
 
-            <main className="flex-grow p-4 overflow-y-auto pb-28">
+            <div className="flex-grow p-4 overflow-y-auto pb-24">
                 <div className="space-y-4">
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0" aria-hidden="true">AI</div>}
-                            <div className={`max-w-[85%] px-4 py-2 rounded-2xl shadow-sm ${msg.sender === 'user' ? 'bg-primary text-white rounded-br-lg' : 'bg-white text-text-dark rounded-bl-lg'}`}>
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text.trim()}</p>
+                            {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" aria-hidden="true">AI</div>}
+                            <div className={`max-w-[80%] px-4 py-2 rounded-2xl ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 shadow-sm rounded-bl-none'}`}>
+                                <p className="text-sm whitespace-pre-wrap">{msg.text.trim()}</p>
                             </div>
                         </div>
                     ))}
                     {loading && (
                         <div className="flex items-end gap-2 justify-start">
-                             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0" aria-hidden="true">AI</div>
-                            <div className="max-w-xs px-4 py-3 rounded-2xl bg-white text-text-dark shadow-sm rounded-bl-lg">
+                             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" aria-hidden="true">AI</div>
+                            <div className="max-w-xs px-4 py-3 rounded-2xl bg-white text-gray-800 shadow-sm rounded-bl-none">
                                 <div className="flex items-center space-x-1" role="status" aria-label="Assistente digitando">
-                                    <span className="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                    <span className="h-2 w-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                    <span className="h-2 w-2 bg-slate-400 rounded-full animate-bounce"></span>
+                                    <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                    <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                    <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></span>
                                 </div>
                             </div>
                         </div>
                     )}
                     <div ref={chatEndRef} />
                 </div>
-            </main>
+            </div>
 
-            <footer className="fixed inset-x-0 bottom-0 bg-background/80 backdrop-blur-sm z-10" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-2 p-3 border-t border-slate-200">
+            <footer className="fixed inset-x-0 bottom-0 max-w-sm mx-auto bg-gray-100/90 backdrop-blur-sm" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                <form onSubmit={handleSendMessage} className="flex items-center space-x-2 p-3 border-t border-gray-200">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Digite sua pergunta..."
-                        className="flex-grow p-3 border border-slate-300 rounded-full focus:ring-2 focus:ring-primary focus:border-primary transition shadow-sm bg-white"
+                        className="flex-grow p-3 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
                         disabled={loading}
                     />
                     <button
                         type="submit"
-                        className="bg-primary text-white rounded-full p-3 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-md"
+                        className="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-md"
                         disabled={loading || !input.trim()}
                         aria-label="Enviar mensagem"
                     >
