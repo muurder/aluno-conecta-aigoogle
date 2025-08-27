@@ -132,9 +132,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
 
+      let photoURL = userData.photo;
+
+      // Correctly handle photo upload during registration
+      if (photoURL && photoURL.startsWith('data:image')) {
+        try {
+            const storageRef = ref(storage, `profile_photos/${authUser.uid}`);
+            const response = await fetch(photoURL);
+            const blob = await response.blob();
+            const snapshot = await uploadBytes(storageRef, blob);
+            photoURL = await getDownloadURL(snapshot.ref);
+        } catch (error) {
+            console.error("Error uploading photo during registration:", error);
+            photoURL = null; // Default to null if upload fails
+        }
+      }
+
       // Ensure that status is 'pending' and isAdmin is false for any new registration
       const finalUserData = {
           ...userData,
+          photo: photoURL, // Store the URL or null
           email: authUser.email!,
           status: 'pending' as const,
           isAdmin: false,
@@ -147,23 +164,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = async (newUserData: User) => {
     if (!newUserData.uid) throw new Error("User UID is required to update.");
     
-    let photoURL = newUserData.photo;
+    // Use a temporary object for updates to avoid mutating state directly.
+    const dataToUpdate = { ...newUserData };
 
-    // Check if photo is a new base64 upload
-    if (photoURL && photoURL.startsWith('data:image')) {
-        const storageRef = ref(storage, `profile_photos/${newUserData.uid}`);
-        const response = await fetch(photoURL);
+    // Check if photo is a new base64 upload and handle it
+    if (dataToUpdate.photo && dataToUpdate.photo.startsWith('data:image')) {
+        const storageRef = ref(storage, `profile_photos/${dataToUpdate.uid}`);
+        const response = await fetch(dataToUpdate.photo);
         const blob = await response.blob();
         const snapshot = await uploadBytes(storageRef, blob);
-        photoURL = await getDownloadURL(snapshot.ref);
+        // Update the photo property with the new URL for both Firestore and local state
+        dataToUpdate.photo = await getDownloadURL(snapshot.ref);
     }
     
-    const userDocRef = doc(db, 'profiles', newUserData.uid);
-    await updateDoc(userDocRef, { ...newUserData, photo: photoURL });
+    const userDocRef = doc(db, 'profiles', dataToUpdate.uid);
+    // The type assertion is needed because updateDoc has a generic signature.
+    await updateDoc(userDocRef, dataToUpdate as { [x: string]: any });
 
-    // Update local state if it's the current user
-    if (user?.uid === newUserData.uid) {
-        setUser({ ...newUserData, photo: photoURL });
+    // Update local state if it's the current user, using functional update for safety
+    if (user?.uid === dataToUpdate.uid) {
+        setUser(currentUser => {
+            if (!currentUser) return null;
+            return { ...currentUser, ...dataToUpdate };
+        });
     }
   };
 
