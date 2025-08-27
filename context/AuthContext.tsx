@@ -131,10 +131,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
+      
+      let photoURL = userData.photo;
+
+      // Handle photo upload to Firebase Storage if a new photo is provided
+      if (photoURL && photoURL.startsWith('data:image')) {
+          const storageRef = ref(storage, `profile_photos/${authUser.uid}`);
+          const response = await fetch(photoURL);
+          const blob = await response.blob();
+          const snapshot = await uploadBytes(storageRef, blob);
+          photoURL = await getDownloadURL(snapshot.ref);
+      }
 
       // Ensure that status is 'pending' and isAdmin is false for any new registration
       const finalUserData = {
           ...userData,
+          photo: photoURL,
           email: authUser.email!,
           status: 'pending' as const,
           isAdmin: false,
