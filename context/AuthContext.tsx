@@ -5,6 +5,9 @@ import {
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
     signOut,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    updatePassword,
     type User as AuthUser 
 } from 'firebase/auth';
 import { 
@@ -39,6 +42,7 @@ interface AuthContextType {
   updateUser: (newUserData: User) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
+  changePassword: (currentPass: string, newPass: string) => Promise<void>;
   // Mural / Feed functions
   getPosts: () => Promise<Post[]>;
   createPost: (content: string, imageFile?: File) => Promise<void>;
@@ -161,6 +165,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.uid === newUserData.uid) {
         setUser({ ...newUserData, photo: photoURL });
     }
+  };
+
+  const changePassword = async (currentPass: string, newPass: string) => {
+    const authUser = auth.currentUser;
+    if (!authUser || !authUser.email) {
+        throw new Error("Usuário não autenticado ou sem e-mail associado.");
+    }
+    
+    const credential = EmailAuthProvider.credential(authUser.email, currentPass);
+    // Re-authenticate before password update for security
+    await reauthenticateWithCredential(authUser, credential);
+    await updatePassword(authUser, newPass);
   };
 
   const getAllUsers = async (): Promise<User[]> => {
@@ -327,7 +343,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deletePost,
     addComment,
     deleteComment,
-    toggleReaction
+    toggleReaction,
+    changePassword
   };
   
   return (
