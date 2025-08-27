@@ -14,12 +14,36 @@ const VirtualIdCard: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Função utilitária: converte URL de imagem em base64
+  const toBase64 = async (url: string): Promise<string> => {
+    const res = await fetch(url, { mode: 'cors' });
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const handleDownloadPdf = async () => {
     const cardElement = cardRef.current;
     if (!cardElement || isProcessing) return;
 
     setIsProcessing(true);
     try {
+      // Substitui todas as imagens por base64 antes de gerar o PDF
+      const imgElements = cardElement.querySelectorAll("img");
+      for (const img of Array.from(imgElements)) {
+        if (img.src.startsWith("http")) {
+          try {
+            const base64 = await toBase64(img.src);
+            img.setAttribute("src", base64);
+          } catch (err) {
+            console.warn("Falha ao converter imagem:", img.src, err);
+          }
+        }
+      }
+
       const canvas = await html2canvas(cardElement, { scale: 3, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
 
@@ -29,7 +53,6 @@ const VirtualIdCard: React.FC = () => {
         format: 'a4',
       });
 
-      // pega as dimensões reais do canvas
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
@@ -37,8 +60,8 @@ const VirtualIdCard: React.FC = () => {
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`carteirinha-virtual-${user?.rgm}.pdf`);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
-      alert('Não foi possível baixar o PDF. Tente novamente.');
+      console.error("Error downloading PDF:", error);
+      alert("Não foi possível baixar o PDF. Tente novamente.");
     } finally {
       setIsProcessing(false);
     }
@@ -118,7 +141,7 @@ const VirtualIdCard: React.FC = () => {
         {activeTab === 'card' ? (
           <StudentIdCard ref={cardRef} user={user || {}} />
         ) : (
-          <div> {/* seu QRCodeGenerator aqui */} </div>
+          <div>{/* QRCodeGenerator aqui */}</div>
         )}
       </main>
     </div>
