@@ -1,5 +1,6 @@
 
 
+
 export const universityNames = [
   "Anhanguera", "Anhembi Morumbi", "Estacio", "Fiesp", "FMU", "São Judas", 
   "Unicid", "Unicsul", "Unifesp", "USP"
@@ -60,4 +61,5 @@ export interface Notification {
   createdAt: { seconds: number; nanoseconds: number; }; // Firestore Timestamp
   active: boolean;
   read?: boolean;
+  dismissed?: boolean;
 }

@@ -49,11 +49,12 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     // This ref helps prevent the "new notification" bell animation on the initial data load.
     isInitialLoad.current = true;
 
-    // Listener for global notifications
-    const unsubNotifications = db.collection("notifications")
-      .where("active", "==", true)
-      .orderBy("createdAt", "desc")
-      .onSnapshot((notifSnap: QuerySnapshot) => {
+    // Listener for global notifications, conditional by user role
+    const notificationsQuery = user.isAdmin
+      ? db.collection("notifications").orderBy("createdAt", "desc")
+      : db.collection("notifications").where("active", "==", true).orderBy("createdAt", "desc");
+      
+    const unsubNotifications = notificationsQuery.onSnapshot((notifSnap: QuerySnapshot) => {
         
         // Bell animation logic: trigger only on new documents after the initial load.
         if (isInitialLoad.current) {
@@ -85,13 +86,12 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             const mergedNotifications = allNotifications
               .map((notif) => {
                 const state = statusMap[notif.id];
-                if (state?.dismissed) return null; // Exclude if dismissed by user
                 return {
                   ...notif,
                   read: state?.read || false, // Apply read status, default to false
+                  dismissed: state?.dismissed || false, // Apply dismissed status
                 };
-              })
-              .filter(Boolean) as Notification[]; // Filter out the null (dismissed) items
+              }) as Notification[];
 
             setNotifications(mergedNotifications);
           });
@@ -105,7 +105,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [user]);
 
   const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.read).length;
+    return notifications.filter(n => !n.read && !n.dismissed).length;
   }, [notifications]);
 
   const markAllAsRead = useCallback(async () => {

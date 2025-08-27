@@ -8,6 +8,7 @@ import type { Notification } from '../types';
 
 const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: string) => Promise<void>, onToggleRead: (id: string) => Promise<void> }> = ({ notification, onDismiss, onToggleRead }) => {
     const isRead = !!notification.read;
+    const isDismissed = !!notification.dismissed;
 
     const config = useMemo(() => {
         const baseConfig = {
@@ -39,7 +40,7 @@ const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: s
     }, [notification.createdAt]);
 
     return (
-        <div className={`bg-white p-4 rounded-lg shadow-md relative border-l-4 ${config.borderColor} transition-colors duration-300 ${!isRead ? 'bg-blue-50' : ''}`}>
+        <div className={`bg-white p-4 rounded-lg shadow-md relative border-l-4 ${config.borderColor} transition-all duration-300 ${!isRead ? 'bg-blue-50' : ''} ${isDismissed ? 'opacity-60' : ''}`}>
              <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">{config.icon}</div>
                 <div className="flex-grow pr-6">
@@ -51,8 +52,9 @@ const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: s
                 <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center">
                     <button 
                         onClick={() => onToggleRead(notification.id)}
-                        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 font-semibold"
+                        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label={isRead ? 'Marcar como não lida' : 'Marcar como lida'}
+                        disabled={isDismissed}
                     >
                         {isRead ? <EnvelopeOpenIcon className="w-4 h-4" /> : <EnvelopeIcon className="w-4 h-4" />}
                         <span>{isRead ? 'Marcar como não lida' : 'Marcar como lida'}</span>
@@ -62,8 +64,9 @@ const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: s
             )}
             <button
                 onClick={() => onDismiss(notification.id)}
-                className="absolute top-2 right-2 p-1 rounded-full text-gray-400 hover:bg-gray-200"
+                className="absolute top-2 right-2 p-1 rounded-full text-gray-400 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Dispensar notificação"
+                disabled={isDismissed}
             >
                 <XMarkIcon className="w-5 h-5" />
             </button>
