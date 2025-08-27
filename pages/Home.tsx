@@ -1,22 +1,67 @@
 
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { COURSE_ICONS } from '../constants';
+import { schedulesData, Schedule } from '../schedules';
 import { 
     ArrowRightIcon, 
     MagnifyingGlassIcon, 
     BookOpenIcon, 
     DocumentTextIcon, 
     BanknotesIcon, 
-    ArrowPathIcon, 
     IdentificationIcon,
-    GlobeAltIcon 
 } from '@heroicons/react/24/outline';
 
 const Home: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+
+    const { ambientSubtitle } = useMemo(() => {
+        if (!user?.course) return { ambientSubtitle: 'Acessar aulas online' };
+
+        const courseSchedule = schedulesData.filter(item => item.disciplina === user.course);
+        if (courseSchedule.length === 0) {
+            return { ambientSubtitle: 'Nenhum horário cadastrado' };
+        }
+
+        const now = new Date();
+        const todayIndex = now.getDay(); // Sunday: 0, Monday: 1, ...
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const dayNameMapping: Record<Schedule['dia_semana'], number> = {
+            'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6
+        };
+
+        const futureClasses = courseSchedule.filter(c => {
+             const classDay = dayNameMapping[c.dia_semana];
+             const dayDiff = (classDay - todayIndex + 7) % 7;
+             if (dayDiff > 0) return true;
+             if (dayDiff === 0 && c.inicio > currentTime) return true;
+             return false;
+        }).sort((a, b) => {
+            const dayA = dayNameMapping[a.dia_semana];
+            const dayB = dayNameMapping[b.dia_semana];
+            const diffA = (dayA - todayIndex + 7) % 7;
+            const diffB = (dayB - todayIndex + 7) % 7;
+            if (diffA !== diffB) return diffA - diffB;
+            return a.inicio.localeCompare(b.inicio);
+        });
+
+        if (futureClasses.length > 0) {
+            const firstUpcoming = futureClasses[0];
+            const isToday = dayNameMapping[firstUpcoming.dia_semana] === todayIndex;
+            const prefix = isToday ? 'Próxima aula: Hoje' : `Próxima aula: ${firstUpcoming.dia_semana}`;
+            return {
+                ambientSubtitle: `${firstUpcoming.observacoes} - ${prefix} às ${firstUpcoming.inicio}`
+            };
+        }
+
+        return { ambientSubtitle: 'Sem próximas aulas na semana' };
+    }, [user]);
+
+    const courseIcon = (user?.course && COURSE_ICONS[user.course]) || COURSE_ICONS["Default"];
 
     const ActionCard: React.FC<{title: string, subtitle: string, bgColor: string, onClick?: () => void}> = ({ title, subtitle, bgColor, onClick }) => (
         <button onClick={onClick} className={`w-full p-4 rounded-xl text-white shadow-lg flex items-center justify-between ${bgColor} transition-transform transform hover:scale-105`}>
@@ -46,15 +91,15 @@ const Home: React.FC = () => {
                     <div className="mt-4 inline-block bg-cyan-400 text-blue-900 text-xs font-bold px-3 py-1 rounded-full uppercase">
                         Cursando
                     </div>
-                    <button className="absolute top-1/2 -translate-y-1/2 right-4 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors">
-                        <ArrowPathIcon className="w-6 h-6" />
-                    </button>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 text-white bg-white/20 rounded-full p-2">
+                        {courseIcon}
+                    </div>
                 </div>
             </div>
             
             {/* Action Cards */}
             <div className="space-y-4">
-                <ActionCard title="Ambiente virtual" subtitle="Acessar aulas online" bgColor="bg-blue-600"/>
+                <ActionCard title="Ambiente virtual" subtitle={ambientSubtitle} bgColor="bg-blue-600" onClick={() => navigate('/class-schedule')}/>
                 <ActionCard title="Horários de aulas" subtitle="Disciplinas, sala e professor" bgColor="bg-green-500" onClick={() => navigate('/class-schedule')}/>
             </div>
 
