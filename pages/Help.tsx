@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GoogleGenAI } from '@google/genai';
 import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
@@ -13,7 +14,7 @@ interface Message {
 }
 
 const Help: React.FC = () => {
-    const history = useHistory();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -52,6 +53,7 @@ const Help: React.FC = () => {
         }
 
         try {
+            // FIX: Initialize GoogleGenAI with the apiKey in an object
             const ai = new GoogleGenAI({ apiKey: API_KEY });
             
             const response = await ai.models.generateContent({
@@ -77,7 +79,7 @@ const Help: React.FC = () => {
     return (
         <div className="flex-grow flex flex-col bg-gray-100">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-20">
-                <button onClick={() => history.goBack()} className="mr-4">
+                <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-semibold text-lg">Assistente Virtual</h1>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
@@ -6,11 +7,13 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
   return (
     <NavLink
       to={to}
-      // FIX: Use `exact` prop for v5 NavLink to ensure exact match
-      exact
-      // FIX: Use `activeClassName` for v5 NavLink styling
-      className="flex flex-col items-center justify-center w-full pt-2 pb-1 text-gray-500"
-      activeClassName="text-blue-600"
+      // FIX: Use `end` prop for v6 NavLink to replicate v5 `exact` behavior.
+      end
+      // FIX: Use a function for `className` for v6 NavLink styling, replacing `activeClassName`.
+      className={({ isActive }) =>
+        "flex flex-col items-center justify-center w-full pt-2 pb-1 " +
+        (isActive ? "text-blue-600" : "text-gray-500")
+      }
     >
       {icon}
       <span className="text-xs">{label}</span>

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, NotificationType } from '../types';
 import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOutline, MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -143,7 +144,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, se
 type FilterStatus = 'all' | 'pending' | 'approved';
 
 const AdminDashboard: React.FC = () => {
-    const history = useHistory();
+    const navigate = useNavigate();
     const { getAllUsers, deleteUser, updateUser, createNotification } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -195,9 +196,13 @@ const AdminDashboard: React.FC = () => {
             await updateUser(userToApprove.uid, { status: 'approved' });
             setToast({ show: true, message: `Usuário ${userToApprove.fullName} aprovado!`, type: 'success' });
             fetchUsers();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to approve user:", error);
-            setToast({ show: true, message: 'Falha ao aprovar o usuário.', type: 'error' });
+            let message = 'Falha ao aprovar o usuário.';
+            if (error.code === 'permission-denied') {
+                message = 'Permissão negada. Verifique se sua conta de admin tem as permissões corretas no Firestore.';
+            }
+            setToast({ show: true, message, type: 'error' });
         }
     };
 
@@ -207,9 +212,13 @@ const AdminDashboard: React.FC = () => {
                 await deleteUser(user.uid);
                 setToast({ show: true, message: 'Usuário excluído com sucesso.', type: 'success' });
                 fetchUsers();
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to delete user:", error);
-                setToast({ show: true, message: 'Falha ao excluir o usuário.', type: 'error' });
+                let message = 'Falha ao excluir o usuário.';
+                if (error.code === 'permission-denied') {
+                    message = 'Permissão negada. Verifique se sua conta de admin tem as permissões corretas no Firestore.';
+                }
+                setToast({ show: true, message, type: 'error' });
             }
         }
     };
@@ -266,7 +275,7 @@ const AdminDashboard: React.FC = () => {
             <header className="p-4 bg-white shadow-sm sticky top-0 z-10 border-b">
                  <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <button onClick={() => history.push('/profile')} className="mr-4 p-1 rounded-full hover:bg-gray-100">
+                        <button onClick={() => navigate('/profile')} className="mr-4 p-1 rounded-full hover:bg-gray-100">
                             <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
                         </button>
                         <h1 className="font-semibold text-lg text-gray-800">Admin Dashboard</h1>
@@ -334,7 +343,7 @@ const AdminDashboard: React.FC = () => {
                                             <CheckCircleOutline className="w-6 h-6" />
                                         </button>
                                     )}
-                                    <button onClick={() => history.push(`/admin/edit-user/${user.uid}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Editar">
+                                    <button onClick={() => navigate(`/admin/edit-user/${user.uid}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Editar">
                                         <PencilIcon className="w-6 h-6" />
                                     </button>
                                     <button onClick={() => handleReprove(user)} className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Reprovar/Excluir">

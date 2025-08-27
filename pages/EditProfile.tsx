@@ -1,6 +1,7 @@
+
 import React, { useState, useCallback } from 'react';
-// FIX: Update react-router-dom import from v5 to v6. 'useHistory' is replaced by 'useHistory'.
-import { useHistory } from 'react-router-dom';
+// FIX: Update react-router-dom import to v6. 'useHistory' is replaced by 'useNavigate'.
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
@@ -67,8 +68,8 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
 
 const EditProfile: React.FC = () => {
     const { user, updateUser, changePassword } = useAuth();
-    // FIX: Use useHistory() for navigation in react-router-dom v5.
-    const history = useHistory();
+    // FIX: Use useNavigate() for navigation in react-router-dom v6.
+    const navigate = useNavigate();
     
     // The App's routing logic ensures this component only renders for authenticated users,
     // so 'user' should not be null. Returning null is a safeguard.
@@ -142,8 +143,8 @@ const EditProfile: React.FC = () => {
         setError('');
         try {
             await updateUser(formData.uid, formData, photoFile ?? undefined);
-            // FIX: Use history.push() for navigation.
-            history.push('/profile');
+            // FIX: Use navigate() for navigation.
+            navigate('/profile');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
             console.error(err);
@@ -191,8 +192,8 @@ const EditProfile: React.FC = () => {
     return (
         <div className="flex-grow flex flex-col bg-gray-100">
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
-                {/* FIX: Use history.goBack() for back navigation. */}
-                <button onClick={() => history.goBack()} className="mr-4">
+                {/* FIX: Use navigate(-1) for back navigation. */}
+                <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-bold text-lg">Editar Informações</h1>

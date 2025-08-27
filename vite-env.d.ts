@@ -1,3 +1,4 @@
+
 interface ImportMetaEnv {
   // Variáveis de ambiente do Vite para o Firebase
   readonly VITE_FIREBASE_API_KEY: string;
@@ -13,8 +14,8 @@ interface ImportMeta {
 }
 
 // Adicionado para suportar `process.env` para a chave da API do Gemini
-declare namespace NodeJS {
-  interface ProcessEnv {
+declare var process: {
+  env: {
     NODE_ENV: 'development' | 'production' | 'test';
     API_KEY: string;
   }
