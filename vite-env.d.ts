@@ -13,9 +13,11 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+// FIX: Replaced `declare var process` with namespace augmentation to avoid redeclaring a global variable.
+// This correctly adds types for `process.env` without conflicting with existing Node.js types.
 // Adicionado para suportar `process.env` para a chave da API do Gemini
-declare var process: {
-  env: {
+declare namespace NodeJS {
+  interface ProcessEnv {
     NODE_ENV: 'development' | 'production' | 'test';
     API_KEY: string;
   }
