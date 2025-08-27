@@ -19,9 +19,10 @@ import {
     query,
     orderBy,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    writeBatch
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import type { User, Post, Comment, Reaction } from '../types';
 
 interface AuthContextType {
@@ -83,160 +84,199 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
 
-      const profileData: Omit<User, 'uid'> = {
-        ...userData,
-        email: authUser.email!,
-        isAdmin: false,
-        status: 'pending',
+      // Ensure that status is 'pending' and isAdmin is false for any new registration
+      const finalUserData = {
+          ...userData,
+          email: authUser.email!,
+          status: 'pending' as const,
+          isAdmin: false,
       };
-      
-      await setDoc(doc(db, 'profiles', authUser.uid), profileData);
+
+      // Create a document in 'profiles' collection with the user's UID
+      await setDoc(doc(db, 'profiles', authUser.uid), finalUserData);
   };
   
   const updateUser = async (newUserData: User) => {
-      const userDocRef = doc(db, 'profiles', newUserData.uid);
-      // FIX: Spread the newUserData object to satisfy the type constraints of updateDoc.
-      // This resolves a TypeScript error where the 'User' type was not directly assignable.
-      await updateDoc(userDocRef, { ...newUserData });
+    if (!newUserData.uid) throw new Error("User UID is required to update.");
+    
+    let photoURL = newUserData.photo;
 
-      if (user?.uid === newUserData.uid) {
-          setUser(newUserData);
-      }
+    // Check if photo is a new base64 upload
+    if (photoURL && photoURL.startsWith('data:image')) {
+        const storageRef = ref(storage, `profile_photos/${newUserData.uid}`);
+        const response = await fetch(photoURL);
+        const blob = await response.blob();
+        const snapshot = await uploadBytes(storageRef, blob);
+        photoURL = await getDownloadURL(snapshot.ref);
+    }
+    
+    const userDocRef = doc(db, 'profiles', newUserData.uid);
+    await updateDoc(userDocRef, { ...newUserData, photo: photoURL });
+
+    // Update local state if it's the current user
+    if (user?.uid === newUserData.uid) {
+        setUser({ ...newUserData, photo: photoURL });
+    }
   };
 
   const getAllUsers = async (): Promise<User[]> => {
-    const usersCollection = collection(db, 'profiles');
-    const userSnapshot = await getDocs(usersCollection);
+    const usersCol = collection(db, 'profiles');
+    const userSnapshot = await getDocs(usersCol);
     return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
   };
-
+  
   const deleteUser = async (uid: string) => {
-    // Note: This only deletes the user's profile from Firestore.
-    // Deleting the actual Firebase Auth user requires admin privileges via a backend function.
+    // This is a simplified delete. For a production app, you'd use a Cloud Function
+    // to delete the user from Firebase Auth and also handle cascading deletes of their content.
     await deleteDoc(doc(db, 'profiles', uid));
   };
 
-  // Helper to fetch a single user profile
-  const getUserProfile = async (uid: string): Promise<Pick<User, 'fullName' | 'photo'>> => {
-      const userDoc = await getDoc(doc(db, 'profiles', uid));
-      if(userDoc.exists()){
-          const data = userDoc.data();
-          return { fullName: data.fullName, photo: data.photo };
-      }
-      return { fullName: 'Usuário Desconhecido', photo: null };
-  }
-
   const getPosts = async (): Promise<Post[]> => {
-      const postsQuery = query(collection(db, 'posts'), orderBy('created_at', 'desc'));
-      const postsSnapshot = await getDocs(postsQuery);
-      
-      const posts: Post[] = await Promise.all(postsSnapshot.docs.map(async (postDoc) => {
-          const postData = postDoc.data();
-          
-          // Fetch author
-          const author = await getUserProfile(postData.author_uid);
+    const postsQuery = query(collection(db, 'posts'), orderBy('created_at', 'desc'));
+    const postSnapshots = await getDocs(postsQuery);
+    
+    const posts: Post[] = [];
+    for (const postDoc of postSnapshots.docs) {
+      const postData = postDoc.data();
+      const authorDoc = await getDoc(doc(db, 'profiles', postData.author_uid));
+      const authorData = authorDoc.exists() ? authorDoc.data() : { fullName: 'Usuário Deletado', photo: null };
 
-          // Fetch comments
-          const commentsQuery = query(collection(db, 'posts', postDoc.id, 'comments'), orderBy('created_at', 'asc'));
-          const commentsSnapshot = await getDocs(commentsQuery);
-          const comments: Comment[] = await Promise.all(commentsSnapshot.docs.map(async (commentDoc) => {
-              const commentData = commentDoc.data();
-              const commentAuthor = await getUserProfile(commentData.author_uid);
-              return {
-                  id: commentDoc.id,
-                  author: commentAuthor,
-                  ...commentData
-              } as Comment;
-          }));
+      // Fetch comments
+      const commentsQuery = query(collection(db, `posts/${postDoc.id}/comments`), orderBy('created_at', 'asc'));
+      const commentsSnapshot = await getDocs(commentsQuery);
+      const comments: Comment[] = [];
+      for(const commentDoc of commentsSnapshot.docs) {
+          const commentData = commentDoc.data();
+          const commentAuthorDoc = await getDoc(doc(db, 'profiles', commentData.author_uid));
+          const commentAuthorData = commentAuthorDoc.exists() ? commentAuthorDoc.data() : { fullName: 'Usuário Deletado', photo: null };
+          comments.push({
+              id: commentDoc.id,
+              ...commentData,
+              author: { fullName: commentAuthorData.fullName, photo: commentAuthorData.photo }
+          } as Comment);
+      }
 
-          // Fetch reactions
-          const reactionsSnapshot = await getDocs(collection(db, 'posts', postDoc.id, 'reactions'));
-          const reactions: Reaction[] = reactionsSnapshot.docs.map(reactionDoc => ({ id: reactionDoc.id, ...reactionDoc.data() } as Reaction));
-          
-          // Convert Firestore Timestamp to string for consistency
-          const createdAt = (postData.created_at as Timestamp)?.toDate().toISOString() || new Date().toISOString();
+      // Fetch reactions
+      const reactionsSnapshot = await getDocs(collection(db, `posts/${postDoc.id}/reactions`));
+      const reactions = reactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reaction));
 
-          return {
-              id: postDoc.id,
-              author,
-              comments,
-              reactions,
-              ...postData,
-              created_at: createdAt
-          } as Post;
-      }));
-      return posts;
+      posts.push({
+        id: postDoc.id,
+        ...postData,
+        created_at: (postData.created_at as Timestamp).toDate().toISOString(),
+        author: { fullName: authorData.fullName, photo: authorData.photo },
+        comments,
+        reactions
+      } as Post);
+    }
+    return posts;
   };
 
-  const createPost = async (content: string, imageFile?: File) => {
-    if (!user) throw new Error("User must be logged in to create a post.");
-
-    let imageUrl: string | null = null;
+  const createPost = async (content: string, imageFile?: File): Promise<void> => {
+    if (!user) throw new Error("User not authenticated");
+    let image_url: string | null = null;
     if (imageFile) {
-      const fileName = `${user.uid}/${Date.now()}_${imageFile.name}`;
-      const storageRef = ref(storage, `post_images/${fileName}`);
-      await uploadBytes(storageRef, imageFile);
-      imageUrl = await getDownloadURL(storageRef);
+      const imageRef = ref(storage, `posts/${Date.now()}_${imageFile.name}`);
+      const snapshot = await uploadBytes(imageRef, imageFile);
+      image_url = await getDownloadURL(snapshot.ref);
     }
-
+    
     await addDoc(collection(db, 'posts'), {
-        author_uid: user.uid,
-        content,
-        image_url: imageUrl,
-        created_at: serverTimestamp(),
+      author_uid: user.uid,
+      content,
+      image_url,
+      created_at: serverTimestamp()
     });
   };
 
-  const deletePost = async (postId: string) => {
-    await deleteDoc(doc(db, 'posts', postId));
-  };
+  const deletePost = async (postId: string): Promise<void> => {
+      const postDocRef = doc(db, 'posts', postId);
+      const postDoc = await getDoc(postDocRef);
+      if (!postDoc.exists()) return;
 
+      const imageUrl = postDoc.data().image_url;
+      if (imageUrl) {
+          try {
+              const imageRef = ref(storage, imageUrl);
+              await deleteObject(imageRef);
+          } catch (error) {
+              console.error("Error deleting post image:", error);
+          }
+      }
+
+      const batch = writeBatch(db);
+      const commentsRef = collection(db, `posts/${postId}/comments`);
+      const reactionsRef = collection(db, `posts/${postId}/reactions`);
+      
+      const commentsSnapshot = await getDocs(commentsRef);
+      commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+      const reactionsSnapshot = await getDocs(reactionsRef);
+      reactionsSnapshot.forEach(doc => batch.delete(doc.ref));
+      
+      await batch.commit();
+
+      await deleteDoc(postDocRef);
+  };
+  
   const addComment = async (postId: string, content: string): Promise<Comment> => {
-    if (!user) throw new Error("User must be logged in to comment.");
-    
-    const commentData = { 
-        post_id: postId, 
-        author_uid: user.uid, 
-        content,
-        created_at: serverTimestamp() 
-    };
+      if (!user) throw new Error("User not authenticated");
+      const commentData = {
+          post_id: postId,
+          author_uid: user.uid,
+          content,
+          created_at: serverTimestamp(),
+      };
+      const docRef = await addDoc(collection(db, `posts/${postId}/comments`), commentData);
+      
+      return {
+          id: docRef.id,
+          ...commentData,
+          created_at: new Date().toISOString(),
+          author: { fullName: user.fullName, photo: user.photo },
+      } as Comment;
+  };
+  
+  const deleteComment = async (postId: string, commentId: string): Promise<void> => {
+      await deleteDoc(doc(db, `posts/${postId}/comments`, commentId));
+  };
+  
+  const toggleReaction = async (postId: string, emoji: string): Promise<void> => {
+      if (!user) throw new Error("User not authenticated");
+      const reactionRef = doc(db, `posts/${postId}/reactions`, user.uid);
+      const reactionDoc = await getDoc(reactionRef);
 
-    const docRef = await addDoc(collection(db, 'posts', postId, 'comments'), commentData);
-    
-    // Return a complete comment object as expected by the UI
-    return {
-        id: docRef.id,
-        ...commentData,
-        created_at: new Date().toISOString(),
-        author: { fullName: user.fullName, photo: user.photo }
-    };
+      if (reactionDoc.exists() && reactionDoc.data().emoji === emoji) {
+          await deleteDoc(reactionRef);
+      } else {
+          await setDoc(reactionRef, {
+              post_id: postId,
+              user_uid: user.uid,
+              emoji: emoji
+          });
+      }
   };
 
-  const deleteComment = async (postId: string, commentId: string) => {
-     await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
+  const value = {
+    isAuthenticated: !!user,
+    user,
+    loading,
+    login,
+    logout,
+    register,
+    updateUser,
+    getAllUsers,
+    deleteUser,
+    getPosts,
+    createPost,
+    deletePost,
+    addComment,
+    deleteComment,
+    toggleReaction
   };
-
-  const toggleReaction = async (postId: string, emoji: string) => {
-    if (!user) throw new Error("User must be logged in to react.");
-    
-    const reactionRef = doc(db, 'posts', postId, 'reactions', user.uid);
-    const reactionSnap = await getDoc(reactionRef);
-
-    if (reactionSnap.exists() && reactionSnap.data().emoji === emoji) {
-      // User is removing their existing reaction
-      await deleteDoc(reactionRef);
-    } else {
-      // User is adding a new reaction or changing their existing one
-      await setDoc(reactionRef, {
-        post_id: postId,
-        user_uid: user.uid,
-        emoji: emoji,
-      });
-    }
-  };
-
+  
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, loading, login, logout, register, updateUser, getAllUsers, deleteUser, getPosts, createPost, deletePost, addComment, deleteComment, toggleReaction }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
