@@ -124,8 +124,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photoURL = await snapshot.ref.getDownloadURL();
       }
 
+      // Explicitly remove the 'photo' property from userData, which may contain a temporary blob URL,
+      // to ensure only the final storage URL is saved.
+      const { photo, ...restOfUserData } = userData;
+
       const finalUserData = {
-          ...userData,
+          ...restOfUserData,
           email: authUser.email!,
           status: 'pending' as const,
           isAdmin: false,
