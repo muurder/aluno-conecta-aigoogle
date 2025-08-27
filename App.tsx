@@ -39,89 +39,123 @@ const FirebaseConfigWarning: React.FC = () => {
                             Siga estes passos para configurar o backend do "Portal do Aluno" com o Firebase e rodar o projeto localmente.
                         </p>
                         
-                        <div className="space-y-6">
+                        <div className="space-y-6 text-sm text-gray-700">
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 1:</strong> Crie seu Projeto no Firebase</h3>
-                                <p className="text-gray-600 text-sm mb-2">
+                                <p>
                                     Acesse <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">console.firebase.google.com</a>, crie uma conta (ou faça login) e inicie um novo projeto.
                                 </p>
                             </div>
 
                              <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 2:</strong> Configure suas Variáveis de Ambiente</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    No seu projeto Firebase, crie um novo "Aplicativo da Web". O Firebase fornecerá um objeto de configuração com suas chaves.
+                                <p className="mb-2">
+                                    No seu projeto Firebase, vá em "Configurações do Projeto" (ícone de engrenagem) e crie um novo "Aplicativo da Web". O Firebase fornecerá um objeto de configuração com suas chaves.
                                 </p>
-                                <p className="text-gray-600 text-sm mb-2">
+                                <p className="mb-2">
                                     Crie um arquivo chamado <code>.env.local</code> na raiz do seu projeto e adicione as chaves, como no exemplo abaixo:
                                 </p>
-                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto"><code>
+                                <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto"><code>
 {`VITE_FIREBASE_API_KEY=sua_chave_aqui
 VITE_FIREBASE_AUTH_DOMAIN=seu_dominio_aqui
 VITE_FIREBASE_PROJECT_ID=seu_id_de_projeto_aqui
 VITE_FIREBASE_STORAGE_BUCKET=seu_storage_bucket_aqui
 VITE_FIREBASE_MESSAGING_SENDER_ID=seu_sender_id_aqui
-VITE_FIREBASE_APP_ID=seu_app_id_aqui
-
-# (Opcional) Chave para a API do Gemini (usada no Assistente Virtual)
-API_KEY=sua_chave_do_gemini_aqui`}
+VITE_FIREBASE_APP_ID=seu_app_id_aqui`}
                                 </code></pre>
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Ative os Serviços do Firebase</h3>
-                                <ul className="list-disc list-inside text-gray-600 text-sm space-y-1">
-                                    <li><strong>Authentication:</strong> Vá para a aba "Authentication", clique em "Primeiros passos" e ative o provedor "E-mail/senha".</li>
-                                    <li><strong>Firestore Database:</strong> Vá para a aba "Firestore Database", clique em "Criar banco de dados", inicie em <strong>modo de produção</strong> e escolha um local.</li>
-                                    <li><strong>Storage:</strong> Vá para a aba "Storage", clique em "Primeiros passos" e configure o bucket de armazenamento.</li>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Ativar Autenticação e Banco de Dados</h3>
+                                <ul className="list-disc list-inside space-y-2 pl-2">
+                                    <li>No menu do Firebase, vá para <strong>Authentication</strong>, clique em "Começar" e na aba "Sign-in method", ative o provedor <strong>E-mail/senha</strong>.</li>
+                                    <li>Em seguida, vá para <strong>Firestore Database</strong>, clique em "Criar banco de dados" e inicie no <strong>modo de produção</strong>.</li>
+                                    <li>Finalmente, vá para <strong>Storage</strong> e clique em "Começar", usando as configurações padrão.</li>
                                 </ul>
                             </div>
-
-                             <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Configure as Regras de Segurança</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                   As regras de segurança são essenciais para proteger seus dados. Vá para as abas "Firestore Database" → "Regras" e "Storage" → "Regras" e cole o conteúdo abaixo.
+                            
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-red-500">Passo 4 (Crítico):</strong> Configurar Regras do Firestore</h3>
+                                <p className="mb-2">
+                                    Esta é a etapa mais importante para corrigir os problemas de notificação e permissões. No menu <strong>Firestore Database</strong>, vá para a aba <strong>Regras</strong> e substitua o conteúdo existente pelo código abaixo:
                                 </p>
-                                <h4 className="font-semibold text-gray-700 mt-4 mb-2">Regras do Firestore:</h4>
-                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto"><code>
+                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-xs overflow-x-auto"><code>
 {`rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite que um usuário crie seu próprio perfil ao se registrar.
-    match /profiles/{userId} {
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      // Admins podem ler e escrever em qualquer perfil.
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
-    }
-  }
-}`}
-                                </code></pre>
 
-                                <h4 className="font-semibold text-gray-700 mt-4 mb-2">Regras do Storage:</h4>
-                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto"><code>
-{`rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // Permite que usuários autenticados façam upload da sua própria foto de perfil.
-    match /profile-photos/{userId}/{fileName} {
-      allow write: if request.auth != null && request.auth.uid == userId;
-      // Todos podem ler as fotos de perfil.
-      allow read;
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
     }
-    // Apenas admins podem fazer upload de imagens para os posts.
-     match /posts/{fileName} {
-      allow write: if request.auth != null && get(/databases/$(database)/documents/firestore/profiles/$(request.auth.uid)).data.isAdmin == true;
-      allow read;
+
+    match /profiles/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId || isAdmin();
+      allow delete: if isAdmin();
+
+      match /notificationStatus/{notificationId} {
+        allow read, write, delete: if request.auth.uid == userId;
+      }
+    }
+
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow delete: if request.auth.uid == resource.data.author_uid || isAdmin();
+      }
+
+      match /reactions/{userId} {
+        allow read: if request.auth != null;
+        allow write, delete: if request.auth.uid == userId;
+      }
+    }
+    
+    match /notifications/{notificationId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if isAdmin();
     }
   }
 }`}
                                 </code></pre>
                             </div>
+                            
+                            <div>
+                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-red-500">Passo 5 (Crítico):</strong> Configurar Regras do Storage</h3>
+                                <p className="mb-2">
+                                    Para garantir que os uploads de fotos funcionem corretamente, vá para <strong>Storage</strong>, na aba <strong>Regras</strong>, e substitua o conteúdo pelo código abaixo:
+                                </p>
+                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-xs overflow-x-auto"><code>
+{`rules_version = '2';
 
-                            <p className="text-center text-gray-700 pt-4 border-t">
-                                Após completar estes passos, <strong>reinicie o servidor de desenvolvimento</strong> para que as variáveis de ambiente sejam carregadas.
-                            </p>
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    match /profile-photos/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /posts/{imageName} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+                      exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+                      get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
+    }
+  }
+}`}
+                                </code></pre>
+                                 <p className="mt-4">
+                                    Após concluir todos os passos, reinicie seu servidor de desenvolvimento para que ele leia o arquivo <code>.env.local</code>.
+                                </p>
+                            </div>
                         </div>
                     </>
                 )}
@@ -130,110 +164,82 @@ service firebase.storage {
     );
 };
 
-
 const AppRoutes: React.FC = () => {
-    const { isAuthenticated, user, loading } = useAuth();
-    
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-        );
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    if (user.status === 'pending') {
+      return (
+        <Routes>
+          <Route path="/" element={<PendingApproval />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      );
     }
-    
-    if (isAuthenticated) {
-        if (user?.isAdmin) {
-            return (
-                 <Routes>
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                    <Route path="/admin/edit-user/:uid" element={<AdminEditUser />} />
-                    <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-                    <Route path="/my-course" element={<MainLayout><MyCourse /></MainLayout>} />
-                    <Route path="/financial" element={<MainLayout><Financial /></MainLayout>} />
-                    <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
-                    <Route path="/virtual-id" element={<MainLayout><VirtualIdCard /></MainLayout>} />
-                    <Route path="/edit-profile" element={<MainLayout><EditProfile /></MainLayout>} />
-                    <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
-                    <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-                    <Route path="/class-schedule" element={<MainLayout><ClassSchedule /></MainLayout>} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            );
-        }
-        if (user?.status === 'pending') {
-            return (
-                <Routes>
-                    <Route path="/pending-approval" element={<PendingApproval />} />
-                    <Route path="*" element={<Navigate to="/pending-approval" replace />} />
-                </Routes>
-            );
-        }
-        if (user?.status === 'approved') {
-             return (
-                <Routes>
-                    <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-                    <Route path="/my-course" element={<MainLayout><MyCourse /></MainLayout>} />
-                    <Route path="/financial" element={<MainLayout><Financial /></MainLayout>} />
-                    <Route path="/profile" element={<MainLayout><Profile /></MainLayout>} />
-                    <Route path="/virtual-id" element={<MainLayout><VirtualIdCard /></MainLayout>} />
-                    <Route path="/edit-profile" element={<MainLayout><EditProfile /></MainLayout>} />
-                    <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
-                    <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-                    <Route path="/class-schedule" element={<MainLayout><ClassSchedule /></MainLayout>} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    {/* Redirect admin routes for regular users */}
-                    <Route path="/admin/*" element={<Navigate to="/" replace />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            );
-        }
+    // User is approved, show the main application
+    return (
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/virtual-id" element={<VirtualIdCard />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/my-course" element={<MyCourse />} />
+          <Route path="/financial" element={<Financial />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/class-schedule" element={<ClassSchedule />} />
+          {user.isAdmin && (
+            <>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/edit-user/:uid" element={<AdminEditUser />} />
+            </>
+          )}
+          <Route path="/validate-id/:data" element={<ValidateIdCard />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        aj</Routes>
+      </MainLayout>
+    );
+  }
+
+  // No user, show public routes
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="l/register" element={<Register />} />
+      <Route path="/validate-id/:data" element={<ValidateIdCard />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+};
+
+
+const App: React.FC = () => {
+    const isFirebaseConfigured = import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID;
+
+    if (!isFirebaseConfigured && !isProduction) {
+        return <FirebaseConfigWarning />;
     }
 
     return (
-        <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <AuthProvider>
+            <NotificationsProvider>
+                <HashRouter>
+                    <div className="flex flex-col h-screen max-w-sm mx-auto bg-white shadow-2xl md:max-w-md lg:max-w-lg">
+                        <AppRoutes />
+                    </div>
+                </HashRouter>
+            </NotificationsProvider>
+        </AuthProvider>
     );
-};
-
-const App: React.FC = () => {
-  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
-
-  // Check for Firebase environment variables.
-  useState(() => {
-    const firebaseEnv = import.meta.env;
-    if (
-      firebaseEnv.VITE_FIREBASE_API_KEY &&
-      firebaseEnv.VITE_FIREBASE_AUTH_DOMAIN &&
-      firebaseEnv.VITE_FIREBASE_PROJECT_ID &&
-      firebaseEnv.VITE_FIREBASE_STORAGE_BUCKET &&
-      firebaseEnv.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-      firebaseEnv.VITE_FIREBASE_APP_ID
-    ) {
-      setIsFirebaseConfigured(true);
-    }
-  });
-
-  if (!isFirebaseConfigured) {
-    return <FirebaseConfigWarning />;
-  }
-
-  return (
-    <HashRouter>
-      <AuthProvider>
-        <NotificationsProvider>
-            <div className="mx-auto max-w-sm h-screen flex flex-col bg-white">
-            <AppRoutes />
-            </div>
-        </NotificationsProvider>
-      </AuthProvider>
-    </HashRouter>
-  );
-};
+}
 
 export default App;
