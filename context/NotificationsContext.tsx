@@ -1,79 +1,74 @@
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, orderBy, onSnapshot, type QuerySnapshot } from 'firebase/firestore';
+// FIX: Removed modular imports and switched to compat API to resolve module export errors.
+import type firebase from 'firebase/compat/app';
 import { useAuth } from './AuthContext';
 import type { Notification } from '../types';
+
+// This will be the structure for statuses stored in Firestore.
+// e.g., /profiles/{userId}/notificationStatus/{notificationId} -> { read: true, dismissed: false }
+interface NotificationStatus {
+  read?: boolean;
+  dismissed?: boolean;
+}
+
+// A map for easy lookup in the state: { [notificationId]: { read: true, dismissed: false } }
+type NotificationStatusMap = Record<string, NotificationStatus>;
 
 interface NotificationsContextType {
   notifications: Notification[];
   unreadCount: number;
-  readIds: Set<string>;
+  isRead: (id: string) => boolean; // Helper function instead of exposing the whole set
   hasNewNotification: boolean;
-  markAllAsRead: () => void;
-  dismissNotification: (id: string) => void;
-  clearAllNotifications: () => void;
-  toggleReadStatus: (id: string) => void;
+  markAllAsRead: () => Promise<void>;
+  dismissNotification: (id: string) => Promise<void>;
+  clearAllNotifications: () => Promise<void>;
+  toggleReadStatus: (id: string) => Promise<void>;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
+// FIX: Define QuerySnapshot type for compat mode.
+type QuerySnapshot = firebase.firestore.QuerySnapshot;
+
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [allActiveNotifications, setAllActiveNotifications] = useState<Notification[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [userNotificationStatuses, setUserNotificationStatuses] = useState<NotificationStatusMap>({});
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const isInitialLoad = useRef(true);
 
-  const readStorageKey = useMemo(() => user ? `read_notifications_${user.uid}` : null, [user]);
-  const dismissedStorageKey = useMemo(() => user ? `dismissed_notifications_${user.uid}` : null, [user]);
-
+  // Effect to listen for global notifications
   useEffect(() => {
-    if (readStorageKey) {
-      const storedRead = JSON.parse(localStorage.getItem(readStorageKey) || '[]');
-      setReadIds(new Set(storedRead));
-    }
-    if (dismissedStorageKey) {
-      const storedDismissed = JSON.parse(localStorage.getItem(dismissedStorageKey) || '[]');
-      setDismissedIds(new Set(storedDismissed));
-    }
-    // Reset the initial load flag whenever the user changes.
-    isInitialLoad.current = true;
-  }, [readStorageKey, dismissedStorageKey]);
-
-  useEffect(() => {
+    // Reset state on logout
     if (!user) {
       setAllActiveNotifications([]);
-      isInitialLoad.current = true; // Ensure reset on logout
+      isInitialLoad.current = true;
       return;
     }
 
-    const q = query(
-        collection(db, "notifications"),
-        where("active", "==", true),
-        orderBy("createdAt", "desc")
-    );
+    // FIX: Refactored query to use v8 namespaced API.
+    const q = db.collection("notifications")
+        .where("active", "==", true)
+        .orderBy("createdAt", "desc");
 
-    const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
+    // FIX: Refactored listener to use v8 namespaced API.
+    const unsubscribe = q.onSnapshot((snapshot: QuerySnapshot) => {
       const notificationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
       
-      // Use a functional state update to safely compare old and new states and prevent race conditions.
       setAllActiveNotifications(prevNotifications => {
         if (isInitialLoad.current) {
-          // This is the first fetch, so we just load the data without triggering animations.
           isInitialLoad.current = false;
         } else {
-          // For subsequent updates, check if a truly new notification has been added.
           const newNotificationExists = notificationsData.some(newNotif => 
             !prevNotifications.some(oldNotif => oldNotif.id === newNotif.id)
           );
           
           if (newNotificationExists) {
             setHasNewNotification(true);
-            setTimeout(() => setHasNewNotification(false), 1500); // Duration of ring animation
+            setTimeout(() => setHasNewNotification(false), 1500);
           }
         }
-        // Always return the latest data from Firestore.
         return notificationsData;
       });
     });
@@ -81,54 +76,83 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => unsubscribe();
   }, [user]);
 
+  // Effect to listen for user-specific notification statuses
+  useEffect(() => {
+    if (!user) {
+      setUserNotificationStatuses({});
+      return;
+    }
+
+    // FIX: Refactored collection reference to use v8 namespaced API.
+    const statusCollectionRef = db.collection('profiles').doc(user.uid).collection('notificationStatus');
+    // FIX: Refactored listener to use v8 namespaced API.
+    const unsubscribe = statusCollectionRef.onSnapshot((snapshot: QuerySnapshot) => {
+        const statuses: NotificationStatusMap = {};
+        snapshot.docs.forEach(doc => {
+            statuses[doc.id] = doc.data() as NotificationStatus;
+        });
+        setUserNotificationStatuses(statuses);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   const notifications = useMemo(() => {
-    return allActiveNotifications.filter(n => !dismissedIds.has(n.id));
-  }, [allActiveNotifications, dismissedIds]);
+    return allActiveNotifications.filter(n => !userNotificationStatuses[n.id]?.dismissed);
+  }, [allActiveNotifications, userNotificationStatuses]);
 
   const unreadCount = useMemo(() => {
-    return notifications.filter(n => !readIds.has(n.id)).length;
-  }, [notifications, readIds]);
+    return notifications.filter(n => !userNotificationStatuses[n.id]?.read).length;
+  }, [notifications, userNotificationStatuses]);
 
-  const markAllAsRead = useCallback(() => {
-    if (!readStorageKey) return;
-    const allIds = notifications.map(n => n.id);
-    const newReadIds = new Set([...readIds, ...allIds]);
-    setReadIds(newReadIds);
-    localStorage.setItem(readStorageKey, JSON.stringify(Array.from(newReadIds)));
-  }, [notifications, readIds, readStorageKey]);
+  const isRead = useCallback((id: string) => {
+    return !!userNotificationStatuses[id]?.read;
+  }, [userNotificationStatuses]);
 
-  const dismissNotification = useCallback((id: string) => {
-    if (!dismissedStorageKey) return;
-    const newDismissedIds = new Set(dismissedIds).add(id);
-    setDismissedIds(newDismissedIds);
-    localStorage.setItem(dismissedStorageKey, JSON.stringify(Array.from(newDismissedIds)));
-  }, [dismissedIds, dismissedStorageKey]);
+  const markAllAsRead = useCallback(async () => {
+    if (!user) return;
+    // FIX: Refactored batch write to use v8 namespaced API.
+    const batch = db.batch();
+    notifications.forEach(n => {
+        if (!userNotificationStatuses[n.id]?.read) {
+            const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(n.id);
+            batch.set(statusRef, { read: true }, { merge: true });
+        }
+    });
+    await batch.commit();
+  }, [user, notifications, userNotificationStatuses]);
 
-  const clearAllNotifications = useCallback(() => {
-    if (!dismissedStorageKey) return;
-    const allIds = notifications.map(n => n.id);
-    const newDismissedIds = new Set([...dismissedIds, ...allIds]);
-    setDismissedIds(newDismissedIds);
-    localStorage.setItem(dismissedStorageKey, JSON.stringify(Array.from(newDismissedIds)));
-  }, [notifications, dismissedIds, dismissedStorageKey]);
+  const dismissNotification = useCallback(async (id: string) => {
+    if (!user) return;
+    // FIX: Refactored doc reference and set to use v8 namespaced API.
+    const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(id);
+    await statusRef.set({ dismissed: true }, { merge: true });
+  }, [user]);
+
+  const clearAllNotifications = useCallback(async () => {
+    if (!user) return;
+    // FIX: Refactored batch write to use v8 namespaced API.
+    const batch = db.batch();
+    notifications.forEach(n => {
+        const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(n.id);
+        batch.set(statusRef, { dismissed: true }, { merge: true });
+    });
+    await batch.commit();
+  }, [user, notifications]);
   
-  const toggleReadStatus = useCallback((id: string) => {
-    if (!readStorageKey) return;
-    const newReadIds = new Set(readIds);
-    if (newReadIds.has(id)) {
-      newReadIds.delete(id);
-    } else {
-      newReadIds.add(id);
-    }
-    setReadIds(newReadIds);
-    localStorage.setItem(readStorageKey, JSON.stringify(Array.from(newReadIds)));
-  }, [readIds, readStorageKey]);
+  const toggleReadStatus = useCallback(async (id: string) => {
+    if (!user) return;
+    const currentReadStatus = !!userNotificationStatuses[id]?.read;
+    // FIX: Refactored doc reference and set to use v8 namespaced API.
+    const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(id);
+    await statusRef.set({ read: !currentReadStatus }, { merge: true });
+  }, [user, userNotificationStatuses]);
 
 
   const value = {
     notifications,
     unreadCount,
-    readIds,
+    isRead,
     hasNewNotification,
     markAllAsRead,
     dismissNotification,

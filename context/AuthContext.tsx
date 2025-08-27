@@ -1,34 +1,14 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { auth, db, storage } from '../firebase';
-import { 
-    onAuthStateChanged, 
-    signInWithEmailAndPassword, 
-    createUserWithEmailAndPassword, 
-    signOut,
-    updatePassword,
-    type User as AuthUser 
-} from 'firebase/auth';
-import { 
-    doc, 
-    getDoc, 
-    setDoc,
-    updateDoc,
-    collection,
-    getDocs,
-    deleteDoc,
-    addDoc,
-    query,
-    orderBy,
-    serverTimestamp,
-    Timestamp,
-    writeBatch,
-    where,
-    onSnapshot,
-    // FIX: Added QuerySnapshot for explicit typing
-    type QuerySnapshot
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+// FIX: Switched to Firebase compat libraries to resolve module export errors.
+// Removed modular imports for auth, firestore, and storage.
+import firebase from 'firebase/compat/app';
 import type { User, Post, Comment, Reaction, NotificationType } from '../types';
+
+// FIX: Define compat types
+type QuerySnapshot = firebase.firestore.QuerySnapshot;
+type Timestamp = firebase.firestore.Timestamp;
+type AuthUser = firebase.User;
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -60,12 +40,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isInitialSnapshot = useRef(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+    // FIX: Refactored listener to use v8 namespaced API.
+    const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
       if (authUser) {
-        const userDocRef = doc(db, 'profiles', authUser.uid);
-        const userDoc = await getDoc(userDocRef);
+        // FIX: Refactored doc reference and get to use v8 namespaced API.
+        const userDocRef = db.collection('profiles').doc(authUser.uid);
+        const userDoc = await userDocRef.get();
 
-        if (userDoc.exists()) {
+        if (userDoc.exists) {
           setUser({ uid: userDoc.id, ...(userDoc.data() as object) } as User);
         } else {
           console.error("User is authenticated, but no profile found in Firestore.");
@@ -87,9 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         Notification.requestPermission();
       }
 
-      const q = query(collection(db, "profiles"), where("status", "==", "pending"));
+      // FIX: Refactored query to use v8 namespaced API.
+      const q = db.collection("profiles").where("status", "==", "pending");
       
-      const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
+      // FIX: Refactored listener to use v8 namespaced API.
+      const unsubscribe = q.onSnapshot((snapshot: QuerySnapshot) => {
         if (isInitialSnapshot.current) {
           isInitialSnapshot.current = false;
           return;
@@ -117,22 +101,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const login = async (email: string, pass: string) => {
-    await signInWithEmailAndPassword(auth, email, pass);
+    // FIX: Refactored auth call to use v8 namespaced API.
+    await auth.signInWithEmailAndPassword(email, pass);
   };
 
   const logout = async () => {
-    await signOut(auth);
+    // FIX: Refactored auth call to use v8 namespaced API.
+    await auth.signOut();
   };
 
   const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string, photoFile?: File): Promise<void> => {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      // FIX: Refactored auth call to use v8 namespaced API.
+      const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
       const authUser = userCredential.user;
+      if (!authUser) throw new Error("User creation failed.");
 
       let photoURL: string | null = null;
       if (photoFile) {
-          const photoRef = ref(storage, `profile-photos/${authUser.uid}/profile-photo`);
-          const snapshot = await uploadBytes(photoRef, photoFile);
-          photoURL = await getDownloadURL(snapshot.ref);
+          // FIX: Refactored storage calls to use v8 namespaced API.
+          const photoRef = storage.ref(`profile-photos/${authUser.uid}/profile-photo`);
+          const snapshot = await photoRef.put(photoFile);
+          photoURL = await snapshot.ref.getDownloadURL();
       }
 
       const finalUserData = {
@@ -142,8 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
           photo: photoURL,
       };
-
-      await setDoc(doc(db, 'profiles', authUser.uid), finalUserData);
+      
+      // FIX: Refactored doc reference and set to use v8 namespaced API.
+      await db.collection('profiles').doc(authUser.uid).set(finalUserData);
   };
   
   const updateUser = async (newUserData: User, photoFile?: File) => {
@@ -152,13 +142,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const finalUserData = { ...newUserData };
 
     if (photoFile) {
-        const photoRef = ref(storage, `profile-photos/${newUserData.uid}/profile-photo`);
-        const snapshot = await uploadBytes(photoRef, photoFile);
-        finalUserData.photo = await getDownloadURL(snapshot.ref);
+        // FIX: Refactored storage calls to use v8 namespaced API.
+        const photoRef = storage.ref(`profile-photos/${newUserData.uid}/profile-photo`);
+        const snapshot = await photoRef.put(photoFile);
+        finalUserData.photo = await snapshot.ref.getDownloadURL();
     }
     
-    const userDocRef = doc(db, 'profiles', newUserData.uid);
-    await updateDoc(userDocRef, finalUserData);
+    // FIX: Refactored doc reference and update to use v8 namespaced API.
+    const userDocRef = db.collection('profiles').doc(newUserData.uid);
+    await userDocRef.update(finalUserData);
 
     if (user?.uid === newUserData.uid) {
         setUser(finalUserData);
@@ -168,41 +160,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const changePassword = async (newPass: string) => {
     const authUser = auth.currentUser;
     if (!authUser) throw new Error("User not authenticated.");
-    await updatePassword(authUser, newPass);
+    // FIX: Refactored auth call to use v8 namespaced API.
+    await authUser.updatePassword(newPass);
   };
 
   const getAllUsers = async (): Promise<User[]> => {
-    const usersCol = collection(db, 'profiles');
-    const userSnapshot = await getDocs(usersCol);
+    // FIX: Refactored collection get to use v8 namespaced API.
+    const usersCol = db.collection('profiles');
+    const userSnapshot = await usersCol.get();
     return userSnapshot.docs.map(doc => ({ uid: doc.id, ...(doc.data() as object) } as User));
   };
   
   const deleteUser = async (uid: string) => {
-    await deleteDoc(doc(db, 'profiles', uid));
+    // FIX: Refactored doc delete to use v8 namespaced API.
+    await db.collection('profiles').doc(uid).delete();
     // Note: Deleting the Firebase Auth user requires admin privileges and is best handled by a backend function.
     // Also, associated storage files should be deleted.
   };
 
   const getPosts = async (): Promise<Post[]> => {
-    const postsQuery = query(collection(db, 'posts'), orderBy('created_at', 'desc'));
-    const postSnapshots = await getDocs(postsQuery);
+    // FIX: Refactored query to use v8 namespaced API.
+    const postsQuery = db.collection('posts').orderBy('created_at', 'desc');
+    const postSnapshots = await postsQuery.get();
     
     const posts: Post[] = [];
     for (const postDoc of postSnapshots.docs) {
-      // FIX: Cast post data to a known type to safely access its properties.
       const postData = postDoc.data() as { author_uid: string; created_at: Timestamp; [key: string]: any };
-      const authorDoc = await getDoc(doc(db, 'profiles', postData.author_uid));
-      const authorData = authorDoc.exists() ? authorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
+      // FIX: Refactored doc get to use v8 namespaced API.
+      const authorDoc = await db.collection('profiles').doc(postData.author_uid).get();
+      const authorData = authorDoc.exists ? authorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
 
       // Fetch comments
-      const commentsQuery = query(collection(db, `posts/${postDoc.id}/comments`), orderBy('created_at', 'asc'));
-      const commentsSnapshot = await getDocs(commentsQuery);
+      // FIX: Refactored sub-collection query to use v8 namespaced API.
+      const commentsQuery = db.collection(`posts/${postDoc.id}/comments`).orderBy('created_at', 'asc');
+      const commentsSnapshot = await commentsQuery.get();
       const comments: Comment[] = [];
       for(const commentDoc of commentsSnapshot.docs) {
-          // FIX: Cast comment data to a known type to safely access its properties.
           const commentData = commentDoc.data() as { author_uid: string; [key: string]: any };
-          const commentAuthorDoc = await getDoc(doc(db, 'profiles', commentData.author_uid));
-          const commentAuthorData = commentAuthorDoc.exists() ? commentAuthorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
+          // FIX: Refactored doc get to use v8 namespaced API.
+          const commentAuthorDoc = await db.collection('profiles').doc(commentData.author_uid).get();
+          const commentAuthorData = commentAuthorDoc.exists ? commentAuthorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
           comments.push({
               id: commentDoc.id,
               ...(commentData as object),
@@ -211,7 +208,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Fetch reactions
-      const reactionsSnapshot = await getDocs(collection(db, `posts/${postDoc.id}/reactions`));
+      // FIX: Refactored sub-collection get to use v8 namespaced API.
+      const reactionsSnapshot = await db.collection(`posts/${postDoc.id}/reactions`).get();
       const reactions = reactionsSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as object) } as Reaction));
 
       posts.push({
@@ -230,48 +228,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error("User not authenticated");
     let image_url: string | null = null;
     if (imageFile) {
-      const imageRef = ref(storage, `posts/${Date.now()}_${imageFile.name}`);
-      const snapshot = await uploadBytes(imageRef, imageFile);
-      image_url = await getDownloadURL(snapshot.ref);
+      // FIX: Refactored storage calls to use v8 namespaced API.
+      const imageRef = storage.ref(`posts/${Date.now()}_${imageFile.name}`);
+      const snapshot = await imageRef.put(imageFile);
+      image_url = await snapshot.ref.getDownloadURL();
     }
     
-    await addDoc(collection(db, 'posts'), {
+    // FIX: Refactored collection add to use v8 namespaced API.
+    await db.collection('posts').add({
       author_uid: user.uid,
       content,
       image_url,
-      created_at: serverTimestamp()
+      // FIX: Use compat server timestamp.
+      created_at: firebase.firestore.FieldValue.serverTimestamp()
     });
   };
 
   const deletePost = async (postId: string): Promise<void> => {
-      const postDocRef = doc(db, 'posts', postId);
-      const postDoc = await getDoc(postDocRef);
-      if (!postDoc.exists()) return;
+      // FIX: Refactored doc reference and get to use v8 namespaced API.
+      const postDocRef = db.collection('posts').doc(postId);
+      const postDoc = await postDocRef.get();
+      if (!postDoc.exists) return;
 
-      // FIX: Cast post data to a known type to safely access its properties.
       const imageUrl = (postDoc.data() as { image_url?: string | null }).image_url;
       if (imageUrl) {
           try {
-              const imageRef = ref(storage, imageUrl);
-              await deleteObject(imageRef);
+              // FIX: Refactored storage calls to use v8 namespaced API.
+              const imageRef = storage.refFromURL(imageUrl);
+              await imageRef.delete();
           } catch (error) {
               console.error("Error deleting post image:", error);
           }
       }
 
-      const batch = writeBatch(db);
-      const commentsRef = collection(db, `posts/${postId}/comments`);
-      const reactionsRef = collection(db, `posts/${postId}/reactions`);
+      // FIX: Refactored batch write to use v8 namespaced API.
+      const batch = db.batch();
+      const commentsRef = db.collection(`posts/${postId}/comments`);
+      const reactionsRef = db.collection(`posts/${postId}/reactions`);
       
-      const commentsSnapshot = await getDocs(commentsRef);
+      const commentsSnapshot = await commentsRef.get();
       commentsSnapshot.forEach(doc => batch.delete(doc.ref));
 
-      const reactionsSnapshot = await getDocs(reactionsRef);
+      const reactionsSnapshot = await reactionsRef.get();
       reactionsSnapshot.forEach(doc => batch.delete(doc.ref));
       
       await batch.commit();
 
-      await deleteDoc(postDocRef);
+      await postDocRef.delete();
   };
   
   const addComment = async (postId: string, content: string): Promise<Comment> => {
@@ -280,9 +283,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           post_id: postId,
           author_uid: user.uid,
           content,
-          created_at: serverTimestamp(),
+          // FIX: Use compat server timestamp.
+          created_at: firebase.firestore.FieldValue.serverTimestamp(),
       };
-      const docRef = await addDoc(collection(db, `posts/${postId}/comments`), commentData);
+      // FIX: Refactored collection add to use v8 namespaced API.
+      const docRef = await db.collection(`posts/${postId}/comments`).add(commentData);
       
       return {
           id: docRef.id,
@@ -293,19 +298,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const deleteComment = async (postId: string, commentId: string): Promise<void> => {
-      await deleteDoc(doc(db, `posts/${postId}/comments`, commentId));
+      // FIX: Refactored doc delete to use v8 namespaced API.
+      await db.collection(`posts/${postId}/comments`).doc(commentId).delete();
   };
   
   const toggleReaction = async (postId: string, emoji: string): Promise<void> => {
       if (!user) throw new Error("User not authenticated");
-      const reactionRef = doc(db, `posts/${postId}/reactions`, user.uid);
-      const reactionDoc = await getDoc(reactionRef);
+      // FIX: Refactored doc reference and get to use v8 namespaced API.
+      const reactionRef = db.collection(`posts/${postId}/reactions`).doc(user.uid);
+      const reactionDoc = await reactionRef.get();
 
-      // FIX: Cast reaction data to a known type to safely access its properties.
-      if (reactionDoc.exists() && (reactionDoc.data() as { emoji: string }).emoji === emoji) {
-          await deleteDoc(reactionRef);
+      if (reactionDoc.exists && (reactionDoc.data() as { emoji: string }).emoji === emoji) {
+          await reactionRef.delete();
       } else {
-          await setDoc(reactionRef, {
+          await reactionRef.set({
               post_id: postId,
               user_uid: user.uid,
               emoji: emoji
@@ -314,11 +320,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createNotification = async (message: string, type: NotificationType) => {
-    const notificationsRef = collection(db, 'notifications');
-    await addDoc(notificationsRef, {
+    // FIX: Refactored collection add to use v8 namespaced API.
+    const notificationsRef = db.collection('notifications');
+    await notificationsRef.add({
         message,
         type,
-        createdAt: serverTimestamp(),
+        // FIX: Use compat server timestamp.
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         active: true,
     });
   };
