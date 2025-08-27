@@ -4,7 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { COURSE_ICONS } from '../constants';
 import { schedulesData, Schedule } from '../schedules';
 import { db } from '../firebase';
-import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
+// FIX: Import QuerySnapshot to explicitly type the snapshot from onSnapshot.
+import { collection, query, where, orderBy, onSnapshot, type QuerySnapshot } from 'firebase/firestore';
+import type { Notification } from '../types';
 import { 
     ArrowRightIcon, 
     MagnifyingGlassIcon, 
@@ -14,44 +16,97 @@ import {
     IdentificationIcon,
     CalendarDaysIcon,
     ComputerDesktopIcon,
+    BellIcon,
 } from '@heroicons/react/24/outline';
-import { XMarkIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, InformationCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
+
+
+const NotificationCard: React.FC<{ notification: Notification; onDismiss: () => void }> = ({ notification, onDismiss }) => {
+    const config = useMemo(() => {
+        const baseConfig = {
+            info: {
+                bgColor: 'bg-blue-100 border-blue-500',
+                textColor: 'text-blue-900',
+                icon: <InformationCircleIcon className="w-7 h-7 text-blue-500" />,
+                title: '📢 Informação',
+            },
+            warning: {
+                bgColor: 'bg-yellow-100 border-yellow-500',
+                textColor: 'text-yellow-900',
+                icon: <ExclamationTriangleIcon className="w-7 h-7 text-yellow-500" />,
+                title: '📢 Aviso Importante',
+            },
+            urgent: {
+                bgColor: 'bg-red-100 border-red-500',
+                textColor: 'text-red-900',
+                icon: <ExclamationCircleIcon className="w-7 h-7 text-red-500" />,
+                title: '📢 Urgente',
+            },
+        };
+        return baseConfig[notification.type] || baseConfig.info;
+    }, [notification.type]);
+
+    const formattedDate = useMemo(() => {
+        if (!notification.createdAt?.seconds) return '';
+        return new Date(notification.createdAt.seconds * 1000).toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }, [notification.createdAt]);
+
+    return (
+        <div className={`p-4 rounded-lg shadow-md relative border-l-4 ${config.bgColor} ${config.textColor}`} role="alert">
+            <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">{config.icon}</div>
+                <div className="flex-grow pr-6">
+                    <p className="font-bold">{config.title}</p>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{notification.message}</p>
+                </div>
+            </div>
+            {formattedDate && (
+                <div className="mt-3 pt-2 border-t border-black/10 text-right">
+                    <p className="text-xs text-gray-500">📅 {formattedDate}</p>
+                </div>
+            )}
+            <button
+                onClick={onDismiss}
+                className="absolute top-2 right-2 p-1 rounded-full text-black/40 hover:bg-black/10"
+                aria-label="Dispensar notificação"
+            >
+                <XMarkIcon className="w-5 h-5" />
+            </button>
+        </div>
+    );
+};
 
 const Home: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [notification, setNotification] = useState<{ id: string; message: string } | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
 
     useEffect(() => {
         const q = query(
             collection(db, "notifications"),
             where("active", "==", true),
-            orderBy("createdAt", "desc"),
-            limit(1)
+            orderBy("createdAt", "desc")
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const doc = snapshot.docs[0];
-                const dismissed = localStorage.getItem(`notification_dismissed_${doc.id}`);
-                if (!dismissed) {
-                    setNotification({ id: doc.id, ...doc.data() } as { id: string; message: string });
-                } else {
-                    setNotification(null);
-                }
-            } else {
-                setNotification(null);
-            }
+        // FIX: Explicitly type 'snapshot' as QuerySnapshot to resolve property 'docs' not existing.
+        const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
+            const allActiveNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
+            const readNotifications = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+            const unreadNotifications = allActiveNotifications.filter(n => !readNotifications.includes(n.id));
+            setNotifications(unreadNotifications);
         });
 
         return () => unsubscribe();
     }, []);
 
-    const dismissNotification = () => {
-        if (notification) {
-            localStorage.setItem(`notification_dismissed_${notification.id}`, 'true');
-            setNotification(null);
-        }
+    const dismissNotification = (id: string) => {
+        const readNotifications = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+        const updatedReadNotifications = [...readNotifications, id];
+        localStorage.setItem('read_notifications', JSON.stringify(updatedReadNotifications));
+        setNotifications(prev => prev.filter(n => n.id !== id));
     };
 
 
@@ -136,17 +191,18 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 space-y-6">
-            {notification && (
-                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded-r-lg shadow-md relative" role="alert">
-                    <p className="font-bold">Aviso Importante</p>
-                    <p className="text-sm pr-6">{notification.message}</p>
-                    <button
-                        onClick={dismissNotification}
-                        className="absolute top-2 right-2 p-1 rounded-full text-yellow-800 hover:bg-yellow-200"
-                        aria-label="Dispensar notificação"
-                    >
-                        <XMarkIcon className="w-5 h-5" />
-                    </button>
+            {notifications.length > 0 && (
+                <div className="space-y-2">
+                    {notifications.length > 1 && (
+                        <div className="flex items-center justify-center gap-2 py-2 px-3 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold shadow-sm">
+                            <BellIcon className="w-5 h-5" />
+                            <span>{notifications.length} avisos novos</span>
+                        </div>
+                    )}
+                    <NotificationCard 
+                        notification={notifications[0]} 
+                        onDismiss={() => dismissNotification(notifications[0].id)} 
+                    />
                 </div>
             )}
             

@@ -51,9 +51,12 @@ export interface Post {
   reactions: Reaction[];
 }
 
+export type NotificationType = 'info' | 'warning' | 'urgent';
+
 export interface Notification {
   id: string;
   message: string;
+  type: NotificationType;
   createdAt: { seconds: number; nanoseconds: number; }; // Firestore Timestamp
   active: boolean;
 }
