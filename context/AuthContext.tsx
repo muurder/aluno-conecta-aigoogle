@@ -173,11 +173,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     const userDocRef = doc(db, 'profiles', newUserData.uid);
-    await updateDoc(userDocRef, { ...newUserData, photo: photoURL });
+    const dataToUpdateInDb = { ...newUserData, photo: photoURL };
+    await updateDoc(userDocRef, dataToUpdateInDb);
 
-    // Update local state if it's the current user
+    // Update local state if it's the current user, using the functional
+    // form of setState to prevent race conditions with stale state.
     if (user?.uid === newUserData.uid) {
-        setUser({ ...newUserData, photo: photoURL });
+        setUser(currentUser => {
+            if (!currentUser) return null; // Should not happen if uid matches
+            // Merge the updates from the form into the latest state from context
+            return {
+                ...currentUser,
+                ...newUserData,
+                photo: photoURL, // Explicitly set the final photo URL
+            };
+        });
     }
   };
 
