@@ -8,11 +8,11 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
       to={to} 
       end
       className={({ isActive }) => 
-        `flex flex-col items-center justify-center w-full pt-2 pb-1 ${isActive ? 'text-blue-600' : 'text-gray-500'}`
+        `flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors ${isActive ? 'text-primary' : 'text-text-light'}`
       }
     >
       {icon}
-      <span className="text-xs">{label}</span>
+      <span className="text-xs font-medium">{label}</span>
     </NavLink>
   );
 };
@@ -20,9 +20,9 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = 
 const BottomNav: React.FC = () => {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 
-                 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // notch iOS
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 
+                 bg-white/80 backdrop-blur-lg"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto max-w-sm">
         <ul className="grid grid-cols-4 h-[64px] items-center">
