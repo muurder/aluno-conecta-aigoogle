@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 // FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronRightIcon, UserCircleIcon, CameraIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon, EnvelopeIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
+import { UNIVERSITY_DETAILS } from '../constants';
 
 const ContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return (
@@ -54,6 +55,35 @@ const Profile: React.FC = () => {
     // FIX: Use navigate() for navigation.
     navigate('/login');
   };
+  
+  const { formattedDisplayName, institutionalEmail } = useMemo(() => {
+    if (!user) {
+      return { formattedDisplayName: 'Aluno', institutionalEmail: '' };
+    }
+
+    const capitalize = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+    const nameParts = user.fullName.trim().split(' ').filter(part => part);
+    
+    let displayName = '';
+    if (nameParts.length === 1) {
+      displayName = capitalize(nameParts[0]);
+    } else if (nameParts.length > 1) {
+      displayName = `${capitalize(nameParts[0])} ${capitalize(nameParts[nameParts.length - 1])}`;
+    }
+
+    const loginParts = user.fullName.trim().toLowerCase().split(' ').filter(part => part);
+    let loginName = '';
+    if (loginParts.length === 1) {
+      loginName = loginParts[0];
+    } else if (loginParts.length > 1) {
+      loginName = `${loginParts[0]}.${loginParts[loginParts.length - 1]}`;
+    }
+
+    const domain = UNIVERSITY_DETAILS[user.university]?.domain || 'university.edu.br';
+    const email = `${loginName}@${domain}`;
+
+    return { formattedDisplayName: displayName, institutionalEmail: email };
+  }, [user]);
 
   const balao1 = '/decors/balao1.svg';
   const balao2 = '/decors/balao2.svg';
@@ -70,8 +100,8 @@ const Profile: React.FC = () => {
             <UserCircleIcon className="w-full h-full text-gray-400" />
           )}
         </div>
-        <h1 className="mt-4 text-2xl font-bold">{user?.fullName}</h1>
-        <p className="text-sm opacity-80">{user?.institutionalLogin}</p>
+        <h1 className="mt-4 text-2xl font-bold">{formattedDisplayName}</h1>
+        <p className="text-sm opacity-80 truncate">{institutionalEmail}</p>
         <button
           onClick={() => navigate('/edit-profile')}
           className="mt-4 inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-full text-sm transition"
