@@ -37,13 +37,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       const storedDismissed = JSON.parse(localStorage.getItem(dismissedStorageKey) || '[]');
       setDismissedIds(new Set(storedDismissed));
     }
+    // Reset the initial load flag whenever the user changes.
     isInitialLoad.current = true;
   }, [readStorageKey, dismissedStorageKey]);
 
   useEffect(() => {
     if (!user) {
       setAllActiveNotifications([]);
-      isInitialLoad.current = true; // Reset on logout
+      isInitialLoad.current = true; // Ensure reset on logout
       return;
     }
 
@@ -56,11 +57,15 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
       const notificationsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
       
+      // Use a functional state update to safely compare old and new states and prevent race conditions.
       setAllActiveNotifications(prevNotifications => {
-        // Only check for new notifications after the initial load
-        if (!isInitialLoad.current) {
+        if (isInitialLoad.current) {
+          // This is the first fetch, so we just load the data without triggering animations.
+          isInitialLoad.current = false;
+        } else {
+          // For subsequent updates, check if a truly new notification has been added.
           const newNotificationExists = notificationsData.some(newNotif => 
-            !prevNotifications.find(oldNotif => oldNotif.id === newNotif.id)
+            !prevNotifications.some(oldNotif => oldNotif.id === newNotif.id)
           );
           
           if (newNotificationExists) {
@@ -68,14 +73,13 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             setTimeout(() => setHasNewNotification(false), 1500); // Duration of ring animation
           }
         }
+        // Always return the latest data from Firestore.
         return notificationsData;
       });
-      
-      isInitialLoad.current = false;
     });
 
     return () => unsubscribe();
-  }, [user]); // FIX: Correct dependency array to avoid infinite loops.
+  }, [user]);
 
   const notifications = useMemo(() => {
     return allActiveNotifications.filter(n => !dismissedIds.has(n.id));
