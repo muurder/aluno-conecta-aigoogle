@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 // FIX: Update react-router-dom imports to v6. 'Switch' is 'Routes', 'Redirect' is 'Navigate'.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationsProvider } from './context/NotificationsContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import PendingApproval from './pages/PendingApproval';
@@ -17,6 +18,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
 import ValidateIdCard from './pages/ValidateIdCard';
 import ClassSchedule from './pages/ClassSchedule';
+import Notifications from './pages/Notifications';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -155,6 +157,7 @@ const AppRoutes: React.FC = () => {
                     <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
                     <Route path="/validate-id/:data" element={<ValidateIdCard />} />
                     <Route path="/class-schedule" element={<MainLayout><ClassSchedule /></MainLayout>} />
+                    <Route path="/notifications" element={<Notifications />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             );
@@ -179,6 +182,7 @@ const AppRoutes: React.FC = () => {
                     <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
                     <Route path="/validate-id/:data" element={<ValidateIdCard />} />
                     <Route path="/class-schedule" element={<MainLayout><ClassSchedule /></MainLayout>} />
+                    <Route path="/notifications" element={<Notifications />} />
                     {/* Redirect admin routes for regular users */}
                     <Route path="/admin/*" element={<Navigate to="/" replace />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
@@ -222,9 +226,11 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <div className="mx-auto max-w-sm h-screen flex flex-col bg-white">
-          <AppRoutes />
-        </div>
+        <NotificationsProvider>
+            <div className="mx-auto max-w-sm h-screen flex flex-col bg-white">
+            <AppRoutes />
+            </div>
+        </NotificationsProvider>
       </AuthProvider>
     </HashRouter>
   );
