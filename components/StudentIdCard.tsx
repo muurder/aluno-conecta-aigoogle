@@ -32,7 +32,7 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user }, 
                        <UserCircleIcon className="w-16 h-16 text-gray-500" />
                     )}
                 </div>
-                <h1 className="text-xl font-bold text-slate-800 truncate">{user.fullName || 'Nome Completo'}</h1>
+                <h1 className="text-xl font-bold text-slate-800">{user.fullName || 'Nome Completo'}</h1>
                 <p className="text-md text-slate-600">{user.course || 'Curso'}</p>
             </main>
 
