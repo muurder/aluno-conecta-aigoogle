@@ -1,14 +1,53 @@
-import React from 'react';
+import React, { useState } from 'react';
 // FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ChevronRightIcon, UserCircleIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon, UserCircleIcon, CameraIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon, EnvelopeIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
+
+const ContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    return (
+        <div 
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+            onClick={onClose}
+        >
+            <div 
+                className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm relative"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                    <XMarkIcon className="w-6 h-6"/>
+                </button>
+                <h2 className="text-xl font-bold text-gray-800 mb-2">Contato e Contrato</h2>
+                <p className="text-gray-600 mb-6 text-sm">Para questões sobre o contrato de serviços, entre em contato por um dos canais abaixo:</p>
+                
+                <div className="space-y-3">
+                    <a href="https://wa.me/5511987697684" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                        <ChatBubbleBottomCenterTextIcon className="w-8 h-8 text-green-600 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-green-800">WhatsApp</p>
+                            <p className="text-sm text-green-700">(11) 98769-7684</p>
+                        </div>
+                    </a>
+                    <a href="mailto:juannicolas1@gmail.com" className="w-full flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                        <EnvelopeIcon className="w-8 h-8 text-blue-600 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-blue-800">Email</p>
+                            <p className="text-sm text-blue-700">juannicolas1@gmail.com</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();
   // FIX: Use useNavigate() for navigation in react-router-dom v6.
   const navigate = useNavigate();
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -56,6 +95,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="flex-grow flex flex-col bg-gray-100">
+      {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} />}
       <ProfileHeader />
       <main className="p-4 space-y-3">
         {user?.isAdmin && (
@@ -83,7 +123,7 @@ const Profile: React.FC = () => {
         <MenuItem
           icon={<DocumentTextIcon className="w-6 h-6" />}
           label="Contrato de Serviços"
-          onClick={() => { /* No action defined */ }}
+          onClick={() => setShowContactModal(true)}
         />
         <MenuItem
           icon={<QuestionMarkCircleIcon className="w-6 h-6" />}
