@@ -43,7 +43,7 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user }, 
                         <p className="font-semibold text-slate-700">{user.rgm || '########-#'}</p>
                     </div>
                     <div className="text-right">
-                        <p className="font-light text-gray-600">VAL:</p>
+                        <p className="font-light text-gray-600">VALIDADE</p>
                         <p className="font-semibold text-slate-700">{user.validity || 'MM/YYYY'}</p>
                     </div>
                     <div className="col-span-2">
