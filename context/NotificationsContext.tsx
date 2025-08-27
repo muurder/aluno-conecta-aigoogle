@@ -12,6 +12,7 @@ interface NotificationsContextType {
   markAllAsRead: () => void;
   dismissNotification: (id: string) => void;
   clearAllNotifications: () => void;
+  toggleReadStatus: (id: string) => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
@@ -96,6 +97,19 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     setDismissedIds(newDismissedIds);
     localStorage.setItem(dismissedStorageKey, JSON.stringify(Array.from(newDismissedIds)));
   }, [notifications, dismissedIds, dismissedStorageKey]);
+  
+  const toggleReadStatus = useCallback((id: string) => {
+    if (!readStorageKey) return;
+    const newReadIds = new Set(readIds);
+    if (newReadIds.has(id)) {
+      newReadIds.delete(id);
+    } else {
+      newReadIds.add(id);
+    }
+    setReadIds(newReadIds);
+    localStorage.setItem(readStorageKey, JSON.stringify(Array.from(newReadIds)));
+  }, [readIds, readStorageKey]);
+
 
   const value = {
     notifications,
@@ -105,6 +119,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     markAllAsRead,
     dismissNotification,
     clearAllNotifications,
+    toggleReadStatus,
   };
 
   return (

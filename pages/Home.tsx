@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_ICONS } from '../constants';
 import { schedulesData, Schedule } from '../schedules';
+import NotificationCarousel from '../components/NotificationCarousel';
 import { 
     ArrowRightIcon, 
     MagnifyingGlassIcon, 
@@ -99,6 +100,9 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 space-y-6">
+            {/* Notifications Carousel */}
+            <NotificationCarousel />
+
             {/* User Info Card */}
             <div className="bg-blue-800 text-white p-5 rounded-xl shadow-md relative overflow-hidden">
                 <div className="relative z-10">
