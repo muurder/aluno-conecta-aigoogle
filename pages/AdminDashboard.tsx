@@ -7,6 +7,52 @@ import BottomNav from '../components/BottomNav';
 
 type FilterStatus = 'all' | 'pending' | 'approved';
 
+// --- Extracted NotificationModal Component ---
+// This component is extracted to prevent re-rendering issues that cause the text input to lose focus.
+interface NotificationModalProps {
+    show: boolean;
+    message: string;
+    setMessage: (message: string) => void;
+    onClose: () => void;
+    onSend: () => void;
+    isSending: boolean;
+}
+
+const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, setMessage, onClose, onSend, isSending }) => {
+    if (!show) {
+        return null;
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
+                <h2 className="text-lg font-bold text-gray-800 mb-4">Enviar Notificação Push</h2>
+                <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Digite a mensagem da notificação..."
+                    className="w-full p-2 border border-gray-300 rounded-md resize-y min-h-[100px] focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex justify-end gap-3 mt-4">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={onSend} 
+                        disabled={isSending}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                    >
+                        {isSending ? 'Enviando...' : 'Enviar'}
+                    </button>
+                </div>
+                 <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                    <XMarkIcon className="w-6 h-6"/>
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { getAllUsers, deleteUser, updateUser, createNotification } = useAuth();
@@ -96,38 +142,16 @@ const AdminDashboard: React.FC = () => {
         </button>
     );
 
-    const NotificationModal = () => (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
-                <h2 className="text-lg font-bold text-gray-800 mb-4">Enviar Notificação Push</h2>
-                <textarea
-                    value={notificationMessage}
-                    onChange={(e) => setNotificationMessage(e.target.value)}
-                    placeholder="Digite a mensagem da notificação..."
-                    className="w-full p-2 border border-gray-300 rounded-md resize-y min-h-[100px] focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="flex justify-end gap-3 mt-4">
-                    <button onClick={() => setShowNotificationModal(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={handleSendNotification} 
-                        disabled={isSendingNotification}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                    >
-                        {isSendingNotification ? 'Enviando...' : 'Enviar'}
-                    </button>
-                </div>
-                 <button onClick={() => setShowNotificationModal(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">
-                    <XMarkIcon className="w-6 h-6"/>
-                </button>
-            </div>
-        </div>
-    );
-
     return (
         <div className="flex flex-col h-screen bg-gray-100">
-            {showNotificationModal && <NotificationModal />}
+            <NotificationModal 
+                show={showNotificationModal}
+                message={notificationMessage}
+                setMessage={setNotificationMessage}
+                onClose={() => setShowNotificationModal(false)}
+                onSend={handleSendNotification}
+                isSending={isSendingNotification}
+            />
             <header className="p-4 bg-white shadow-sm sticky top-0 z-10 border-b">
                  <div className="flex items-center justify-between">
                     <div className="flex items-center">
