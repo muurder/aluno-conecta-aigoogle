@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { auth, db, storage } from '../firebase';
 import { 
     onAuthStateChanged, 
@@ -20,7 +20,11 @@ import {
     orderBy,
     serverTimestamp,
     Timestamp,
-    writeBatch
+    writeBatch,
+    where,
+    onSnapshot,
+    // FIX: Added QuerySnapshot for explicit typing
+    type QuerySnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import type { User, Post, Comment, Reaction } from '../types';
@@ -49,6 +53,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const isInitialSnapshot = useRef(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
@@ -57,7 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-          setUser({ uid: userDoc.id, ...userDoc.data() } as User);
+          // FIX (line 63): Spread types may only be created from object types.
+          setUser({ uid: userDoc.id, ...(userDoc.data() as object) } as User);
         } else {
           // Profile doesn't exist, maybe registration is incomplete
           console.error("User is authenticated, but no profile found in Firestore.");
@@ -71,6 +77,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => unsubscribe();
   }, []);
+
+  // Effect for admin notifications on new user registration
+  useEffect(() => {
+    if (user?.isAdmin) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+
+      const q = query(collection(db, "profiles"), where("status", "==", "pending"));
+      
+      // FIX (line 94): Property 'docChanges' does not exist on type 'DocumentSnapshot<unknown, DocumentData>'.
+      const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
+        // Ignore the initial data dump, only notify for new users
+        if (isInitialSnapshot.current) {
+          isInitialSnapshot.current = false;
+          return;
+        }
+
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const newUser = change.doc.data() as User;
+            
+            if (Notification.permission === 'granted') {
+              new Notification("Nova solicitação de cadastro", {
+                body: `${newUser.fullName} acabou de se cadastrar e aguarda aprovação.`,
+                icon: newUser.photo || '/vite.svg',
+              });
+            }
+          }
+        });
+      });
+
+      return () => {
+        unsubscribe();
+        isInitialSnapshot.current = true; // Reset for the next admin login
+      };
+    }
+  }, [user]);
 
   const login = async (email: string, pass: string) => {
     await signInWithEmailAndPassword(auth, email, pass);
@@ -122,7 +166,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getAllUsers = async (): Promise<User[]> => {
     const usersCol = collection(db, 'profiles');
     const userSnapshot = await getDocs(usersCol);
-    return userSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+    // FIX (line 165): Spread types may only be created from object types.
+    return userSnapshot.docs.map(doc => ({ uid: doc.id, ...(doc.data() as object) } as User));
   };
   
   const deleteUser = async (uid: string) => {
@@ -138,8 +183,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const posts: Post[] = [];
     for (const postDoc of postSnapshots.docs) {
       const postData = postDoc.data();
+      // FIX (line 181): Property 'author_uid' does not exist on type 'unknown'.
       const authorDoc = await getDoc(doc(db, 'profiles', postData.author_uid));
-      const authorData = authorDoc.exists() ? authorDoc.data() : { fullName: 'Usuário Deletado', photo: null };
+      // FIX (line 207): Property 'fullName'/'photo' does not exist on type 'unknown'.
+      const authorData = authorDoc.exists() ? authorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
 
       // Fetch comments
       const commentsQuery = query(collection(db, `posts/${postDoc.id}/comments`), orderBy('created_at', 'asc'));
@@ -147,22 +194,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const comments: Comment[] = [];
       for(const commentDoc of commentsSnapshot.docs) {
           const commentData = commentDoc.data();
+          // FIX (line 190): Property 'author_uid' does not exist on type 'unknown'.
           const commentAuthorDoc = await getDoc(doc(db, 'profiles', commentData.author_uid));
-          const commentAuthorData = commentAuthorDoc.exists() ? commentAuthorDoc.data() : { fullName: 'Usuário Deletado', photo: null };
+          // FIX (line 195): Property 'fullName'/'photo' does not exist on type 'unknown'.
+          const commentAuthorData = commentAuthorDoc.exists() ? commentAuthorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
           comments.push({
               id: commentDoc.id,
-              ...commentData,
+              // FIX (line 194): Spread types may only be created from object types.
+              ...(commentData as object),
               author: { fullName: commentAuthorData.fullName, photo: commentAuthorData.photo }
           } as Comment);
       }
 
       // Fetch reactions
       const reactionsSnapshot = await getDocs(collection(db, `posts/${postDoc.id}/reactions`));
-      const reactions = reactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reaction));
+      // FIX (line 205): Spread types may only be created from object types.
+      const reactions = reactionsSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as object) } as Reaction));
 
       posts.push({
         id: postDoc.id,
-        ...postData,
+        // FIX (line 201): Spread types may only be created from object types.
+        ...(postData as object),
+        // FIX (line 206): Property 'created_at' does not exist on type 'unknown'.
         created_at: (postData.created_at as Timestamp).toDate().toISOString(),
         author: { fullName: authorData.fullName, photo: authorData.photo },
         comments,
@@ -194,6 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const postDoc = await getDoc(postDocRef);
       if (!postDoc.exists()) return;
 
+      // FIX (line 237): Property 'image_url' does not exist on type 'unknown'.
       const imageUrl = postDoc.data().image_url;
       if (imageUrl) {
           try {
@@ -246,6 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const reactionRef = doc(db, `posts/${postId}/reactions`, user.uid);
       const reactionDoc = await getDoc(reactionRef);
 
+      // FIX (line 289): Property 'emoji' does not exist on type 'unknown'.
       if (reactionDoc.exists() && reactionDoc.data().emoji === emoji) {
           await deleteDoc(reactionRef);
       } else {
