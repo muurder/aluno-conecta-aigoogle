@@ -61,8 +61,10 @@ const NotificationCard: React.FC<{ notification: Notification, onDismiss: (id: s
 const NotificationCarousel: React.FC = () => {
     const { notifications, dismissNotification } = useNotifications();
     
-    // Most recent non-dismissed notification
-    const notificationToShow = notifications[0];
+    // Only show notifications that have not been dismissed by the user
+    const visibleNotifications = useMemo(() => notifications.filter(n => !n.dismissed), [notifications]);
+    
+    const notificationToShow = visibleNotifications[0];
 
     if (!notificationToShow) {
         return null;
@@ -73,20 +75,20 @@ const NotificationCarousel: React.FC = () => {
             {/* These divs create the stacked card effect */}
             <div 
                 className="absolute w-[calc(100%-16px)] h-full bg-gray-200 rounded-2xl top-2 left-2 -z-10"
-                style={{ display: notifications.length > 1 ? 'block' : 'none' }}
+                style={{ display: visibleNotifications.length > 1 ? 'block' : 'none' }}
             />
              <div 
                 className="absolute w-[calc(100%-32px)] h-full bg-gray-300 rounded-2xl top-4 left-4 -z-20"
-                style={{ display: notifications.length > 2 ? 'block' : 'none' }}
+                style={{ display: visibleNotifications.length > 2 ? 'block' : 'none' }}
             />
             
             <NotificationCard 
                 notification={notificationToShow} 
                 onDismiss={dismissNotification}
             />
-            {notifications.length > 1 && (
+            {visibleNotifications.length > 1 && (
                 <div className="text-right text-xs text-gray-500 mt-2 pr-2 font-medium">
-                    Mais {notifications.length - 1} aviso(s) para ver
+                    Mais {visibleNotifications.length - 1} aviso(s) para ver
                 </div>
             )}
         </div>
