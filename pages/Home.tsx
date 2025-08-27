@@ -10,6 +10,8 @@ import {
     DocumentTextIcon, 
     BanknotesIcon, 
     IdentificationIcon,
+    CalendarDaysIcon,
+    ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
 
 const Home: React.FC = () => {
@@ -61,15 +63,30 @@ const Home: React.FC = () => {
 
     const courseIcon = (user?.course && COURSE_ICONS[user.course]) || COURSE_ICONS["Default"];
 
-    const ActionCard: React.FC<{title: string, subtitle: string, bgColor: string, onClick?: () => void}> = ({ title, subtitle, bgColor, onClick }) => (
-        <button onClick={onClick} className={`w-full p-4 rounded-xl text-white shadow-lg flex items-center justify-between ${bgColor} transition-transform transform hover:scale-105`}>
-            <div className="flex items-center">
+    const ActionCard: React.FC<{
+        title: string;
+        subtitle: string;
+        bgColor: string;
+        icon: React.ReactNode;
+        onClick?: () => void;
+    }> = ({ title, subtitle, bgColor, icon, onClick }) => (
+        <button 
+            onClick={onClick} 
+            className={`w-full p-4 rounded-2xl text-white shadow-lg flex items-center justify-between ${bgColor} transition-transform transform hover:scale-[1.02] hover:shadow-xl relative overflow-hidden`}
+        >
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full opacity-80 blur-sm"></div>
+            <div className="flex items-center gap-4 relative z-10">
+                <div className="bg-white/20 p-3 rounded-full">
+                    {icon}
+                </div>
                 <div className="text-left">
                     <h3 className="font-bold text-lg">{title}</h3>
-                    <p className="text-sm opacity-90">{subtitle}</p>
+                    <p className="text-sm opacity-90 max-w-[200px] truncate">{subtitle}</p>
                 </div>
             </div>
-            <ArrowRightIcon className="w-6 h-6" />
+            <div className="relative z-10">
+                <ArrowRightIcon className="w-6 h-6" />
+            </div>
         </button>
     );
 
@@ -97,8 +114,20 @@ const Home: React.FC = () => {
             
             {/* Action Cards */}
             <div className="space-y-4">
-                <ActionCard title="Ambiente virtual" subtitle={ambientSubtitle} bgColor="bg-blue-600" onClick={() => navigate('/class-schedule')}/>
-                <ActionCard title="Horários de aulas" subtitle="Disciplinas, sala e professor" bgColor="bg-green-500" onClick={() => navigate('/class-schedule')}/>
+                <ActionCard 
+                    title="Ambiente virtual" 
+                    subtitle={ambientSubtitle} 
+                    bgColor="bg-gradient-to-br from-blue-500 to-blue-700" 
+                    icon={<ComputerDesktopIcon className="w-7 h-7" />}
+                    onClick={() => navigate('/class-schedule')}
+                />
+                <ActionCard 
+                    title="Horários de aulas" 
+                    subtitle="Disciplinas, sala e professor" 
+                    bgColor="bg-gradient-to-br from-green-500 to-teal-600" 
+                    icon={<CalendarDaysIcon className="w-7 h-7" />}
+                    onClick={() => navigate('/class-schedule')}
+                />
             </div>
 
             {/* Help Center */}
