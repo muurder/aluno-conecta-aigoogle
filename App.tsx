@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -16,6 +17,7 @@ import Financial from './pages/Financial';
 import Help from './pages/Help';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
+import ValidateIdCard from './pages/ValidateIdCard';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -206,6 +208,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
       <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+      <Route path="/validate-id/:data" element={<ValidateIdCard />} />
       
       <Route path="/" element={isAuthenticated ? <MainLayout><Home /></MainLayout> : <Navigate to="/login" />} />
       <Route path="/profile" element={isAuthenticated ? <MainLayout><Profile /></MainLayout> : <Navigate to="/login" />} />

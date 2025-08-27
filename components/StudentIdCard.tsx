@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import type { User } from '../types';
 import { UNIVERSITY_LOGOS } from '../constants';
 import { UserCircleIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
@@ -7,11 +7,11 @@ interface StudentIdCardProps {
   user: Partial<User>;
 }
 
-const StudentIdCard: React.FC<StudentIdCardProps> = ({ user }) => {
+const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user }, ref) => {
   const logo = user.university ? UNIVERSITY_LOGOS[user.university] : "";
   
   return (
-    <div className="w-full max-w-sm mx-auto rounded-2xl p-6 shadow-lg bg-gradient-to-br from-teal-50 to-cyan-100 text-gray-800 relative overflow-hidden font-sans">
+    <div ref={ref} className="w-full max-w-sm mx-auto rounded-2xl p-6 shadow-lg bg-gradient-to-br from-teal-50 to-cyan-100 text-gray-800 relative overflow-hidden font-sans">
         <div className="absolute -top-10 -left-10 w-48 h-48 bg-white/50 rounded-full opacity-50 blur-xl"></div>
         <div className="absolute -bottom-20 -right-16 w-48 h-48 bg-white/40 rounded-full opacity-50 blur-xl"></div>
         
@@ -59,6 +59,6 @@ const StudentIdCard: React.FC<StudentIdCardProps> = ({ user }) => {
         </div>
     </div>
   );
-};
+});
 
 export default StudentIdCard;
