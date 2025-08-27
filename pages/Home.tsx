@@ -84,28 +84,40 @@ const Home: React.FC = () => {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
+    // Create a user-specific key for localStorage to track read notifications.
+    const storageKey = useMemo(() => user ? `read_notifications_${user.uid}` : null, [user]);
+
     useEffect(() => {
+        // Only fetch notifications if the user-specific storage key is available.
+        if (!storageKey) return;
+
         const q = query(
             collection(db, "notifications"),
             where("active", "==", true),
             orderBy("createdAt", "desc")
         );
-
-        // FIX: Explicitly type 'snapshot' as QuerySnapshot to resolve property 'docs' not existing.
+        
         const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
             const allActiveNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
-            const readNotifications = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+            // Retrieve the list of read notification IDs for the current user.
+            const readNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            // Filter out notifications that have already been read by this user.
             const unreadNotifications = allActiveNotifications.filter(n => !readNotifications.includes(n.id));
             setNotifications(unreadNotifications);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [storageKey]);
 
     const dismissNotification = (id: string) => {
-        const readNotifications = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+        // Ensure we have the user-specific key before modifying localStorage.
+        if (!storageKey) return;
+
+        const readNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
         const updatedReadNotifications = [...readNotifications, id];
-        localStorage.setItem('read_notifications', JSON.stringify(updatedReadNotifications));
+        // Save the updated list of read IDs back to localStorage for the current user.
+        localStorage.setItem(storageKey, JSON.stringify(updatedReadNotifications));
+        // Update the local state to remove the notification from view.
         setNotifications(prev => prev.filter(n => n.id !== id));
     };
 
