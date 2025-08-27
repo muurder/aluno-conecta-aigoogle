@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationsContext';
 import { ArrowLeftIcon, CheckBadgeIcon, TrashIcon, BellSlashIcon } from '@heroicons/react/24/solid';
 import { XMarkIcon, InformationCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
+import { EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
 import type { Notification } from '../types';
 
-const NotificationItem: React.FC<{ notification: Notification, isRead: boolean, onDismiss: (id: string) => void }> = ({ notification, isRead, onDismiss }) => {
+const NotificationItem: React.FC<{ notification: Notification, isRead: boolean, onDismiss: (id: string) => void, onToggleRead: (id: string) => void }> = ({ notification, isRead, onDismiss, onToggleRead }) => {
     const config = useMemo(() => {
         const baseConfig = {
             info: {
@@ -45,7 +46,15 @@ const NotificationItem: React.FC<{ notification: Notification, isRead: boolean, 
                 </div>
             </div>
             {formattedDate && (
-                <div className="mt-3 pt-2 border-t border-gray-100 text-right">
+                <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center">
+                    <button 
+                        onClick={() => onToggleRead(notification.id)}
+                        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 font-semibold"
+                        aria-label={isRead ? 'Marcar como não lida' : 'Marcar como lida'}
+                    >
+                        {isRead ? <EnvelopeOpenIcon className="w-4 h-4" /> : <EnvelopeIcon className="w-4 h-4" />}
+                        <span>{isRead ? 'Marcar como não lida' : 'Marcar como lida'}</span>
+                    </button>
                     <p className="text-xs text-gray-500">📅 {formattedDate}</p>
                 </div>
             )}
@@ -62,7 +71,7 @@ const NotificationItem: React.FC<{ notification: Notification, isRead: boolean, 
 
 const Notifications: React.FC = () => {
     const navigate = useNavigate();
-    const { notifications, readIds, markAllAsRead, clearAllNotifications, dismissNotification } = useNotifications();
+    const { notifications, readIds, markAllAsRead, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
     
     return (
         <div className="flex flex-col h-screen bg-gray-100">
@@ -98,6 +107,7 @@ const Notifications: React.FC = () => {
                                 notification={notification} 
                                 isRead={readIds.has(notification.id)}
                                 onDismiss={dismissNotification}
+                                onToggleRead={toggleReadStatus}
                             />
                         ))}
                     </div>
