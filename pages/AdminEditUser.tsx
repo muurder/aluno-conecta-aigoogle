@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +13,7 @@ const AdminEditUser: React.FC = () => {
     const navigate = useNavigate();
     
     const [formData, setFormData] = useState<User | null>(null);
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [newPassword, setNewPassword] = useState('');
     const [error, setError] = useState('');
     
@@ -65,13 +63,15 @@ const AdminEditUser: React.FC = () => {
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!formData) return;
         if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPhotoFile(file);
             const reader = new FileReader();
             reader.onload = (event) => {
                 if (event.target?.result) {
                     setFormData({ ...formData, photo: event.target.result as string });
                 }
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         }
     };
     
@@ -81,7 +81,7 @@ const AdminEditUser: React.FC = () => {
         try {
             // Note: Changing user password requires backend logic (e.g., Cloud Function)
             // This implementation will only update Firestore data.
-            await updateUser(formData);
+            await updateUser(formData, photoFile ?? undefined);
             navigate('/admin/dashboard');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');

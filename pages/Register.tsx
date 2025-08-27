@@ -27,6 +27,7 @@ const Register: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [error, setError] = useState<React.ReactNode>('');
     const [loading, setLoading] = useState(false);
     const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
@@ -95,11 +96,13 @@ const Register: React.FC = () => {
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPhotoFile(file);
             const reader = new FileReader();
             reader.onload = (event) => {
                 setFormData({ ...formData, photo: event.target?.result as string });
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         }
     };
 
@@ -114,7 +117,7 @@ const Register: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            await auth.register(formData, email, password);
+            await auth.register(formData, email, password, photoFile ?? undefined);
             setRegistrationSuccess(true);
         } catch (err: any) {
             console.error("Registration Error:", err.code);

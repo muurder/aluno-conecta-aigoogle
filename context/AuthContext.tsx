@@ -36,8 +36,8 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => Promise<void>;
-  updateUser: (newUserData: User) => Promise<void>;
+  register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string, photoFile?: File) => Promise<void>;
+  updateUser: (newUserData: User, photoFile?: File) => Promise<void>;
   changePassword: (newPass: string) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
@@ -122,31 +122,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut(auth);
   };
 
-  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
+  const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string, photoFile?: File): Promise<void> => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
+
+      let photoURL: string | null = null;
+      if (photoFile) {
+          const photoRef = ref(storage, `profile-photos/${authUser.uid}/profile-photo`);
+          const snapshot = await uploadBytes(photoRef, photoFile);
+          photoURL = await getDownloadURL(snapshot.ref);
+      }
 
       const finalUserData = {
           ...userData,
           email: authUser.email!,
           status: 'pending' as const,
           isAdmin: false,
+          photo: photoURL,
       };
 
       await setDoc(doc(db, 'profiles', authUser.uid), finalUserData);
   };
   
-  const updateUser = async (newUserData: User) => {
+  const updateUser = async (newUserData: User, photoFile?: File) => {
     if (!newUserData.uid) throw new Error("User UID is required to update.");
     
-    // The photo is already a base64 string from the file input, so we save it directly.
-    // This corrects the previous issue where an upload-to-storage logic was failing.
-    const userDocRef = doc(db, 'profiles', newUserData.uid);
-    await updateDoc(userDocRef, { ...newUserData });
+    const finalUserData = { ...newUserData };
 
-    // Update local state if it's the current user
+    if (photoFile) {
+        const photoRef = ref(storage, `profile-photos/${newUserData.uid}/profile-photo`);
+        const snapshot = await uploadBytes(photoRef, photoFile);
+        finalUserData.photo = await getDownloadURL(snapshot.ref);
+    }
+    
+    const userDocRef = doc(db, 'profiles', newUserData.uid);
+    await updateDoc(userDocRef, finalUserData);
+
     if (user?.uid === newUserData.uid) {
-        setUser(newUserData);
+        setUser(finalUserData);
     }
   };
 
@@ -164,6 +177,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const deleteUser = async (uid: string) => {
     await deleteDoc(doc(db, 'profiles', uid));
+    // Note: Deleting the Firebase Auth user requires admin privileges and is best handled by a backend function.
+    // Also, associated storage files should be deleted.
   };
 
   const getPosts = async (): Promise<Post[]> => {

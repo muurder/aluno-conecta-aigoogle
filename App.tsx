@@ -51,129 +51,75 @@ const FirebaseConfigWarning: React.FC = () => {
                                     No seu projeto Firebase, crie um novo "Aplicativo da Web". O Firebase fornecerá um objeto de configuração com suas chaves.
                                 </p>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    Crie um arquivo <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">.env.local</code> na raiz do projeto e cole o conteúdo abaixo, substituindo pelos seus dados.
+                                    Crie um arquivo chamado <code>.env.local</code> na raiz do seu projeto e adicione as chaves, como no exemplo abaixo:
                                 </p>
-                                <div className="bg-gray-100 p-4 rounded-md overflow-x-auto">
-                                    <pre className="text-sm text-gray-700">
-                                        <code>
-{`# .env.local
-# Cole suas chaves do Firebase aqui
-VITE_FIREBASE_API_KEY="SUA_API_KEY"
-VITE_FIREBASE_AUTH_DOMAIN="SEU_AUTH_DOMAIN"
-VITE_FIREBASE_PROJECT_ID="SEU_PROJECT_ID"
-VITE_FIREBASE_STORAGE_BUCKET="SEU_STORAGE_BUCKET"
-VITE_FIREBASE_MESSAGING_SENDER_ID="SEU_MESSAGING_SENDER_ID"
-VITE_FIREBASE_APP_ID="SEU_APP_ID"
+                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto"><code>
+{`VITE_FIREBASE_API_KEY=sua_chave_aqui
+VITE_FIREBASE_AUTH_DOMAIN=seu_dominio_aqui
+VITE_FIREBASE_PROJECT_ID=seu_id_de_projeto_aqui
+VITE_FIREBASE_STORAGE_BUCKET=seu_storage_bucket_aqui
+VITE_FIREBASE_MESSAGING_SENDER_ID=seu_sender_id_aqui
+VITE_FIREBASE_APP_ID=seu_app_id_aqui
 
-# Cole sua chave do Gemini aqui (para o assistente virtual)
-API_KEY="SUA_CHAVE_DE_API_DO_GEMINI"`}
-                                        </code>
-                                    </pre>
-                                </div>
-                                <div className="mt-4 bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                                    <h4 className="font-bold text-yellow-800">Nota para Deploy (Produção)</h4>
-                                    <p className="text-sm text-yellow-700 mt-1">
-                                        Se você está publicando esta aplicação em plataformas como <strong>Vercel</strong> ou <strong>Netlify</strong>, você deve configurar estas mesmas variáveis de ambiente (com o prefixo <code className="bg-yellow-200 text-yellow-900 font-mono p-0.5 rounded-sm text-xs">VITE_</code>) diretamente no painel de configurações do seu projeto na plataforma. O arquivo <code className="bg-yellow-200 text-yellow-900 font-mono p-0.5 rounded-sm text-xs">.env.local</code> é usado apenas para desenvolvimento local.
-                                    </p>
-                                </div>
+# (Opcional) Chave para a API do Gemini (usada no Assistente Virtual)
+API_KEY=sua_chave_do_gemini_aqui`}
+                                </code></pre>
                             </div>
-                            
+
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 3:</strong> Ative os Serviços do Firebase</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    No painel do Firebase, ative os seguintes serviços:
-                                </p>
-                                 <ol className="list-decimal list-inside text-gray-600 text-sm space-y-2">
-                                    <li>
-                                      <strong className="text-gray-800">Authentication:</strong> Vá para a seção "Authentication", clique em "Primeiros passos" e ative o provedor de "E-mail/senha".
-                                    </li>
-                                    <li>
-                                      <strong className="text-gray-800">Firestore Database:</strong> Vá para "Firestore Database", clique em "Criar banco de dados", inicie em <strong className="font-semibold">modo de produção</strong> e escolha um local.
-                                    </li>
-                                     <li>
-                                      <strong className="text-gray-800">Storage:</strong> Vá para "Storage", clique em "Primeiros passos" e configure-o com as regras de segurança padrão.
-                                    </li>
-                                </ol>
+                                <ul className="list-disc list-inside text-gray-600 text-sm space-y-1">
+                                    <li><strong>Authentication:</strong> Vá para a aba "Authentication", clique em "Primeiros passos" e ative o provedor "E-mail/senha".</li>
+                                    <li><strong>Firestore Database:</strong> Vá para a aba "Firestore Database", clique em "Criar banco de dados", inicie em <strong>modo de produção</strong> e escolha um local.</li>
+                                    <li><strong>Storage:</strong> Vá para a aba "Storage", clique em "Primeiros passos" e configure o bucket de armazenamento.</li>
+                                </ul>
                             </div>
 
-                            <div>
+                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 4:</strong> Configure as Regras de Segurança</h3>
                                 <p className="text-gray-600 text-sm mb-2">
-                                    Para que o aplicativo funcione, você precisa definir regras de segurança para o Firestore e o Storage.
+                                   As regras de segurança são essenciais para proteger seus dados. Vá para as abas "Firestore Database" → "Regras" e "Storage" → "Regras" e cole o conteúdo abaixo.
                                 </p>
-                                 <p className="text-gray-600 text-sm mb-2">
-                                    <strong className="text-gray-800">Firestore:</strong> Vá para a aba "Regras" do Firestore e substitua o conteúdo pelo seguinte:
-                                </p>
-                                <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-40">
-                                    <pre className="text-xs">
-                                        <code>
+                                <h4 className="font-semibold text-gray-700 mt-4 mb-2">Regras do Firestore:</h4>
+                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto"><code>
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Perfis: Usuários podem ler e editar seu próprio perfil. Admins podem ler todos.
+    // Permite que um usuário crie seu próprio perfil ao se registrar.
     match /profiles/{userId} {
+      allow create: if request.auth != null && request.auth.uid == userId;
       allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow read, list: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
-    }
-    
-    // Posts: Todos autenticados podem ler. Apenas admins podem criar/deletar.
-    match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create, delete: if get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
-      
-      // Comentários: Todos autenticados podem ler/criar. Donos e admins podem deletar.
-      match /comments/{commentId} {
-        allow read, create: if request.auth != null;
-        allow delete: if request.auth != null && (request.auth.uid == resource.data.author_uid || get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true);
-      }
-      
-      // Reações: Todos autenticados podem ler/escrever. Donos podem deletar.
-      match /reactions/{userId} {
-        allow read, write: if request.auth != null;
-        allow delete: if request.auth != null && request.auth.uid == userId;
-      }
+      // Admins podem ler e escrever em qualquer perfil.
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
     }
   }
 }`}
-                                        </code>
-                                    </pre>
-                                </div>
-                                 <p className="text-gray-600 text-sm mb-2 mt-4">
-                                    <strong className="text-gray-800">Storage:</strong> Vá para a aba "Regras" do Storage e substitua o conteúdo pelo seguinte para permitir que usuários autenticados façam upload:
-                                </p>
-                                 <div className="bg-gray-800 text-white p-4 rounded-md overflow-x-auto max-h-40">
-                                    <pre className="text-xs">
-                                        <code>
+                                </code></pre>
+
+                                <h4 className="font-semibold text-gray-700 mt-4 mb-2">Regras do Storage:</h4>
+                                <pre className="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto"><code>
 {`rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
+    // Permite que usuários autenticados façam upload da sua própria foto de perfil.
+    match /profile-photos/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Todos podem ler as fotos de perfil.
       allow read;
-      allow write: if request.auth != null;
+    }
+    // Apenas admins podem fazer upload de imagens para os posts.
+     match /posts/{fileName} {
+      allow write: if request.auth != null && get(/databases/$(database)/documents/firestore/profiles/$(request.auth.uid)).data.isAdmin == true;
+      allow read;
     }
   }
 }`}
-                                        </code>
-                                    </pre>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-blue-600">Passo 5:</strong> Defina o Primeiro Administrador</h3>
-                                <p className="text-gray-600 text-sm mb-2">
-                                    Para acessar o painel de administração e postar no mural, você precisa definir um usuário como administrador manualmente.
-                                </p>
-                                <ol className="list-decimal list-inside text-gray-600 text-sm space-y-1">
-                                    <li>Primeiro, <strong className="text-gray-800">crie uma conta para você</strong> na tela de registro do aplicativo.</li>
-                                    <li>No painel do Firebase, vá para o <code className="bg-gray-200 text-gray-800 font-mono p-1 rounded-md text-sm">Firestore Database</code>.</li>
-                                    <li>Selecione a coleção <code className="text-sm font-mono">profiles</code> e encontre o documento correspondente ao seu UID.</li>
-                                    <li>Edite o campo <code className="text-sm font-mono">isAdmin</code> de <code className="text-sm font-mono">false</code> para <code className="text-sm font-mono">true</code> (tipo booleano).</li>
-                                </ol>
+                                </code></pre>
                             </div>
 
-                            <div className="border-t pt-4 text-center">
-                                <p className="text-gray-700 font-semibold">Após seguir estes passos, atualize a página.</p>
-                            </div>
+                            <p className="text-center text-gray-700 pt-4 border-t">
+                                Após completar estes passos, <strong>reinicie o servidor de desenvolvimento</strong> para que as variáveis de ambiente sejam carregadas.
+                            </p>
                         </div>
                     </>
                 )}
@@ -184,60 +130,90 @@ service firebase.storage {
 
 
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated, user, loading } = useAuth();
+    const { isAuthenticated, user, loading } = useAuth();
+    
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+    
+    if (isAuthenticated) {
+        if (user?.isAdmin) {
+            return (
+                 <Routes>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                    <Route path="/admin/edit-user/:uid" element={<AdminEditUser />} />
+                    <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+                    <Route path="/my-course" element={<MainLayout><MyCourse /></MainLayout>} />
+                    <Route path="/financial" element={<Financial />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/virtual-id" element={<VirtualIdCard />} />
+                    <Route path="/edit-profile" element={<EditProfile />} />
+                    <Route path="/help" element={<Help />} />
+                    <Route path="/validate-id/:data" element={<ValidateIdCard />} />
+                    <Route path="/class-schedule" element={<ClassSchedule />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            );
+        }
+        if (user?.status === 'pending') {
+            return (
+                <Routes>
+                    <Route path="/pending-approval" element={<PendingApproval />} />
+                    <Route path="*" element={<Navigate to="/pending-approval" replace />} />
+                </Routes>
+            );
+        }
+        if (user?.status === 'approved') {
+             return (
+                <Routes>
+                    <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+                    <Route path="/my-course" element={<MainLayout><MyCourse /></MainLayout>} />
+                    <Route path="/financial" element={<Financial />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/virtual-id" element={<VirtualIdCard />} />
+                    <Route path="/edit-profile" element={<EditProfile />} />
+                    <Route path="/help" element={<Help />} />
+                    <Route path="/validate-id/:data" element={<ValidateIdCard />} />
+                    <Route path="/class-schedule" element={<ClassSchedule />} />
+                    {/* Redirect admin routes for regular users */}
+                    <Route path="/admin/*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            );
+        }
+    }
 
-  if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
+        <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/validate-id/:data" element={<ValidateIdCard />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
     );
-  }
-
-  if (isAuthenticated && user?.status === 'pending') {
-    return (
-      // FIX: Use Routes and element prop for react-router-dom v6
-      <Routes>
-        <Route path="/pending" element={<PendingApproval />} />
-        <Route path="*" element={<Navigate to="/pending" />} />
-      </Routes>
-    );
-  }
-
-  return (
-    // FIX: Use Routes and element prop for react-router-dom v6
-    <Routes>
-      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-      <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-      <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-      
-      <Route path="/" element={isAuthenticated ? <MainLayout><Home /></MainLayout> : <Navigate to="/login" />} />
-      <Route path="/profile" element={isAuthenticated ? <MainLayout><Profile /></MainLayout> : <Navigate to="/login" />} />
-      <Route path="/virtual-id" element={isAuthenticated ? <VirtualIdCard /> : <Navigate to="/login" />} />
-      <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
-      <Route path="/my-course" element={isAuthenticated ? <MainLayout><MyCourse /></MainLayout> : <Navigate to="/login" />} />
-      <Route path="/financial" element={isAuthenticated ? <MainLayout><Financial /></MainLayout> : <Navigate to="/login" />} />
-      <Route path="/help" element={isAuthenticated ? <MainLayout><Help /></MainLayout> : <Navigate to="/login" />} />
-      <Route path="/class-schedule" element={isAuthenticated ? <ClassSchedule /> : <Navigate to="/login" />} />
-
-      {/* Admin Routes */}
-      <Route path="/admin/dashboard" element={isAuthenticated && user?.isAdmin ? <AdminDashboard /> : <Navigate to="/" />} />
-      <Route path="/admin/edit-user/:uid" element={isAuthenticated && user?.isAdmin ? <AdminEditUser /> : <Navigate to="/" />} />
-      
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
-    </Routes>
-  );
 };
 
 const App: React.FC = () => {
-  // Checks if all the environment variables for Firebase are set.
-  const isFirebaseConfigured = 
-    import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY !== 'SUA_API_KEY' &&
-    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
-    import.meta.env.VITE_FIREBASE_PROJECT_ID &&
-    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
-    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID &&
-    import.meta.env.VITE_FIREBASE_APP_ID;
+  const [isFirebaseConfigured, setIsFirebaseConfigured] = useState(false);
+
+  // Check for Firebase environment variables.
+  useState(() => {
+    const firebaseEnv = import.meta.env;
+    if (
+      firebaseEnv.VITE_FIREBASE_API_KEY &&
+      firebaseEnv.VITE_FIREBASE_AUTH_DOMAIN &&
+      firebaseEnv.VITE_FIREBASE_PROJECT_ID &&
+      firebaseEnv.VITE_FIREBASE_STORAGE_BUCKET &&
+      firebaseEnv.VITE_FIREBASE_MESSAGING_SENDER_ID &&
+      firebaseEnv.VITE_FIREBASE_APP_ID
+    ) {
+      setIsFirebaseConfigured(true);
+    }
+  });
 
   if (!isFirebaseConfigured) {
     return <FirebaseConfigWarning />;
@@ -246,7 +222,9 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <div className="mx-auto max-w-sm h-screen flex flex-col bg-white">
+          <AppRoutes />
+        </div>
       </AuthProvider>
     </HashRouter>
   );

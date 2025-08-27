@@ -20,6 +20,7 @@ const EditProfile: React.FC = () => {
     }
     
     const [formData, setFormData] = useState<User>(user);
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -48,6 +49,8 @@ const EditProfile: React.FC = () => {
 
     const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPhotoFile(file);
             const reader = new FileReader();
             reader.onload = (event) => {
                  setFormData(prevData => {
@@ -55,7 +58,7 @@ const EditProfile: React.FC = () => {
                     return { ...prevData, photo: event.target?.result as string };
                  });
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(file);
         }
     };
 
@@ -64,7 +67,7 @@ const EditProfile: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            await updateUser(formData);
+            await updateUser(formData, photoFile ?? undefined);
             // FIX: Use navigate() for navigation.
             navigate('/profile');
         } catch(err) {
