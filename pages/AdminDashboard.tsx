@@ -6,8 +6,6 @@ import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOut
 import { CheckCircleIcon as CheckCircleSolid, ExclamationCircleIcon } from '@heroicons/react/24/solid';
 import BottomNav from '../components/BottomNav';
 
-type FilterStatus = 'all' | 'pending' | 'approved';
-
 // --- Toast Component ---
 const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolean; onClose: () => void }> = ({ message, type, show, onClose }) => {
     useEffect(() => {
@@ -23,9 +21,16 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
     const bgColor = isSuccess ? 'bg-green-600' : 'bg-red-600';
     const Icon = isSuccess ? CheckCircleSolid : ExclamationCircleIcon;
 
+    // Responsive classes for positioning
+    // Mobile: centered at top. Desktop: bottom right.
+    const positionClasses = `
+        fixed z-50 w-11/12 max-w-sm top-4 left-1/2 -translate-x-1/2
+        md:w-auto md:max-w-none md:top-auto md:left-auto md:bottom-5 md:right-5 md:translate-x-0
+    `;
+
     return (
         <div 
-            className={`fixed bottom-5 right-5 z-50 flex items-center gap-4 p-4 rounded-lg shadow-2xl text-white ${bgColor} animate-slide-in`}
+            className={`${positionClasses} flex items-center gap-4 p-4 rounded-lg shadow-2xl text-white ${bgColor} animate-toast`}
             role="alert"
         >
             <Icon className="w-6 h-6 flex-shrink-0" />
@@ -34,11 +39,24 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
                 <XMarkIcon className="w-5 h-5" />
             </button>
             <style>{`
-                @keyframes slide-in {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
+                @keyframes slide-in-top {
+                    from { opacity: 0; transform: translate(-50%, -100%); }
+                    to { opacity: 1; transform: translate(-50%, 0); }
                 }
-                .animate-slide-in { animation: slide-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+                @keyframes slide-in-right {
+                    from { opacity: 0; transform: translateX(100%); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+
+                .animate-toast {
+                    animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                }
+
+                @media (min-width: 768px) { /* Corresponds to md: in Tailwind */
+                    .animate-toast {
+                        animation-name: slide-in-right;
+                    }
+                }
             `}</style>
         </div>
     );
@@ -120,6 +138,9 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, se
         </div>
     );
 };
+
+// FIX: Define the FilterStatus type to resolve TypeScript errors.
+type FilterStatus = 'all' | 'pending' | 'approved';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
