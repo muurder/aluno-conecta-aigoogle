@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
@@ -10,7 +10,7 @@ import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
 const AdminEditUser: React.FC = () => {
     const { uid } = useParams<{ uid: string }>();
     const { getAllUsers, updateUser } = useAuth();
-    const navigate = useNavigate();
+    const history = useHistory();
     
     const [formData, setFormData] = useState<User | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -81,8 +81,8 @@ const AdminEditUser: React.FC = () => {
         try {
             // Note: Changing user password requires backend logic (e.g., Cloud Function)
             // This implementation will only update Firestore data.
-            await updateUser(formData, photoFile ?? undefined);
-            navigate('/admin/dashboard');
+            await updateUser(uid, formData, photoFile ?? undefined);
+            history.push('/admin/dashboard');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
         }
@@ -99,7 +99,7 @@ const AdminEditUser: React.FC = () => {
     return (
         <div className="flex-grow flex flex-col bg-gray-50">
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-10">
-                <button onClick={() => navigate(-1)} className="mr-4">
+                <button onClick={() => history.goBack()} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-semibold text-lg">Editar Usuário: {formData.institutionalLogin}</h1>

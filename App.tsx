@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-// FIX: Update react-router-dom imports to v6. 'Switch' is 'Routes', 'Redirect' is 'Navigate'.
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+// FIX: Downgrading react-router-dom from v6 to v5 to fix module export errors.
+import { HashRouter, Switch, Route, Redirect } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import Login from './pages/Login';
@@ -178,46 +178,46 @@ const AppRoutes: React.FC = () => {
   if (user) {
     if (user.status === 'pending') {
       return (
-        <Routes>
-          <Route path="/" element={<PendingApproval />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Switch>
+          <Route exact path="/" component={PendingApproval} />
+          <Redirect to="/" />
+        </Switch>
       );
     }
     // User is approved, show the main application
     return (
       <MainLayout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/virtual-id" element={<VirtualIdCard />} />
-          <Route path="/edit-profile" element={<EditProfile />} />
-          <Route path="/my-course" element={<MyCourse />} />
-          <Route path="/financial" element={<Financial />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/class-schedule" element={<ClassSchedule />} />
+        <Switch>
+          <Route exact path="/" component={Home} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/virtual-id" component={VirtualIdCard} />
+          <Route path="/edit-profile" component={EditProfile} />
+          <Route path="/my-course" component={MyCourse} />
+          <Route path="/financial" component={Financial} />
+          <Route path="/help" component={Help} />
+          <Route path="/notifications" component={Notifications} />
+          <Route path="/class-schedule" component={ClassSchedule} />
           {user.isAdmin && (
             <>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/edit-user/:uid" element={<AdminEditUser />} />
+              <Route path="/admin/dashboard" component={AdminDashboard} />
+              <Route path="/admin/edit-user/:uid" component={AdminEditUser} />
             </>
           )}
-          <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          <Route path="/validate-id/:data" component={ValidateIdCard} />
+          <Redirect to="/" />
+        </Switch>
       </MainLayout>
     );
   }
 
   // No user, show public routes
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/validate-id/:data" element={<ValidateIdCard />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <Switch>
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/validate-id/:data" component={ValidateIdCard} />
+      <Redirect to="/login" />
+    </Switch>
   );
 };
 

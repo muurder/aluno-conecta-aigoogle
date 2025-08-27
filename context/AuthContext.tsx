@@ -17,7 +17,7 @@ interface AuthContextType {
   login: (email: string, pass:string) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string, photoFile?: File) => Promise<void>;
-  updateUser: (newUserData: User, photoFile?: File) => Promise<void>;
+  updateUser: (uid: string, dataToUpdate: Partial<User>, photoFile?: File) => Promise<void>;
   changePassword: (newPass: string) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
@@ -140,25 +140,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await db.collection('profiles').doc(authUser.uid).set(finalUserData);
   };
   
-  const updateUser = async (newUserData: User, photoFile?: File) => {
-    if (!newUserData.uid) throw new Error("User UID is required to update.");
-    
-    const finalUserData = { ...newUserData };
+  const updateUser = async (uid: string, dataToUpdate: Partial<User>, photoFile?: File) => {
+      if (!uid) throw new Error("User UID is required to update.");
 
-    if (photoFile) {
-        // FIX: Refactored storage calls to use v8 namespaced API.
-        const photoRef = storage.ref(`profile-photos/${newUserData.uid}/profile-photo`);
-        const snapshot = await photoRef.put(photoFile);
-        finalUserData.photo = await snapshot.ref.getDownloadURL();
-    }
-    
-    // FIX: Refactored doc reference and update to use v8 namespaced API.
-    const userDocRef = db.collection('profiles').doc(newUserData.uid);
-    await userDocRef.update(finalUserData);
+      const finalUpdateData = { ...dataToUpdate };
+      
+      // Remove uid from the update payload if it exists, as it's the doc key.
+      delete finalUpdateData.uid;
 
-    if (user?.uid === newUserData.uid) {
-        setUser(finalUserData);
-    }
+      if (photoFile) {
+          const photoRef = storage.ref(`profile-photos/${uid}/profile-photo`);
+          const snapshot = await photoRef.put(photoFile);
+          finalUpdateData.photo = await snapshot.ref.getDownloadURL();
+      }
+      
+      const userDocRef = db.collection('profiles').doc(uid);
+      await userDocRef.update(finalUpdateData);
+
+      // If the updated user is the currently logged-in user, refresh their context state.
+      if (user?.uid === uid) {
+          const updatedUserDoc = await userDocRef.get();
+          if (updatedUserDoc.exists) {
+              setUser({ uid: updatedUserDoc.id, ...updatedUserDoc.data() } as User);
+          }
+      }
   };
 
   const changePassword = async (newPass: string) => {
