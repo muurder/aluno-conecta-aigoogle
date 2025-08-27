@@ -3,7 +3,8 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { useNotifications } from '../context/NotificationsContext';
+import { BellIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -11,6 +12,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // FIX: Use useNavigate() for navigation in react-router-dom v6.
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { unreadCount, hasNewNotification } = useNotifications();
   const showHeaderOnPages = ['/'];
   const showHeader = showHeaderOnPages.includes(location.pathname);
 
@@ -20,10 +22,20 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       className="relative flex-grow flex flex-col bg-gray-50"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 64px)' }}
     >
+      <style>{`
+        @keyframes ring {
+          0%, 100% { transform: rotate(0); }
+          10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+          20%, 40%, 60%, 80% { transform: rotate(10deg); }
+        }
+        .animate-ring {
+          animation: ring 1.5s ease-in-out;
+        }
+      `}</style>
       {showHeader && (
         <header className="bg-white px-4 pt-6 pb-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200" onClick={() => navigate('/profile')}>
               {user?.photo ? (
                 <img src={user.photo} alt="Profile" className="w-full h-full object-cover" />
               ) : (
@@ -31,8 +43,13 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               )}
             </div>
             {/* FIX: Use navigate() for navigation. */}
-            <button className="text-gray-500 hover:text-gray-700" onClick={() => navigate('/profile')}>
-              <Cog6ToothIcon className="w-7 h-7" />
+            <button className="relative text-gray-500 hover:text-gray-700" onClick={() => navigate('/notifications')}>
+              <BellIcon className={`w-7 h-7 ${hasNewNotification ? 'animate-ring' : ''}`} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center ring-2 ring-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
           </div>
           <div className="mt-4">

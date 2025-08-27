@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_ICONS } from '../constants';
 import { schedulesData, Schedule } from '../schedules';
-import { db } from '../firebase';
-// FIX: Import QuerySnapshot to explicitly type the snapshot from onSnapshot.
-import { collection, query, where, orderBy, onSnapshot, type QuerySnapshot } from 'firebase/firestore';
-import type { Notification } from '../types';
 import { 
     ArrowRightIcon, 
     MagnifyingGlassIcon, 
@@ -16,111 +12,11 @@ import {
     IdentificationIcon,
     CalendarDaysIcon,
     ComputerDesktopIcon,
-    BellIcon,
 } from '@heroicons/react/24/outline';
-import { XMarkIcon, InformationCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
-
-
-const NotificationCard: React.FC<{ notification: Notification; onDismiss: () => void }> = ({ notification, onDismiss }) => {
-    const config = useMemo(() => {
-        const baseConfig = {
-            info: {
-                bgColor: 'bg-blue-100 border-blue-500',
-                textColor: 'text-blue-900',
-                icon: <InformationCircleIcon className="w-7 h-7 text-blue-500" />,
-                title: '📢 Informação',
-            },
-            warning: {
-                bgColor: 'bg-yellow-100 border-yellow-500',
-                textColor: 'text-yellow-900',
-                icon: <ExclamationTriangleIcon className="w-7 h-7 text-yellow-500" />,
-                title: '📢 Aviso Importante',
-            },
-            urgent: {
-                bgColor: 'bg-red-100 border-red-500',
-                textColor: 'text-red-900',
-                icon: <ExclamationCircleIcon className="w-7 h-7 text-red-500" />,
-                title: '📢 Urgente',
-            },
-        };
-        return baseConfig[notification.type] || baseConfig.info;
-    }, [notification.type]);
-
-    const formattedDate = useMemo(() => {
-        if (!notification.createdAt?.seconds) return '';
-        return new Date(notification.createdAt.seconds * 1000).toLocaleString('pt-BR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-    }, [notification.createdAt]);
-
-    return (
-        <div className={`p-4 rounded-lg shadow-md relative border-l-4 ${config.bgColor} ${config.textColor}`} role="alert">
-            <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">{config.icon}</div>
-                <div className="flex-grow pr-6">
-                    <p className="font-bold">{config.title}</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{notification.message}</p>
-                </div>
-            </div>
-            {formattedDate && (
-                <div className="mt-3 pt-2 border-t border-black/10 text-right">
-                    <p className="text-xs text-gray-500">📅 {formattedDate}</p>
-                </div>
-            )}
-            <button
-                onClick={onDismiss}
-                className="absolute top-2 right-2 p-1 rounded-full text-black/40 hover:bg-black/10"
-                aria-label="Dispensar notificação"
-            >
-                <XMarkIcon className="w-5 h-5" />
-            </button>
-        </div>
-    );
-};
 
 const Home: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-
-    // Create a user-specific key for localStorage to track read notifications.
-    const storageKey = useMemo(() => user ? `read_notifications_${user.uid}` : null, [user]);
-
-    useEffect(() => {
-        // Only fetch notifications if the user-specific storage key is available.
-        if (!storageKey) return;
-
-        const q = query(
-            collection(db, "notifications"),
-            where("active", "==", true),
-            orderBy("createdAt", "desc")
-        );
-        
-        const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
-            const allActiveNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Notification[];
-            // Retrieve the list of read notification IDs for the current user.
-            const readNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            // Filter out notifications that have already been read by this user.
-            const unreadNotifications = allActiveNotifications.filter(n => !readNotifications.includes(n.id));
-            setNotifications(unreadNotifications);
-        });
-
-        return () => unsubscribe();
-    }, [storageKey]);
-
-    const dismissNotification = (id: string) => {
-        // Ensure we have the user-specific key before modifying localStorage.
-        if (!storageKey) return;
-
-        const readNotifications = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        const updatedReadNotifications = [...readNotifications, id];
-        // Save the updated list of read IDs back to localStorage for the current user.
-        localStorage.setItem(storageKey, JSON.stringify(updatedReadNotifications));
-        // Update the local state to remove the notification from view.
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    };
-
 
     const { ambientSubtitle } = useMemo(() => {
         if (!user?.course) return { ambientSubtitle: 'Acessar aulas online' };
@@ -203,21 +99,6 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 space-y-6">
-            {notifications.length > 0 && (
-                <div className="space-y-2">
-                    {notifications.length > 1 && (
-                        <div className="flex items-center justify-center gap-2 py-2 px-3 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold shadow-sm">
-                            <BellIcon className="w-5 h-5" />
-                            <span>{notifications.length} avisos novos</span>
-                        </div>
-                    )}
-                    <NotificationCard 
-                        notification={notifications[0]} 
-                        onDismiss={() => dismissNotification(notifications[0].id)} 
-                    />
-                </div>
-            )}
-            
             {/* User Info Card */}
             <div className="bg-blue-800 text-white p-5 rounded-xl shadow-md relative overflow-hidden">
                 <div className="relative z-10">
