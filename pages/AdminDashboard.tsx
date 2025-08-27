@@ -1,32 +1,100 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User } from '../types';
-import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon, MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { User, NotificationType } from '../types';
+import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOutline, MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleSolid, ExclamationCircleIcon } from '@heroicons/react/24/solid';
 import BottomNav from '../components/BottomNav';
 
 type FilterStatus = 'all' | 'pending' | 'approved';
 
+// --- Toast Component ---
+const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolean; onClose: () => void }> = ({ message, type, show, onClose }) => {
+    useEffect(() => {
+        if (show) {
+            const timer = setTimeout(() => onClose(), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [show, onClose]);
+
+    if (!show) return null;
+
+    const isSuccess = type === 'success';
+    const bgColor = isSuccess ? 'bg-green-600' : 'bg-red-600';
+    const Icon = isSuccess ? CheckCircleSolid : ExclamationCircleIcon;
+
+    return (
+        <div 
+            className={`fixed bottom-5 right-5 z-50 flex items-center gap-4 p-4 rounded-lg shadow-2xl text-white ${bgColor} animate-slide-in`}
+            role="alert"
+        >
+            <Icon className="w-6 h-6 flex-shrink-0" />
+            <p className="text-sm font-semibold">{message}</p>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20">
+                <XMarkIcon className="w-5 h-5" />
+            </button>
+            <style>{`
+                @keyframes slide-in {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .animate-slide-in { animation: slide-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+            `}</style>
+        </div>
+    );
+};
+
+
 // --- Extracted NotificationModal Component ---
-// This component is extracted to prevent re-rendering issues that cause the text input to lose focus.
 interface NotificationModalProps {
     show: boolean;
     message: string;
     setMessage: (message: string) => void;
+    type: NotificationType;
+    setType: (type: NotificationType) => void;
     onClose: () => void;
     onSend: () => void;
     isSending: boolean;
 }
 
-const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, setMessage, onClose, onSend, isSending }) => {
-    if (!show) {
-        return null;
-    }
+const NotificationTypeOption: React.FC<{
+    value: NotificationType;
+    label: string;
+    checked: boolean;
+    onChange: (value: NotificationType) => void;
+    color: string;
+}> = ({ value, label, checked, onChange, color }) => (
+    <label className="flex-1">
+        <input 
+            type="radio" 
+            name="notificationType" 
+            value={value} 
+            checked={checked} 
+            onChange={() => onChange(value)}
+            className="sr-only"
+        />
+        <div className={`w-full text-center p-2 rounded-md cursor-pointer transition-all duration-200 ${checked ? `${color} text-white font-bold shadow-md` : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+            {label}
+        </div>
+    </label>
+);
+
+
+const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, setMessage, type, setType, onClose, onSend, isSending }) => {
+    if (!show) return null;
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Enviar Notificação Push</h2>
+                <div className="mb-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Tipo de Notificação</h3>
+                    <div className="flex justify-around gap-2 text-sm">
+                        <NotificationTypeOption value="info" label="Info" checked={type === 'info'} onChange={setType} color="bg-blue-500" />
+                        <NotificationTypeOption value="warning" label="Aviso" checked={type === 'warning'} onChange={setType} color="bg-yellow-500" />
+                        <NotificationTypeOption value="urgent" label="Urgente" checked={type === 'urgent'} onChange={setType} color="bg-red-600" />
+                    </div>
+                </div>
                 <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -39,7 +107,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, se
                     </button>
                     <button 
                         onClick={onSend} 
-                        disabled={isSending}
+                        disabled={isSending || !message.trim()}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
                     >
                         {isSending ? 'Enviando...' : 'Enviar'}
@@ -60,9 +128,15 @@ const AdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
+    
+    // Notification Modal State
     const [showNotificationModal, setShowNotificationModal] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+    const [notificationType, setNotificationType] = useState<NotificationType>('info');
     const [isSendingNotification, setIsSendingNotification] = useState(false);
+    
+    // Toast State
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
 
     const fetchUsers = useCallback(async () => {
@@ -111,13 +185,14 @@ const AdminDashboard: React.FC = () => {
         if (!notificationMessage.trim()) return;
         setIsSendingNotification(true);
         try {
-            await createNotification(notificationMessage);
-            alert('Notificação enviada com sucesso!');
+            await createNotification(notificationMessage, notificationType);
+            setToast({ show: true, message: 'Notificação enviada com sucesso!', type: 'success' });
             setNotificationMessage('');
+            setNotificationType('info');
             setShowNotificationModal(false);
         } catch (error) {
             console.error("Failed to send notification:", error);
-            alert("Ocorreu um erro ao enviar a notificação.");
+            setToast({ show: true, message: 'Falha ao enviar notificação.', type: 'error' });
         } finally {
             setIsSendingNotification(false);
         }
@@ -144,10 +219,13 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen bg-gray-100">
+            <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <NotificationModal 
                 show={showNotificationModal}
                 message={notificationMessage}
                 setMessage={setNotificationMessage}
+                type={notificationType}
+                setType={setNotificationType}
                 onClose={() => setShowNotificationModal(false)}
                 onSend={handleSendNotification}
                 isSending={isSendingNotification}
@@ -220,7 +298,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="flex items-center justify-end space-x-1 mt-4 pt-3 border-t border-gray-100">
                                     {user.status === 'pending' && (
                                         <button onClick={() => handleApprove(user)} className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors" title="Aprovar">
-                                            <CheckCircleIcon className="w-6 h-6" />
+                                            <CheckCircleOutline className="w-6 h-6" />
                                         </button>
                                     )}
                                     <button onClick={() => navigate(`/admin/edit-user/${user.uid}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Editar">

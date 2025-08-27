@@ -28,7 +28,7 @@ import {
     type QuerySnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import type { User, Post, Comment, Reaction } from '../types';
+import type { User, Post, Comment, Reaction, NotificationType } from '../types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -49,7 +49,7 @@ interface AuthContextType {
   deleteComment: (postId: string, commentId: string) => Promise<void>;
   toggleReaction: (postId: string, emoji: string) => Promise<void>;
   // Admin notification function
-  createNotification: (message: string) => Promise<void>;
+  createNotification: (message: string, type: NotificationType) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -189,7 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const posts: Post[] = [];
     for (const postDoc of postSnapshots.docs) {
-      const postData = postDoc.data();
+      // FIX: Cast post data to a known type to safely access its properties.
+      const postData = postDoc.data() as { author_uid: string; created_at: Timestamp; [key: string]: any };
       const authorDoc = await getDoc(doc(db, 'profiles', postData.author_uid));
       const authorData = authorDoc.exists() ? authorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
 
@@ -198,7 +199,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const commentsSnapshot = await getDocs(commentsQuery);
       const comments: Comment[] = [];
       for(const commentDoc of commentsSnapshot.docs) {
-          const commentData = commentDoc.data();
+          // FIX: Cast comment data to a known type to safely access its properties.
+          const commentData = commentDoc.data() as { author_uid: string; [key: string]: any };
           const commentAuthorDoc = await getDoc(doc(db, 'profiles', commentData.author_uid));
           const commentAuthorData = commentAuthorDoc.exists() ? commentAuthorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
           comments.push({
@@ -246,7 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const postDoc = await getDoc(postDocRef);
       if (!postDoc.exists()) return;
 
-      const imageUrl = postDoc.data().image_url;
+      // FIX: Cast post data to a known type to safely access its properties.
+      const imageUrl = (postDoc.data() as { image_url?: string | null }).image_url;
       if (imageUrl) {
           try {
               const imageRef = ref(storage, imageUrl);
@@ -298,7 +301,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const reactionRef = doc(db, `posts/${postId}/reactions`, user.uid);
       const reactionDoc = await getDoc(reactionRef);
 
-      if (reactionDoc.exists() && reactionDoc.data().emoji === emoji) {
+      // FIX: Cast reaction data to a known type to safely access its properties.
+      if (reactionDoc.exists() && (reactionDoc.data() as { emoji: string }).emoji === emoji) {
           await deleteDoc(reactionRef);
       } else {
           await setDoc(reactionRef, {
@@ -309,25 +313,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
   };
 
-  const createNotification = async (message: string) => {
+  const createNotification = async (message: string, type: NotificationType) => {
     const notificationsRef = collection(db, 'notifications');
-    const q = query(notificationsRef, where("active", "==", true));
-    const activeNotificationsSnapshot = await getDocs(q);
-    
-    const batch = writeBatch(db);
-
-    activeNotificationsSnapshot.forEach(doc => {
-        batch.update(doc.ref, { active: false });
-    });
-    
-    const newNotificationRef = doc(notificationsRef);
-    batch.set(newNotificationRef, {
+    await addDoc(notificationsRef, {
         message,
+        type,
         createdAt: serverTimestamp(),
-        active: true
+        active: true,
     });
-
-    await batch.commit();
   };
 
   const value = {
