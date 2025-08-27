@@ -4,11 +4,15 @@ import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from '@heroicons/r
 
 const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ to, icon, label }) => {
   return (
-    <NavLink 
-      to={to} 
+    <NavLink
+      to={to}
+      // FIX: Use `end` prop for v6 NavLink to ensure exact match
       end
-      className={({ isActive }) => 
-        `flex flex-col items-center justify-center w-full pt-2 pb-1 ${isActive ? 'text-blue-600' : 'text-gray-500'}`
+      // FIX: Use a function in `className` for v6 NavLink styling
+      className={({ isActive }) =>
+        `flex flex-col items-center justify-center w-full pt-2 pb-1 ${
+          isActive ? 'text-blue-600' : 'text-gray-500'
+        }`
       }
     >
       {icon}

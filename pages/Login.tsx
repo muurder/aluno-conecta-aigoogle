@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
@@ -10,6 +11,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState<React.ReactNode>('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // FIX: Use useNavigate() for navigation in react-router-dom v6.
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -120,6 +122,7 @@ const Login: React.FC = () => {
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Não tem conta?{' '}
+            {/* FIX: Use navigate() for navigation. */}
             <button onClick={() => navigate('/register')} className="font-medium text-blue-600 hover:underline">
               Cadastre-se
             </button>

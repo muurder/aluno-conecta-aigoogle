@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+// FIX: Update react-router-dom import from v5 to v6. 'useHistory' is replaced by 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, UniversityName } from '../types';
@@ -9,10 +10,12 @@ import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const EditProfile: React.FC = () => {
     const { user, updateUser, changePassword } = useAuth();
+    // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
     
+    // The App's routing logic ensures this component only renders for authenticated users,
+    // so 'user' should not be null. Returning null is a safeguard.
     if (!user) {
-        navigate('/login');
         return null;
     }
     
@@ -62,6 +65,7 @@ const EditProfile: React.FC = () => {
         setError('');
         try {
             await updateUser(formData);
+            // FIX: Use navigate() for navigation.
             navigate('/profile');
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
@@ -110,6 +114,7 @@ const EditProfile: React.FC = () => {
     return (
         <div className="flex-grow flex flex-col bg-gray-100">
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
+                {/* FIX: Use navigate(-1) for back navigation. */}
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
@@ -189,37 +194,33 @@ const EditProfile: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <label className={labelClasses}>Validade</label>
-                        <input name="validity" value={formData.validity} onChange={handleInputChange} className={`${inputClasses}`} required />
+                     <div>
+                        <label className={labelClasses}>Validade da Carteirinha</label>
+                        <input name="validity" value={formData.validity} onChange={handleInputChange} className={inputClasses} required />
                     </div>
-                    
-                    <div className="pt-4">
-                        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400">
-                            {loading ? 'Atualizando...' : 'Salvar Informações'}
-                        </button>
-                    </div>
+                    <button type="submit" disabled={loading} className="w-full mt-4 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
+                        {loading ? 'Salvando...' : 'Salvar Alterações'}
+                    </button>
                 </form>
 
                 {/* Password Change Form */}
                 <form onSubmit={handlePasswordChange} className="p-6 space-y-4 bg-white rounded-lg shadow-md">
-                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Segurança</h2>
+                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Alterar Senha</h2>
                     {passwordError && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{passwordError}</p>}
                     {passwordSuccess && <p className="text-green-600 text-sm text-center bg-green-100 p-3 rounded-lg">{passwordSuccess}</p>}
                     
                     <div>
                         <label className={labelClasses}>Nova Senha</label>
-                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClasses} placeholder="Mínimo 6 caracteres" />
+                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClasses} required />
                     </div>
                     <div>
                         <label className={labelClasses}>Confirmar Nova Senha</label>
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClasses} />
+                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClasses} required />
                     </div>
-                    <div className="pt-4">
-                         <button type="submit" disabled={passwordLoading} className="w-full bg-gray-700 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400">
-                            {passwordLoading ? 'Alterando...' : 'Alterar Senha'}
-                        </button>
-                    </div>
+                    <button type="submit" disabled={passwordLoading} className="w-full mt-2 bg-gray-700 text-white font-bold p-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 flex items-center justify-center gap-2">
+                         {passwordLoading && <ArrowPathIcon className="w-5 h-5 animate-spin"/>}
+                        {passwordLoading ? 'Alterando...' : 'Alterar Senha'}
+                    </button>
                 </form>
             </main>
         </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +8,7 @@ import { UserCircleIcon } from '@heroicons/react/24/solid';
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  // FIX: Use useNavigate() for navigation in react-router-dom v6.
   const navigate = useNavigate();
   const { user } = useAuth();
   const showHeaderOnPages = ['/'];
@@ -28,6 +30,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <UserCircleIcon className="w-full h-full text-gray-300" />
               )}
             </div>
+            {/* FIX: Use navigate() for navigation. */}
             <button className="text-gray-500 hover:text-gray-700" onClick={() => navigate('/profile')}>
               <Cog6ToothIcon className="w-7 h-7" />
             </button>
