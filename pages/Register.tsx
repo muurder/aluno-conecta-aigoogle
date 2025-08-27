@@ -13,16 +13,16 @@ const Register: React.FC = () => {
     // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
     const auth = useAuth();
-    const [formData, setFormData] = useState<FormData>({
-        status: 'pending',
+    const [formData, setFormData] = useState({
+        status: 'pending' as const,
         institutionalLogin: '',
         rgm: '',
         fullName: '',
-        university: 'Anhanguera',
+        university: '',
         course: '',
         campus: '',
         validity: '',
-        photo: null,
+        photo: null as string | null,
     });
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -55,7 +55,6 @@ const Register: React.FC = () => {
             ...prev,
             rgm: generateRGM(),
         }));
-        setSelectedLogo(UNIVERSITY_LOGOS['Anhanguera']);
     }, [generateRGM]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -75,10 +74,15 @@ const Register: React.FC = () => {
             }
 
             if (name === 'university') {
-                const university = value as UniversityName;
-                setSelectedLogo(university ? UNIVERSITY_LOGOS[university] : null);
-                const details = UNIVERSITY_DETAILS[university];
-                newFormData.campus = details.campuses[0];
+                const university = value as UniversityName | '';
+                if (university) {
+                    setSelectedLogo(UNIVERSITY_LOGOS[university]);
+                    const details = UNIVERSITY_DETAILS[university];
+                    newFormData.campus = details.campuses[0];
+                } else {
+                    setSelectedLogo(null);
+                    newFormData.campus = '';
+                }
             }
             
             return newFormData;
@@ -117,7 +121,11 @@ const Register: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            await auth.register(formData, email, password, photoFile ?? undefined);
+            const userData = {
+                ...formData,
+                university: formData.university as UniversityName,
+            };
+            await auth.register(userData, email, password, photoFile ?? undefined);
             setRegistrationSuccess(true);
         } catch (err: any) {
             console.error("Registration Error:", err.code);
@@ -176,12 +184,13 @@ const Register: React.FC = () => {
                             <div>
                                 <label className="text-sm font-medium text-gray-700">Faculdade</label>
                                 <select name="university" value={formData.university} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
+                                    <option value="">Selecione</option>
                                     {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-gray-700">Curso</label>
-                                <select name="course" onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
+                                <select name="course" value={formData.course} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
                                     <option value="">Selecione</option>
                                     {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
                                 </select>
