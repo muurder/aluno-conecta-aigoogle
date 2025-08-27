@@ -9,13 +9,14 @@ type FilterStatus = 'all' | 'pending' | 'approved';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { getAllUsers, deleteUser, updateUser } = useAuth();
+    const { getAllUsers, deleteUser, updateUser, createNotification } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
     const [showNotificationModal, setShowNotificationModal] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+    const [isSendingNotification, setIsSendingNotification] = useState(false);
 
 
     const fetchUsers = useCallback(async () => {
@@ -60,12 +61,20 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleSendNotification = () => {
-        console.log("Sending push notification to all users:", notificationMessage);
-        // Here you would integrate with a service like Firebase Cloud Messaging
-        alert(`Notificação enviada (simulação):\n"${notificationMessage}"`);
-        setNotificationMessage('');
-        setShowNotificationModal(false);
+    const handleSendNotification = async () => {
+        if (!notificationMessage.trim()) return;
+        setIsSendingNotification(true);
+        try {
+            await createNotification(notificationMessage);
+            alert('Notificação enviada com sucesso!');
+            setNotificationMessage('');
+            setShowNotificationModal(false);
+        } catch (error) {
+            console.error("Failed to send notification:", error);
+            alert("Ocorreu um erro ao enviar a notificação.");
+        } finally {
+            setIsSendingNotification(false);
+        }
     };
 
     const StatusBadge: React.FC<{ status: User['status'] }> = ({ status }) => {
@@ -101,8 +110,12 @@ const AdminDashboard: React.FC = () => {
                     <button onClick={() => setShowNotificationModal(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
                         Cancelar
                     </button>
-                    <button onClick={handleSendNotification} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                        Enviar
+                    <button 
+                        onClick={handleSendNotification} 
+                        disabled={isSendingNotification}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                    >
+                        {isSendingNotification ? 'Enviando...' : 'Enviar'}
                     </button>
                 </div>
                  <button onClick={() => setShowNotificationModal(false)} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">

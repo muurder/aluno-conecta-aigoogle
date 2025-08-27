@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
-// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_ICONS } from '../constants';
 import { schedulesData, Schedule } from '../schedules';
+import { db } from '../firebase';
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { 
     ArrowRightIcon, 
     MagnifyingGlassIcon, 
@@ -14,11 +15,45 @@ import {
     CalendarDaysIcon,
     ComputerDesktopIcon,
 } from '@heroicons/react/24/outline';
+import { XMarkIcon } from '@heroicons/react/24/solid';
 
 const Home: React.FC = () => {
     const { user } = useAuth();
-    // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
+    const [notification, setNotification] = useState<{ id: string; message: string } | null>(null);
+
+    useEffect(() => {
+        const q = query(
+            collection(db, "notifications"),
+            where("active", "==", true),
+            orderBy("createdAt", "desc"),
+            limit(1)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const doc = snapshot.docs[0];
+                const dismissed = localStorage.getItem(`notification_dismissed_${doc.id}`);
+                if (!dismissed) {
+                    setNotification({ id: doc.id, ...doc.data() } as { id: string; message: string });
+                } else {
+                    setNotification(null);
+                }
+            } else {
+                setNotification(null);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const dismissNotification = () => {
+        if (notification) {
+            localStorage.setItem(`notification_dismissed_${notification.id}`, 'true');
+            setNotification(null);
+        }
+    };
+
 
     const { ambientSubtitle } = useMemo(() => {
         if (!user?.course) return { ambientSubtitle: 'Acessar aulas online' };
@@ -101,6 +136,20 @@ const Home: React.FC = () => {
 
     return (
         <div className="p-4 space-y-6">
+            {notification && (
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 rounded-r-lg shadow-md relative" role="alert">
+                    <p className="font-bold">Aviso Importante</p>
+                    <p className="text-sm pr-6">{notification.message}</p>
+                    <button
+                        onClick={dismissNotification}
+                        className="absolute top-2 right-2 p-1 rounded-full text-yellow-800 hover:bg-yellow-200"
+                        aria-label="Dispensar notificação"
+                    >
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
+            
             {/* User Info Card */}
             <div className="bg-blue-800 text-white p-5 rounded-xl shadow-md relative overflow-hidden">
                 <div className="relative z-10">

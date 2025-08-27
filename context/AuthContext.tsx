@@ -48,6 +48,8 @@ interface AuthContextType {
   addComment: (postId: string, content: string) => Promise<Comment>;
   deleteComment: (postId: string, commentId: string) => Promise<void>;
   toggleReaction: (postId: string, emoji: string) => Promise<void>;
+  // Admin notification function
+  createNotification: (message: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -307,6 +309,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
   };
 
+  const createNotification = async (message: string) => {
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(notificationsRef, where("active", "==", true));
+    const activeNotificationsSnapshot = await getDocs(q);
+    
+    const batch = writeBatch(db);
+
+    activeNotificationsSnapshot.forEach(doc => {
+        batch.update(doc.ref, { active: false });
+    });
+    
+    const newNotificationRef = doc(notificationsRef);
+    batch.set(newNotificationRef, {
+        message,
+        createdAt: serverTimestamp(),
+        active: true
+    });
+
+    await batch.commit();
+  };
+
   const value = {
     isAuthenticated: !!user,
     user,
@@ -323,7 +346,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deletePost,
     addComment,
     deleteComment,
-    toggleReaction
+    toggleReaction,
+    createNotification,
   };
   
   return (

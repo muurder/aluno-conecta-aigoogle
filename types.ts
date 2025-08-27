@@ -50,3 +50,10 @@ export interface Post {
   comments: Comment[];
   reactions: Reaction[];
 }
+
+export interface Notification {
+  id: string;
+  message: string;
+  createdAt: { seconds: number; nanoseconds: number; }; // Firestore Timestamp
+  active: boolean;
+}
