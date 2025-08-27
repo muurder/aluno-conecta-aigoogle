@@ -5,6 +5,7 @@ import {
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
     signOut,
+    updatePassword,
     type User as AuthUser 
 } from 'firebase/auth';
 import { 
@@ -37,6 +38,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string) => Promise<void>;
   updateUser: (newUserData: User) => Promise<void>;
+  changePassword: (newPass: string) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
   // Mural / Feed functions
@@ -62,10 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-          // FIX (line 63): Spread types may only be created from object types.
           setUser({ uid: userDoc.id, ...(userDoc.data() as object) } as User);
         } else {
-          // Profile doesn't exist, maybe registration is incomplete
           console.error("User is authenticated, but no profile found in Firestore.");
           setUser(null);
         }
@@ -87,9 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const q = query(collection(db, "profiles"), where("status", "==", "pending"));
       
-      // FIX (line 94): Property 'docChanges' does not exist on type 'DocumentSnapshot<unknown, DocumentData>'.
       const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
-        // Ignore the initial data dump, only notify for new users
         if (isInitialSnapshot.current) {
           isInitialSnapshot.current = false;
           return;
@@ -128,7 +126,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
 
-      // Ensure that status is 'pending' and isAdmin is false for any new registration
       const finalUserData = {
           ...userData,
           email: authUser.email!,
@@ -136,43 +133,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
       };
 
-      // Create a document in 'profiles' collection with the user's UID
       await setDoc(doc(db, 'profiles', authUser.uid), finalUserData);
   };
   
   const updateUser = async (newUserData: User) => {
     if (!newUserData.uid) throw new Error("User UID is required to update.");
     
-    let photoURL = newUserData.photo;
-
-    // Check if photo is a new base64 upload
-    if (photoURL && photoURL.startsWith('data:image')) {
-        const storageRef = ref(storage, `profile_photos/${newUserData.uid}`);
-        const response = await fetch(photoURL);
-        const blob = await response.blob();
-        const snapshot = await uploadBytes(storageRef, blob);
-        photoURL = await getDownloadURL(snapshot.ref);
-    }
-    
+    // The photo is already a base64 string from the file input, so we save it directly.
+    // This corrects the previous issue where an upload-to-storage logic was failing.
     const userDocRef = doc(db, 'profiles', newUserData.uid);
-    await updateDoc(userDocRef, { ...newUserData, photo: photoURL });
+    await updateDoc(userDocRef, { ...newUserData });
 
     // Update local state if it's the current user
     if (user?.uid === newUserData.uid) {
-        setUser({ ...newUserData, photo: photoURL });
+        setUser(newUserData);
     }
+  };
+
+  const changePassword = async (newPass: string) => {
+    const authUser = auth.currentUser;
+    if (!authUser) throw new Error("User not authenticated.");
+    await updatePassword(authUser, newPass);
   };
 
   const getAllUsers = async (): Promise<User[]> => {
     const usersCol = collection(db, 'profiles');
     const userSnapshot = await getDocs(usersCol);
-    // FIX (line 165): Spread types may only be created from object types.
     return userSnapshot.docs.map(doc => ({ uid: doc.id, ...(doc.data() as object) } as User));
   };
   
   const deleteUser = async (uid: string) => {
-    // This is a simplified delete. For a production app, you'd use a Cloud Function
-    // to delete the user from Firebase Auth and also handle cascading deletes of their content.
     await deleteDoc(doc(db, 'profiles', uid));
   };
 
@@ -183,9 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const posts: Post[] = [];
     for (const postDoc of postSnapshots.docs) {
       const postData = postDoc.data();
-      // FIX (line 181): Property 'author_uid' does not exist on type 'unknown'.
       const authorDoc = await getDoc(doc(db, 'profiles', postData.author_uid));
-      // FIX (line 207): Property 'fullName'/'photo' does not exist on type 'unknown'.
       const authorData = authorDoc.exists() ? authorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
 
       // Fetch comments
@@ -194,13 +182,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const comments: Comment[] = [];
       for(const commentDoc of commentsSnapshot.docs) {
           const commentData = commentDoc.data();
-          // FIX (line 190): Property 'author_uid' does not exist on type 'unknown'.
           const commentAuthorDoc = await getDoc(doc(db, 'profiles', commentData.author_uid));
-          // FIX (line 195): Property 'fullName'/'photo' does not exist on type 'unknown'.
           const commentAuthorData = commentAuthorDoc.exists() ? commentAuthorDoc.data() as Pick<User, 'fullName' | 'photo'> : { fullName: 'Usuário Deletado', photo: null };
           comments.push({
               id: commentDoc.id,
-              // FIX (line 194): Spread types may only be created from object types.
               ...(commentData as object),
               author: { fullName: commentAuthorData.fullName, photo: commentAuthorData.photo }
           } as Comment);
@@ -208,14 +193,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Fetch reactions
       const reactionsSnapshot = await getDocs(collection(db, `posts/${postDoc.id}/reactions`));
-      // FIX (line 205): Spread types may only be created from object types.
       const reactions = reactionsSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as object) } as Reaction));
 
       posts.push({
         id: postDoc.id,
-        // FIX (line 201): Spread types may only be created from object types.
         ...(postData as object),
-        // FIX (line 206): Property 'created_at' does not exist on type 'unknown'.
         created_at: (postData.created_at as Timestamp).toDate().toISOString(),
         author: { fullName: authorData.fullName, photo: authorData.photo },
         comments,
@@ -247,7 +229,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const postDoc = await getDoc(postDocRef);
       if (!postDoc.exists()) return;
 
-      // FIX (line 237): Property 'image_url' does not exist on type 'unknown'.
       const imageUrl = postDoc.data().image_url;
       if (imageUrl) {
           try {
@@ -300,7 +281,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const reactionRef = doc(db, `posts/${postId}/reactions`, user.uid);
       const reactionDoc = await getDoc(reactionRef);
 
-      // FIX (line 289): Property 'emoji' does not exist on type 'unknown'.
       if (reactionDoc.exists() && reactionDoc.data().emoji === emoji) {
           await deleteDoc(reactionRef);
       } else {
@@ -320,6 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     register,
     updateUser,
+    changePassword,
     getAllUsers,
     deleteUser,
     getPosts,
