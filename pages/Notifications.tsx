@@ -6,7 +6,9 @@ import { XMarkIcon, InformationCircleIcon, ExclamationTriangleIcon, ExclamationC
 import { EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
 import type { Notification } from '../types';
 
-const NotificationItem: React.FC<{ notification: Notification, isRead: boolean, onDismiss: (id: string) => Promise<void>, onToggleRead: (id: string) => Promise<void> }> = ({ notification, isRead, onDismiss, onToggleRead }) => {
+const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: string) => Promise<void>, onToggleRead: (id: string) => Promise<void> }> = ({ notification, onDismiss, onToggleRead }) => {
+    const isRead = !!notification.read;
+
     const config = useMemo(() => {
         const baseConfig = {
             info: {
@@ -71,7 +73,7 @@ const NotificationItem: React.FC<{ notification: Notification, isRead: boolean, 
 
 const Notifications: React.FC = () => {
     const navigate = useNavigate();
-    const { notifications, isRead, markAllAsRead, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
+    const { notifications, markAllAsRead, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
     
     return (
         <div className="flex flex-col h-screen bg-gray-100">
@@ -97,7 +99,7 @@ const Notifications: React.FC = () => {
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
                         <BellSlashIcon className="w-16 h-16 text-gray-300 mb-4" />
                         <h2 className="text-xl font-semibold text-gray-700">Tudo limpo!</h2>
-                        <p>Você не tem nenhuma notificação no momento.</p>
+                        <p>Você não tem nenhuma notificação no momento.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -105,7 +107,6 @@ const Notifications: React.FC = () => {
                             <NotificationItem 
                                 key={notification.id} 
                                 notification={notification} 
-                                isRead={isRead(notification.id)}
                                 onDismiss={dismissNotification}
                                 onToggleRead={toggleReadStatus}
                             />

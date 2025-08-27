@@ -59,4 +59,5 @@ export interface Notification {
   type: NotificationType;
   createdAt: { seconds: number; nanoseconds: number; }; // Firestore Timestamp
   active: boolean;
+  read?: boolean;
 }
