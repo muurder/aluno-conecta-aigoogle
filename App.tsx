@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 // FIX: Upgrading react-router-dom from v5 to v6 to fix module export errors.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -78,7 +79,7 @@ VITE_FIREBASE_APP_ID=seu_app_id_aqui`}
                             <div>
                                 <h3 className="font-bold text-xl text-gray-800 mb-3"><strong className="text-red-500">Passo 4 (Crítico):</strong> Configurar Regras do Firestore</h3>
                                 <p className="mb-2">
-                                    Esta é a etapa mais importante para corrigir os problemas de notificação e permissões. No menu <strong>Firestore Database</strong>, vá para a aba <strong>Regras</strong> e substitua o conteúdo existente pelo código abaixo:
+                                    Esta é a etapa mais importante para a segurança. As regras abaixo garantem que apenas administradores possam aprovar novos usuários, prevenindo que usuários modifiquem o próprio status. No menu <strong>Firestore Database</strong>, vá para a aba <strong>Regras</strong> e substitua o conteúdo existente pelo código abaixo:
                                 </p>
                                 <pre className="bg-gray-800 text-white p-4 rounded-lg text-xs overflow-x-auto"><code>
 {`rules_version = '2';
@@ -86,42 +87,59 @@ VITE_FIREBASE_APP_ID=seu_app_id_aqui`}
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper function to check if the requesting user is an admin.
     function isAdmin() {
       return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
     }
 
+    // --- User Profiles ---
     match /profiles/{userId} {
+      // Any authenticated user can read any profile.
       allow read: if request.auth != null;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId || isAdmin();
+      
+      // A user can only create their own profile and cannot make themselves an admin.
+      allow create: if request.auth.uid == userId && request.resource.data.isAdmin == false;
+
+      // An admin can update any field on any user's profile.
+      // A regular user can update their own profile but cannot change their own admin or approval status.
+      allow update: if (isAdmin()) || 
+                     (request.auth.uid == userId &&
+                      request.resource.data.isAdmin == resource.data.isAdmin &&
+                      request.resource.data.status == resource.data.status);
+      
+      // Only admins can delete user profiles.
       allow delete: if isAdmin();
 
+      // Users can only manage their own notification statuses.
       match /notificationStatus/{notificationId} {
         allow read, write, delete: if request.auth.uid == userId;
       }
     }
 
+    // --- Posts (Mural/Feed) ---
     match /posts/{postId} {
       allow read: if request.auth != null;
-      allow create: if isAdmin();
-      allow delete: if isAdmin();
+      allow create, delete: if isAdmin(); // Only admins can create/delete posts.
 
+      // Comments on posts
       match /comments/{commentId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null;
-        allow delete: if request.auth.uid == resource.data.author_uid || isAdmin();
+        allow delete: if request.auth.uid == resource.data.author_uid || isAdmin(); // Author or admin can delete.
       }
 
+      // Reactions to posts
       match /reactions/{userId} {
         allow read: if request.auth != null;
-        allow write, delete: if request.auth.uid == userId;
+        allow write, delete: if request.auth.uid == userId; // Users manage their own reactions.
       }
     }
     
+    // --- Global Notifications ---
     match /notifications/{notificationId} {
         allow read: if request.auth != null;
-        allow create, update, delete: if isAdmin();
+        allow create, update, delete: if isAdmin(); // Only admins manage global notifications.
     }
   }
 }`}
