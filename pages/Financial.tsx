@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, ExclamationCircleIcon, DocumentDuplicateIcon } from '@heroicons/react/24/solid';
 
 // --- Data Generation ---
@@ -115,12 +116,12 @@ const HistoryItem: React.FC<{ boleto: Boleto }> = ({ boleto }) => (
 
 
 const Financial: React.FC = () => {
-    const history = useHistory();
+    const navigate = useNavigate();
 
     return (
         <div className="flex flex-col h-screen bg-gray-50">
              <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
-                <button onClick={() => history.goBack()} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-bold text-lg">Financeiro</h1>

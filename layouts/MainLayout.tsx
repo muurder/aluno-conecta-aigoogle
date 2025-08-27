@@ -1,6 +1,7 @@
+
 import React from 'react';
-// FIX: Update react-router-dom imports to v5. 'useNavigate' is 'useHistory'.
-import { useLocation, useHistory } from 'react-router-dom';
+// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
+import { useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationsContext';
@@ -9,8 +10,8 @@ import { UserCircleIcon } from '@heroicons/react/24/solid';
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  // FIX: Use useHistory() for navigation in react-router-dom v5.
-  const history = useHistory();
+  // FIX: Use useNavigate() for navigation in react-router-dom v6.
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { unreadCount, hasNewNotification } = useNotifications();
   const showHeaderOnPages = ['/'];
@@ -35,15 +36,15 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {showHeader && (
         <header className="bg-white px-4 pt-6 pb-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200" onClick={() => history.push('/profile')}>
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200" onClick={() => navigate('/profile')}>
               {user?.photo ? (
                 <img src={user.photo} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <UserCircleIcon className="w-full h-full text-gray-300" />
               )}
             </div>
-            {/* FIX: Use history.push() for navigation. */}
-            <button className="relative text-gray-500 hover:text-gray-700" onClick={() => history.push('/notifications')}>
+            {/* FIX: Use navigate() for navigation. */}
+            <button className="relative text-gray-500 hover:text-gray-700" onClick={() => navigate('/notifications')}>
               <BellIcon className={`w-7 h-7 ${hasNewNotification ? 'animate-ring' : ''}`} />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center ring-2 ring-white">

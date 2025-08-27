@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
-// FIX: Update react-router-dom imports to v5. 'useNavigate' is 'useHistory'.
-import { useHistory } from 'react-router-dom';
+// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronRightIcon, UserCircleIcon, CameraIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { IdentificationIcon, UserIcon as UserOutlineIcon, DocumentDuplicateIcon, DocumentTextIcon, QuestionMarkCircleIcon, ArrowLeftOnRectangleIcon, ChartBarIcon, EnvelopeIcon, ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
@@ -46,14 +47,14 @@ const ContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();
-  // FIX: Use useHistory() for navigation in react-router-dom v5.
-  const history = useHistory();
+  // FIX: Use useNavigate() for navigation in react-router-dom v6.
+  const navigate = useNavigate();
   const [showContactModal, setShowContactModal] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    // FIX: Use history.push() for navigation.
-    history.push('/login');
+    // FIX: Use navigate() for navigation.
+    navigate('/login');
   };
   
   const { formattedDisplayName, institutionalEmail } = useMemo(() => {
@@ -103,7 +104,7 @@ const Profile: React.FC = () => {
         <h1 className="mt-4 text-2xl font-bold">{formattedDisplayName}</h1>
         <p className="text-sm opacity-80 truncate">{institutionalEmail}</p>
         <button
-          onClick={() => history.push('/edit-profile')}
+          onClick={() => navigate('/edit-profile')}
           className="mt-4 inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-full text-sm transition"
         >
           <CameraIcon className="w-5 h-5" />
@@ -132,18 +133,18 @@ const Profile: React.FC = () => {
           <MenuItem
             icon={<ChartBarIcon className="w-6 h-6" />}
             label="Painel do Administrador"
-            onClick={() => history.push('/admin/dashboard')}
+            onClick={() => navigate('/admin/dashboard')}
           />
         )}
         <MenuItem
           icon={<IdentificationIcon className="w-6 h-6" />}
           label="Carteirinha Virtual"
-          onClick={() => history.push('/virtual-id')}
+          onClick={() => navigate('/virtual-id')}
         />
         <MenuItem
           icon={<UserOutlineIcon className="w-6 h-6" />}
           label="Meus Dados Pessoais"
-          onClick={() => history.push('/edit-profile')}
+          onClick={() => navigate('/edit-profile')}
         />
         <MenuItem
           icon={<DocumentDuplicateIcon className="w-6 h-6" />}
@@ -158,7 +159,7 @@ const Profile: React.FC = () => {
         <MenuItem
           icon={<QuestionMarkCircleIcon className="w-6 h-6" />}
           label="Ajuda e Suporte"
-          onClick={() => history.push('/help')}
+          onClick={() => navigate('/help')}
         />
       </main>
       <footer className="p-4">

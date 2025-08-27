@@ -1,5 +1,6 @@
+
 import React, { useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_ICONS } from '../constants';
 import { schedulesData, Schedule } from '../schedules';
@@ -17,7 +18,7 @@ import {
 
 const Home: React.FC = () => {
     const { user } = useAuth();
-    const history = useHistory();
+    const navigate = useNavigate();
 
     const { ambientSubtitle } = useMemo(() => {
         if (!user?.course) return { ambientSubtitle: 'Acessar aulas online' };
@@ -123,14 +124,14 @@ const Home: React.FC = () => {
                     subtitle={ambientSubtitle} 
                     bgColor="bg-gradient-to-br from-blue-500 to-blue-700" 
                     icon={<ComputerDesktopIcon className="w-7 h-7" />}
-                    onClick={() => history.push('/class-schedule')}
+                    onClick={() => navigate('/class-schedule')}
                 />
                 <ActionCard 
                     title="Horários de aulas" 
                     subtitle="Disciplinas, sala e professor" 
                     bgColor="bg-gradient-to-br from-green-500 to-teal-600" 
                     icon={<CalendarDaysIcon className="w-7 h-7" />}
-                    onClick={() => history.push('/class-schedule')}
+                    onClick={() => navigate('/class-schedule')}
                 />
             </div>
 
@@ -142,10 +143,10 @@ const Home: React.FC = () => {
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                    <HelpItem title="Disciplinas e atividades" icon={<BookOpenIcon className="w-8 h-8 text-teal-600"/>} onClick={() => history.push('/my-course')}/>
+                    <HelpItem title="Disciplinas e atividades" icon={<BookOpenIcon className="w-8 h-8 text-teal-600"/>} onClick={() => navigate('/my-course')}/>
                     <HelpItem title="Emissão de documentos" icon={<DocumentTextIcon className="w-8 h-8 text-teal-600"/>}/>
-                    <HelpItem title="Carteirinha Virtual" icon={<IdentificationIcon className="w-8 h-8 text-teal-600"/>} onClick={() => history.push('/virtual-id')} />
-                    <HelpItem title="Financeiro" icon={<BanknotesIcon className="w-8 h-8 text-teal-600" />} onClick={() => history.push('/financial')} />
+                    <HelpItem title="Carteirinha Virtual" icon={<IdentificationIcon className="w-8 h-8 text-teal-600"/>} onClick={() => navigate('/virtual-id')} />
+                    <HelpItem title="Financeiro" icon={<BanknotesIcon className="w-8 h-8 text-teal-600" />} onClick={() => navigate('/financial')} />
                 </div>
             </div>
         </div>

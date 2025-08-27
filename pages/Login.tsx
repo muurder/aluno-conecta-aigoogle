@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-// FIX: Update react-router-dom imports to v5. 'useNavigate' is 'useHistory'.
-import { useHistory } from 'react-router-dom';
+// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
@@ -11,8 +12,8 @@ const Login: React.FC = () => {
   const [error, setError] = useState<React.ReactNode>('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // FIX: Use useHistory() for navigation in react-router-dom v5.
-  const history = useHistory();
+  // FIX: Use useNavigate() for navigation in react-router-dom v6.
+  const navigate = useNavigate();
   const { login } = useAuth();
 
   useEffect(() => {
@@ -122,10 +123,10 @@ const Login: React.FC = () => {
         <div className="text-center">
           <p className="text-sm text-gray-600">
             Não tem conta?{' '}
-            {/* FIX: Use history.push() for navigation. */}
-            <button onClick={() => history.push('/register')} className="font-medium text-blue-600 hover:underline">
+            {/* FIX: Use Link component for navigation. */}
+            <Link to="/register" className="font-medium text-blue-600 hover:underline">
               Cadastre-se
-            </button>
+            </Link>
           </p>
         </div>
       </div>
