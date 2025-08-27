@@ -167,7 +167,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const response = await fetch(photoURL);
         const blob = await response.blob();
         const snapshot = await uploadBytes(storageRef, blob);
-        photoURL = await getDownloadURL(snapshot.ref);
+        const newUrl = await getDownloadURL(snapshot.ref);
+        // Add a timestamp to bust browser cache for the updated image
+        photoURL = `${newUrl}&v=${new Date().getTime()}`;
     }
     
     const userDocRef = doc(db, 'profiles', newUserData.uid);
