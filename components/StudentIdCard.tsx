@@ -27,12 +27,12 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user }, 
             <main className="flex-grow flex flex-col items-center justify-center text-center mb-6">
                 <div className="w-20 h-20 rounded-full shadow-md overflow-hidden bg-gray-300 flex items-center justify-center mb-3">
                     {user.photo ? (
-                        <img src={user.photo} alt="Student" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                        <img src={user.photo} alt="Student" className="w-full h-full object-cover" />
                     ) : (
                        <UserCircleIcon className="w-16 h-16 text-gray-500" />
                     )}
                 </div>
-                <h1 className="text-xl font-bold text-slate-800 break-words min-h-[3.5rem] flex items-center justify-center">{user.fullName || 'Nome Completo'}</h1>
+                <h1 className="text-xl font-bold text-slate-800 truncate">{user.fullName || 'Nome Completo'}</h1>
                 <p className="text-md text-slate-600">{user.course || 'Curso'}</p>
             </main>
 
@@ -43,7 +43,7 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user }, 
                         <p className="font-semibold text-slate-700">{user.rgm || '########-#'}</p>
                     </div>
                     <div className="text-right">
-                        <p className="font-light text-gray-600">VALIDADE</p>
+                        <p className="font-light text-gray-600">VAL:</p>
                         <p className="font-semibold text-slate-700">{user.validity || 'MM/YYYY'}</p>
                     </div>
                     <div className="col-span-2">

@@ -5,9 +5,6 @@ import {
     signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
     signOut,
-    reauthenticateWithCredential,
-    EmailAuthProvider,
-    updatePassword,
     type User as AuthUser 
 } from 'firebase/auth';
 import { 
@@ -42,7 +39,6 @@ interface AuthContextType {
   updateUser: (newUserData: User) => Promise<void>;
   getAllUsers: () => Promise<User[]>;
   deleteUser: (uid: string) => Promise<void>;
-  changePassword: (currentPass: string, newPass: string) => Promise<void>;
   // Mural / Feed functions
   getPosts: () => Promise<Post[]>;
   createPost: (content: string, imageFile?: File) => Promise<void>;
@@ -129,10 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string): Promise<void> => {
-      // Reverted logic: Assume userData.photo is a base64 string and save it directly.
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const authUser = userCredential.user;
 
+      // Ensure that status is 'pending' and isAdmin is false for any new registration
       const finalUserData = {
           ...userData,
           email: authUser.email!,
@@ -140,36 +136,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false,
       };
 
+      // Create a document in 'profiles' collection with the user's UID
       await setDoc(doc(db, 'profiles', authUser.uid), finalUserData);
   };
   
   const updateUser = async (newUserData: User) => {
     if (!newUserData.uid) throw new Error("User UID is required to update.");
     
-    // Reverted logic: Save the new user data directly.
-    // The photo field will contain a base64 string if a new photo was uploaded.
-    const userDocRef = doc(db, 'profiles', newUserData.uid);
-    await updateDoc(userDocRef, newUserData as { [x: string]: any });
+    let photoURL = newUserData.photo;
 
-    // Update local state if it's the current user, using functional update for safety
-    if (user?.uid === newUserData.uid) {
-        setUser(currentUser => {
-            if (!currentUser) return null;
-            return { ...currentUser, ...newUserData };
-        });
-    }
-  };
-
-  const changePassword = async (currentPass: string, newPass: string) => {
-    const authUser = auth.currentUser;
-    if (!authUser || !authUser.email) {
-        throw new Error("Usuário não autenticado ou sem e-mail associado.");
+    // Check if photo is a new base64 upload
+    if (photoURL && photoURL.startsWith('data:image')) {
+        const storageRef = ref(storage, `profile_photos/${newUserData.uid}`);
+        const response = await fetch(photoURL);
+        const blob = await response.blob();
+        const snapshot = await uploadBytes(storageRef, blob);
+        photoURL = await getDownloadURL(snapshot.ref);
     }
     
-    const credential = EmailAuthProvider.credential(authUser.email, currentPass);
-    // Re-authenticate before password update for security
-    await reauthenticateWithCredential(authUser, credential);
-    await updatePassword(authUser, newPass);
+    const userDocRef = doc(db, 'profiles', newUserData.uid);
+    await updateDoc(userDocRef, { ...newUserData, photo: photoURL });
+
+    // Update local state if it's the current user
+    if (user?.uid === newUserData.uid) {
+        setUser({ ...newUserData, photo: photoURL });
+    }
   };
 
   const getAllUsers = async (): Promise<User[]> => {
@@ -336,8 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deletePost,
     addComment,
     deleteComment,
-    toggleReaction,
-    changePassword
+    toggleReaction
   };
   
   return (
