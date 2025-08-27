@@ -50,4 +50,28 @@ export const schedulesData: Schedule[] = [
   { disciplina: "Serviço Social", professor: "Isabela Campos", dia_semana: "Sexta", inicio: "08:00", fim: "10:00", sala: "SS-110", bloco: "Bloco Humanas", campus: "Campus Sede", observacoes: "Políticas Públicas" },
   { disciplina: "Sistemas de Informação", professor: "João Vilela", dia_semana: "Sábado", inicio: "14:00", fim: "16:00", sala: "Tec-303", bloco: "Bloco Tec", campus: "Campus Sede", observacoes: "Banco de Dados" },
   { disciplina: "Turismo", professor: "Kelly Matos", dia_semana: "Segunda", inicio: "16:00", fim: "18:00", sala: "Tur-201", bloco: "Bloco Turismo", campus: "Campus Sede", observacoes: "Planejamento Turístico" },
+
+  // New Data - Graduação
+  { disciplina: "Design de Interiores", professor: "Alice Braga", dia_semana: "Segunda", inicio: "18:30", fim: "20:30", sala: "D-112", bloco: "Bloco Design", campus: "Campus Centro", observacoes: "Projeto de Interiores Residenciais" },
+  { disciplina: "Paisagismo", professor: "Roberto Alves", dia_semana: "Terça", inicio: "14:00", fim: "17:00", sala: "P-101", bloco: "Bloco Verde", campus: "Butantã", observacoes: "Botânica Aplicada" },
+  
+  // New Data - Pós-graduação
+  { disciplina: "MBA em Gestão de Projetos", professor: "Ricardo Mendes", dia_semana: "Sábado", inicio: "09:00", fim: "13:00", sala: "Exec-1", bloco: "Bloco Executivo", campus: "Paulista", observacoes: "Metodologias Ágeis" },
+  { disciplina: "MBA em Data Science & Analytics", professor: "Carolina Dias", dia_semana: "Sábado", inicio: "09:00", fim: "13:00", sala: "Tec-301", bloco: "Bloco Tec", campus: "Vila Olímpia", observacoes: "Machine Learning" },
+  { disciplina: "MBA em Engenharia de Software", professor: "Lucas Martins", dia_semana: "Sexta", inicio: "19:00", fim: "22:30", sala: "Tec-302", bloco: "Bloco Tec", campus: "Vila Olímpia", observacoes: "Arquitetura de Microsserviços" },
+  { disciplina: "MBA em UX/UI & Product Design", professor: "Sofia Pereira", dia_semana: "Quarta", inicio: "19:00", fim: "22:30", sala: "D-201", bloco: "Bloco Design", campus: "Paulista", observacoes: "Design Centrado no Usuário" },
+  { disciplina: "MBA em Marketing Digital & Growth", professor: "Thiago Rocha", dia_semana: "Terça", inicio: "19:00", fim: "22:30", sala: "MKT-201", bloco: "Bloco Negócios", campus: "Paulista", observacoes: "Growth Hacking" },
+  { disciplina: "MBA em Finanças, Controladoria e Auditoria", professor: "Valeria Souza", dia_semana: "Segunda", inicio: "19:00", fim: "22:30", sala: "A-401", bloco: "Bloco A", campus: "Vila Olímpia", observacoes: "Contabilidade Gerencial" },
+  { disciplina: "MBA em Logística & Supply Chain", professor: "Marcos Ferreira", dia_semana: "Quinta", inicio: "19:00", fim: "22:30", sala: "Log-201", bloco: "Bloco Logística", campus: "Santo Amaro", observacoes: "Cadeia de Suprimentos 4.0" },
+  { disciplina: "MBA em Gestão de Pessoas & Liderança", professor: "Patricia Lima", dia_semana: "Terça", inicio: "19:00", fim: "22:30", sala: "GP-101", bloco: "Bloco Humanas", campus: "Paulista", observacoes: "Liderança e Coaching" },
+  { disciplina: "Especialização em Direito Digital e LGPD", professor: "Adriana Costa", dia_semana: "Sexta", inicio: "19:00", fim: "22:30", sala: "Dir-202", bloco: "Bloco Direito", campus: "São Francisco", observacoes: "Proteção de Dados" },
+  { disciplina: "Especialização em Direito Tributário", professor: "Fernando Gomes", dia_semana: "Quinta", inicio: "19:00", fim: "22:30", sala: "Dir-203", bloco: "Bloco Direito", campus: "São Francisco", observacoes: "Tributação e Planejamento" },
+  { disciplina: "Especialização em Docência no Ensino Superior", professor: "Beatriz Almeida", dia_semana: "Sábado", inicio: "09:00", fim: "12:00", sala: "Ped-201", bloco: "Bloco Educação", campus: "Mooca", observacoes: "Metodologias Ativas" },
+  { disciplina: "Especialização em Psicologia Organizacional", professor: "Carlos Eduardo", dia_semana: "Segunda", inicio: "19:00", fim: "22:00", sala: "Psi-301", bloco: "Bloco Saúde", campus: "Paulista", observacoes: "Clima e Cultura Organizacional" },
+  { disciplina: "Especialização em Enfermagem em UTI", professor: "Sandra Nunes", dia_semana: "Quarta", inicio: "18:00", fim: "22:00", sala: "Saúde-501", bloco: "Bloco Saúde", campus: "Unifesp", observacoes: "Cuidados Intensivos" },
+  { disciplina: "Especialização em Fisioterapia Traumato-Ortopédica", professor: "Ronaldo Bastos", dia_semana: "Sexta", inicio: "18:00", fim: "22:00", sala: "Saúde-502", bloco: "Bloco Saúde", campus: "Unifesp", observacoes: "Reabilitação" },
+  { disciplina: "Especialização em Arquitetura da Paisagem", professor: "Larissa Melo", dia_semana: "Sábado", inicio: "09:00", fim: "13:00", sala: "Arq-301", bloco: "Bloco B", campus: "Butantã", observacoes: "Projetos de Paisagismo" },
+  { disciplina: "Especialização em Design de Interiores", professor: "Juliana Andrade", dia_semana: "Sexta", inicio: "19:00", fim: "22:30", sala: "D-202", bloco: "Bloco Design", campus: "Paulista", observacoes: "Design de Mobiliário" },
+  { disciplina: "Especialização em Nutrição Clínica", professor: "Mônica Esteves", dia_semana: "Quarta", inicio: "18:30", fim: "21:30", sala: "Nutri-201", bloco: "Bloco Saúde", campus: "Unifesp", observacoes: "Nutrição Hospitalar" },
+  { disciplina: "Especialização em Implantodontia (Odontologia)", professor: "Dr. Roberto Neves", dia_semana: "Sábado", inicio: "08:00", fim: "18:00", sala: "Odonto-Clin-2", bloco: "Bloco Saúde", campus: "USP", observacoes: "Prática Clínica em Implantodontia" },
 ];
