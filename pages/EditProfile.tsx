@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 // FIX: Update react-router-dom import from v5 to v6. 'useHistory' is replaced by 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,63 @@ import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+
+// Helper function to compress images client-side before upload
+const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<{ compressedFile: File; previewUrl: string }> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onerror = reject;
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onerror = reject;
+            img.onload = () => {
+                let { width, height } = img;
+
+                if (width > height) {
+                    if (width > options.maxWidth) {
+                        height = Math.round((height * options.maxWidth) / width);
+                        width = options.maxWidth;
+                    }
+                } else {
+                    if (height > options.maxHeight) {
+                        width = Math.round((width * options.maxHeight) / height);
+                        height = options.maxHeight;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    return reject(new Error('Could not get canvas context.'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) {
+                            return reject(new Error('Canvas to Blob conversion failed.'));
+                        }
+                        const fileName = file.name.split('.').slice(0, -1).join('.') + '.jpeg';
+                        const compressedFile = new File([blob], fileName, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        });
+                        const previewUrl = URL.createObjectURL(blob);
+                        resolve({ compressedFile, previewUrl });
+                    },
+                    'image/jpeg',
+                    options.quality
+                );
+            };
+            img.src = e.target?.result as string;
+        };
+    });
+};
+
 
 const EditProfile: React.FC = () => {
     const { user, updateUser, changePassword } = useAuth();
@@ -24,13 +81,14 @@ const EditProfile: React.FC = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [imageProcessing, setImageProcessing] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [error, setError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
 
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         
         setFormData(prevData => {
@@ -45,22 +103,38 @@ const EditProfile: React.FC = () => {
 
             return newFormData;
         });
-    };
+    }, []);
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setPhotoFile(file);
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                 setFormData(prevData => {
-                    if (!prevData) return prevData;
-                    return { ...prevData, photo: event.target?.result as string };
-                 });
-            };
-            reader.readAsDataURL(file);
+            if (!file.type.startsWith('image/')) {
+                 setError('Por favor, selecione um arquivo de imagem.');
+                 return;
+            }
+
+            setImageProcessing(true);
+            setError('');
+            try {
+                const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.8 });
+                setPhotoFile(compressedFile);
+                setFormData(prev => {
+                    if (!prev) return prev;
+                    // Revoke the old blob URL to prevent memory leaks, if it exists
+                    if (prev.photo && prev.photo.startsWith('blob:')) {
+                        URL.revokeObjectURL(prev.photo);
+                    }
+                    return { ...prev, photo: previewUrl };
+                });
+            } catch (err) {
+                 console.error("Image processing failed:", err);
+                 setError('Falha ao processar a imagem. Tente uma imagem diferente.');
+            } finally {
+                setImageProcessing(false);
+            }
         }
     };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -141,7 +215,7 @@ const EditProfile: React.FC = () => {
                                 htmlFor="photo-upload" 
                                 className="absolute bottom-1 right-1 bg-blue-600 text-white rounded-full p-2 shadow-md cursor-pointer hover:bg-blue-700 transition"
                             >
-                                <CameraIcon className="w-5 h-5" />
+                                {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CameraIcon className="w-5 h-5" />}
                             </label>
                             <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
                         </div>
@@ -201,7 +275,7 @@ const EditProfile: React.FC = () => {
                         <label className={labelClasses}>Validade da Carteirinha</label>
                         <input name="validity" value={formData.validity} onChange={handleInputChange} className={inputClasses} required />
                     </div>
-                    <button type="submit" disabled={loading} className="w-full mt-4 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
+                    <button type="submit" disabled={loading || imageProcessing} className="w-full mt-4 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
                         {loading ? 'Salvando...' : 'Salvar Alterações'}
                     </button>
                 </form>
