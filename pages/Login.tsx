@@ -6,22 +6,11 @@ import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon } from '@heroicons/rea
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<React.ReactNode>('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('savedEmail');
-    const savedPassword = localStorage.getItem('savedPassword');
-    if (savedEmail && savedPassword) {
-      setEmail(savedEmail);
-      setPassword(savedPassword);
-      setRememberMe(true);
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,14 +18,6 @@ const Login: React.FC = () => {
     setError('');
     try {
       await login(email, password);
-      
-      if (rememberMe) {
-        localStorage.setItem('savedEmail', email);
-        localStorage.setItem('savedPassword', password);
-      } else {
-        localStorage.removeItem('savedEmail');
-        localStorage.removeItem('savedPassword');
-      }
       // A navegação agora é controlada pelo componente AppRoutes com base
       // no estado de autenticação, tornando o fluxo mais robusto.
     } catch (err: any) {
@@ -100,21 +81,6 @@ const Login: React.FC = () => {
               </button>
             </div>
           </div>
-
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="remember-me" className="ml-3 block text-sm font-medium text-gray-700">
-              Lembrar-me
-            </label>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
