@@ -74,7 +74,7 @@ const Home: React.FC = () => {
     }> = ({ title, subtitle, bgColor, icon, onClick }) => (
         <button 
             onClick={onClick} 
-            className={`w-full p-4 rounded-2xl text-white shadow-lg flex items-center justify-between ${bgColor} transition-transform transform hover:scale-[1.02] hover:shadow-xl relative overflow-hidden`}
+            className={`w-full p-4 rounded-2xl text-white shadow-lg flex items-center justify-between ${bgColor} transition-transform transform-gpu hover:scale-[1.02] hover:shadow-xl relative overflow-hidden`}
         >
             <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full opacity-80 blur-sm"></div>
             <div className="flex items-center gap-4 relative z-10">
