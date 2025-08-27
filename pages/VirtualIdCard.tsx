@@ -5,6 +5,7 @@ import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon, DocumentArrowDownIcon } from '@heroicons/react/24/solid';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { User } from '../types';
 
 const VirtualIdCard: React.FC = () => {
   const { user } = useAuth();
@@ -47,21 +48,10 @@ const VirtualIdCard: React.FC = () => {
   const QRCodeGenerator: React.FC = () => {
     if (!user) return null;
     
-    // Explicitamente seleciona os dados do aluno para garantir que o QR code seja sempre válido
-    // para identificação, independentemente do status de administrador.
-    const studentDataForQr = {
-      uid: user.uid,
-      institutionalLogin: user.institutionalLogin,
-      rgm: user.rgm,
-      fullName: user.fullName,
-      email: user.email,
-      university: user.university,
-      course: user.course,
-      campus: user.campus,
-      validity: user.validity,
-      photo: user.photo,
-      status: user.status,
-    };
+    // Create a copy of the user object and remove the isAdmin property if it exists.
+    // This ensures all student data is included without exposing admin status.
+    const studentDataForQr = { ...user };
+    delete (studentDataForQr as Partial<User>).isAdmin;
 
     const userJsonString = JSON.stringify(studentDataForQr);
     const encodedUserData = btoa(unescape(encodeURIComponent(userJsonString)));

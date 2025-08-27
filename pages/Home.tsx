@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -54,7 +55,7 @@ const Home: React.FC = () => {
             {/* Action Cards */}
             <div className="space-y-4">
                 <ActionCard title="Ambiente virtual" subtitle="Acessar aulas online" bgColor="bg-blue-600"/>
-                <ActionCard title="Horários de aulas" subtitle="Disciplinas, sala e professor" bgColor="bg-green-500"/>
+                <ActionCard title="Horários de aulas" subtitle="Disciplinas, sala e professor" bgColor="bg-green-500" onClick={() => navigate('/class-schedule')}/>
             </div>
 
             {/* Help Center */}
