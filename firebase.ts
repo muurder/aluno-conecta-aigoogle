@@ -1,7 +1,8 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+// FIX: Switched to Firebase compat libraries to resolve module export errors, likely due to an older Firebase version being installed.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import 'firebase/compat/storage';
 
 // The component App.tsx already prevents the application from rendering if these keys
 // are not defined, so we can assume they exist here.
@@ -17,7 +18,9 @@ const firebaseConfig = {
 
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+export const auth = firebase.auth();
+export const db = firebase.firestore();
+export const storage = firebase.storage();
