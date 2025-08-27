@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+// FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { COURSE_ICONS } from '../constants';
@@ -16,6 +17,7 @@ import {
 
 const Home: React.FC = () => {
     const { user } = useAuth();
+    // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
 
     const { ambientSubtitle } = useMemo(() => {

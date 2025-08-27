@@ -1,8 +1,5 @@
-
-
-
-
 import React, { useState } from 'react';
+// FIX: Update react-router-dom imports to v6. 'Switch' is 'Routes', 'Redirect' is 'Navigate'.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
@@ -199,6 +196,7 @@ const AppRoutes: React.FC = () => {
 
   if (isAuthenticated && user?.status === 'pending') {
     return (
+      // FIX: Use Routes and element prop for react-router-dom v6
       <Routes>
         <Route path="/pending" element={<PendingApproval />} />
         <Route path="*" element={<Navigate to="/pending" />} />
@@ -207,6 +205,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
+    // FIX: Use Routes and element prop for react-router-dom v6
     <Routes>
       <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
       <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
