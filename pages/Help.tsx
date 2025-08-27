@@ -5,7 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
 // The API key is now securely read from environment variables
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const API_KEY = process.env.API_KEY;
 
 interface Message {
   sender: 'user' | 'ai';
@@ -43,10 +43,15 @@ const Help: React.FC = () => {
         setInput('');
         setLoading(true);
 
+        if (!API_KEY) {
+            console.error("A chave de API para o Gemini (API_KEY) não está configurada no ambiente.");
+            const errorMessage: Message = { sender: 'ai', text: "Desculpe, o assistente virtual está temporariamente indisponível." };
+            setMessages(prev => [...prev, errorMessage]);
+            setLoading(false);
+            return;
+        }
+
         try {
-            if (!API_KEY) {
-                throw new Error("A chave de API para o Gemini não está configurada. Adicione VITE_GEMINI_API_KEY ao seu ambiente.");
-            }
             const ai = new GoogleGenAI({ apiKey: API_KEY });
             
             const response = await ai.models.generateContent({
@@ -62,7 +67,7 @@ const Help: React.FC = () => {
 
         } catch (error) {
             console.error("Error fetching AI response:", error);
-            const errorMessage: Message = { sender: 'ai', text: "Desculpe, não consegui processar sua solicitação no momento. Verifique se a chave da API do Gemini está configurada corretamente e tente novamente." };
+            const errorMessage: Message = { sender: 'ai', text: "Desculpe, ocorreu um erro ao me comunicar com o assistente. Por favor, tente novamente mais tarde." };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setLoading(false);
