@@ -12,7 +12,7 @@ import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
 import { CameraIcon, ArrowPathIcon, SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
-type FormData = Omit<User, 'uid' | 'email'>;
+type FormData = Omit<User, 'uid' | 'email' | 'isAdmin'>;
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
@@ -131,14 +131,12 @@ const Register: React.FC = () => {
             await auth.register(formData, email, password);
             setRegistrationSuccess(true);
         } catch (err: any) {
-            console.error("Registration Error:", err); // Log the full error for debugging
-             if (err.message.toLowerCase().includes('network')) {
-                setError(<span>Sua conta foi criada, mas não foi possível verificar o perfil devido a um erro de rede. Isso geralmente é um <strong className="font-semibold">problema de CORS</strong>. Verifique a configuração do seu projeto Supabase e tente fazer login.</span>);
-            } else if (err.message.includes('User already registered')) {
+            console.error("Registration Error:", err.code);
+            if (err.code === 'auth/email-already-in-use') {
                  setError('Este e-mail já está em uso. Por favor, utilize outro.');
-            } else if (err.message.includes('password should be at least 6 characters')) {
+            } else if (err.code === 'auth/weak-password') {
                 setError('A senha deve ter pelo menos 6 caracteres.');
-            } else if (err.message.includes('valid email')) {
+            } else if (err.code === 'auth/invalid-email') {
                 setError('O e-mail fornecido é inválido.');
             } else {
                 setError('Ocorreu um erro ao criar a conta. Tente novamente.');
