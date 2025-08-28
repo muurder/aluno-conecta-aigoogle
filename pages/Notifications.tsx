@@ -1,5 +1,6 @@
 
-import React, { useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationsContext';
 import { ArrowLeftIcon, CheckBadgeIcon, TrashIcon, BellSlashIcon } from '@heroicons/react/24/solid';
@@ -75,39 +76,62 @@ const NotificationItem: React.FC<{ notification: Notification, onDismiss: (id: s
     );
 };
 
+const ToggleSwitch: React.FC<{ checked: boolean, onChange: (checked: boolean) => void, label: string }> = ({ checked, onChange, label }) => (
+    <div className="flex items-center gap-2">
+        <label htmlFor="toggle" className="text-sm font-medium text-gray-600">{label}</label>
+        <button
+            id="toggle"
+            onClick={() => onChange(!checked)}
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${checked ? 'bg-blue-600' : 'bg-gray-300'}`}
+        >
+            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+    </div>
+);
+
 const Notifications: React.FC = () => {
     const navigate = useNavigate();
     const { notifications, markAllAsRead, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
+    const [hideRead, setHideRead] = useState(false);
     
+    const visibleNotifications = useMemo(() => {
+        return hideRead ? notifications.filter(n => !n.read) : notifications;
+    }, [notifications, hideRead]);
+
     return (
         <div className="flex flex-col h-screen bg-gray-100">
-            <header className="p-4 flex items-center justify-between text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
-                <div className="flex items-center">
-                    <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
-                        <ArrowLeftIcon className="w-6 h-6" />
-                    </button>
-                    <h1 className="font-bold text-lg">Notificações</h1>
+            <header className="p-4 flex flex-col gap-4 text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                        <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                        <h1 className="font-bold text-lg">Notificações</h1>
+                    </div>
+                    <div className="flex items-center gap-2">
+                         <button onClick={markAllAsRead} title="Marcar todas como lidas" className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
+                            <CheckBadgeIcon className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => { if (confirm('Tem certeza que deseja limpar todas as notificações?')) clearAllNotifications() }} title="Limpar todas as notificações" className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
+                            <TrashIcon className="w-6 h-6" />
+                        </button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                     <button onClick={markAllAsRead} title="Marcar todas como lidas" className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
-                        <CheckBadgeIcon className="w-6 h-6" />
-                    </button>
-                    <button onClick={() => { if (confirm('Tem certeza que deseja limpar todas as notificações?')) clearAllNotifications() }} title="Limpar todas as notificações" className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
-                        <TrashIcon className="w-6 h-6" />
-                    </button>
+                <div className="flex justify-end pr-2">
+                    <ToggleSwitch checked={hideRead} onChange={setHideRead} label="Ocultar lidas" />
                 </div>
             </header>
 
             <main className="flex-grow p-4 overflow-y-auto">
-                {notifications.length === 0 ? (
+                {visibleNotifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
                         <BellSlashIcon className="w-16 h-16 text-gray-300 mb-4" />
                         <h2 className="text-xl font-semibold text-gray-700">Tudo limpo!</h2>
-                        <p>Você não tem nenhuma notificação no momento.</p>
+                        <p>{hideRead ? "Você não tem notificações não lidas." : "Você não tem nenhuma notificação no momento."}</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {notifications.map(notification => (
+                        {visibleNotifications.map(notification => (
                             <NotificationItem 
                                 key={notification.id} 
                                 notification={notification} 
