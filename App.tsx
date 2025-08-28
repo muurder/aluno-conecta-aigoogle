@@ -171,9 +171,16 @@ service cloud.firestore {
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // FIX: Allow admins to write to any user's profile photo directory.
+    // This is required for the admin dashboard functionality to work correctly.
     match /profile-photos/{userId}/{allPaths=**} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
+      }
+      
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     match /posts/{imageName} {

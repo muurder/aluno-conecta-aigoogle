@@ -139,7 +139,6 @@ const EditProfile: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [imageProcessing, setImageProcessing] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
-    const [error, setError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
@@ -166,12 +165,11 @@ const EditProfile: React.FC = () => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (!file.type.startsWith('image/')) {
-                 setError('Por favor, selecione um arquivo de imagem.');
+                 setToast({ show: true, message: 'Por favor, selecione um arquivo de imagem.', type: 'error' });
                  return;
             }
 
             setImageProcessing(true);
-            setError('');
             try {
                 const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 });
                 setPhotoFile(compressedFile);
@@ -185,7 +183,7 @@ const EditProfile: React.FC = () => {
                 });
             } catch (err) {
                  console.error("Image processing failed:", err);
-                 setError('Falha ao processar a imagem. Tente uma imagem diferente.');
+                 setToast({ show: true, message: 'Falha ao processar a imagem. Tente uma imagem diferente.', type: 'error' });
             } finally {
                 setImageProcessing(false);
             }
@@ -196,14 +194,22 @@ const EditProfile: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError('');
         try {
-            await updateUser(formData.uid, formData, photoFile ?? undefined);
+            // Create a payload with only the fields that can be updated by the user
+            const dataToUpdate: Partial<User> = {
+                fullName: formData.fullName,
+                institutionalLogin: formData.institutionalLogin,
+                rgm: formData.rgm,
+                university: formData.university,
+                course: formData.course,
+                campus: formData.campus,
+                validity: formData.validity,
+            };
+            await updateUser(formData.uid, dataToUpdate, photoFile ?? undefined);
             setToast({ show: true, message: 'Perfil atualizado com sucesso!', type: 'success' });
             setTimeout(() => navigate('/profile'), 2000);
         } catch(err) {
-            setError('Falha ao atualizar o perfil. Tente novamente.');
-            setToast({ show: true, message: 'Falha ao atualizar o perfil.', type: 'error' });
+            setToast({ show: true, message: 'Falha ao atualizar o perfil. Tente novamente.', type: 'error' });
             console.error(err);
         } finally {
             setLoading(false);
@@ -261,8 +267,7 @@ const EditProfile: React.FC = () => {
                 {/* Profile Info Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white rounded-lg shadow-md">
                     <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Dados Pessoais</h2>
-                    {error && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{error}</p>}
-
+                    
                     <div className="flex justify-center -mt-2 mb-6">
                         <div className="relative w-32 h-32">
                             <img 
