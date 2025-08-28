@@ -43,11 +43,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     // On logout or if no user, clean up state and listeners.
     if (!user) {
       setNotifications([]);
-      return;
+      return () => {}; // Return a no-op cleanup function if there's no user
     }
 
     // This ref helps prevent the "new notification" bell animation on the initial data load.
     isInitialLoad.current = true;
+    
+    // This will hold the cleanup function for the nested listener on user statuses.
+    let unsubStatus: () => void = () => {};
 
     // Listener for global notifications, conditional by user role
     const notificationsQuery = user.isAdmin
@@ -55,7 +58,9 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       : db.collection("notifications").where("active", "==", true).orderBy("createdAt", "desc");
       
     const unsubNotifications = notificationsQuery.onSnapshot((notifSnap: QuerySnapshot) => {
-        
+        // First, detach the previous status listener to avoid memory leaks and race conditions.
+        unsubStatus();
+
         // Bell animation logic: trigger only on new documents after the initial load.
         if (isInitialLoad.current) {
           isInitialLoad.current = false;
@@ -72,8 +77,8 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
           ...doc.data()
         })) as Notification[];
 
-        // Nested listener for the user's individual notification statuses
-        const unsubStatus = db.collection("profiles")
+        // Now, set up the new nested listener for the user's individual notification statuses.
+        unsubStatus = db.collection("profiles")
           .doc(user.uid)
           .collection("notificationStatus")
           .onSnapshot((statusSnap: QuerySnapshot) => {
@@ -95,13 +100,14 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
             setNotifications(mergedNotifications);
           });
-
-        // The cleanup for the inner listener is returned here.
-        return unsubStatus;
       });
 
-    // The cleanup for the outer listener.
-    return unsubNotifications;
+    // The main cleanup function for the useEffect hook.
+    // This will be called when the component unmounts or the user changes.
+    return () => {
+      unsubNotifications();
+      unsubStatus();
+    };
   }, [user]);
 
   const unreadCount = useMemo(() => {

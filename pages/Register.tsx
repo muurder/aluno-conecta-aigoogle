@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 // FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
@@ -314,7 +315,8 @@ const Register: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-3 mt-4">
+                        <div>
+                            <label htmlFor="photo-upload-input" className="text-sm font-medium text-gray-700">Sua Foto</label>
                             <input
                                 id="photo-upload-input"
                                 type="file"
@@ -322,15 +324,32 @@ const Register: React.FC = () => {
                                 className="sr-only"
                                 onChange={handlePhotoUpload}
                             />
-                            <label htmlFor="photo-upload-input" className="w-full flex items-center justify-center gap-2 p-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 cursor-pointer">
-                                {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin"/> : <CameraIcon className="w-5 h-5"/>}
-                                {formData.photo ? 'Alterar Foto' : 'Adicionar Foto'}
+                            <label
+                                htmlFor="photo-upload-input"
+                                className={`mt-1 w-full h-32 flex flex-col items-center justify-center rounded-xl border-2 bg-cover bg-center cursor-pointer transition-all duration-300 group relative overflow-hidden ${
+                                    formData.photo 
+                                    ? 'border-solid border-blue-300' 
+                                    : 'border-dashed border-gray-300 bg-gray-50 text-gray-600 hover:border-blue-500 hover:text-blue-500'
+                                }`}
+                                style={formData.photo ? { backgroundImage: `url(${formData.photo})` } : {}}
+                            >
+                                {imageProcessing ? (
+                                    <div className="flex flex-col items-center text-gray-600">
+                                        <ArrowPathIcon className="w-6 h-6 animate-spin" />
+                                        <span className="font-medium text-sm mt-2">Processando...</span>
+                                    </div>
+                                ) : formData.photo ? (
+                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <CameraIcon className="w-8 h-8" />
+                                        <span className="font-medium text-sm mt-1">Alterar Foto</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center">
+                                        <CameraIcon className="w-8 h-8" />
+                                        <span className="font-medium text-sm mt-2">Adicionar Foto</span>
+                                    </div>
+                                )}
                             </label>
-                            {formData.photo && (
-                                <div className="w-16 h-12 rounded-md overflow-hidden flex-shrink-0">
-                                    <img src={formData.photo} alt="Preview" className="w-full h-full object-cover" />
-                                </div>
-                            )}
                         </div>
 
                         <button
