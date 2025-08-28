@@ -72,6 +72,7 @@ const GlobalChat: React.FC = () => {
         try {
             await db.collection('chat').add(messageData);
             setNewMessage('');
+            setShowEmojis(false);
         } catch (error) {
             console.error("Error sending message:", error);
         }
@@ -86,7 +87,7 @@ const GlobalChat: React.FC = () => {
                 <h1 className="font-bold text-lg">Chat Global</h1>
             </header>
             
-            <main className="flex-grow p-4 overflow-y-auto pb-24">
+            <main className="flex-grow p-4 overflow-y-auto pb-40">
                  {loading && <p className="text-center text-gray-500">Carregando chat...</p>}
                  <div className="space-y-4">
                     {messages.map(msg => {
@@ -125,7 +126,7 @@ const GlobalChat: React.FC = () => {
                         ))}
                     </div>
                 )}
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-2 p-3 border-t border-gray-200">
+                <form onSubmit={handleSendMessage} className="flex items-center space-x-2 p-3 border-t bg-white border-gray-200">
                     <button 
                         type="button" 
                         onClick={() => setShowEmojis(prev => !prev)} 
