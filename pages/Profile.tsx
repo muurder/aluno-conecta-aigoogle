@@ -132,7 +132,7 @@ const Profile: React.FC = () => {
         {user?.isAdmin && (
           <MenuItem
             icon={<ChartBarIcon className="w-6 h-6" />}
-            label="Painel do Administrador"
+            label="Dashboard"
             onClick={() => navigate('/admin/dashboard')}
           />
         )}

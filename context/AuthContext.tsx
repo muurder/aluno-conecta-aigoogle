@@ -30,6 +30,7 @@ interface AuthContextType {
   toggleReaction: (postId: string, emoji: string) => Promise<void>;
   // Admin notification function
   createNotification: (message: string, type: NotificationType) => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -340,6 +341,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         active: true,
     });
   };
+  
+  const deleteNotification = async (notificationId: string) => {
+    await db.collection('notifications').doc(notificationId).delete();
+  };
 
   const value = {
     isAuthenticated: !!user,
@@ -359,6 +364,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteComment,
     toggleReaction,
     createNotification,
+    deleteNotification,
   };
   
   return (
