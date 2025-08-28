@@ -2,8 +2,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, NotificationType } from '../types';
-import { ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOutline, MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useNotifications } from '../context/NotificationsContext';
+import { User, NotificationType, Notification } from '../types';
+import { 
+    ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOutline, 
+    MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon, UsersIcon, ClockIcon, BellIcon,
+    InformationCircleIcon, ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolid, ExclamationCircleIcon } from '@heroicons/react/24/solid';
 import BottomNav from '../components/BottomNav';
 
@@ -23,7 +28,6 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
     const Icon = isSuccess ? CheckCircleSolid : ExclamationCircleIcon;
 
     // Responsive classes for positioning
-    // Mobile: centered at top. Desktop: bottom right.
     const positionClasses = `
         fixed z-50 w-11/12 max-w-sm top-4 left-1/2 -translate-x-1/2
         md:w-auto md:max-w-none md:top-auto md:left-auto md:bottom-5 md:right-5 md:translate-x-0
@@ -53,7 +57,7 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
                     animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
                 }
 
-                @media (min-width: 768px) { /* Corresponds to md: in Tailwind */
+                @media (min-width: 768px) {
                     .animate-toast {
                         animation-name: slide-in-right;
                     }
@@ -64,44 +68,27 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
 };
 
 
-// --- Extracted NotificationModal Component ---
+// --- NotificationModal Component ---
 interface NotificationModalProps {
-    show: boolean;
-    message: string;
-    setMessage: (message: string) => void;
-    type: NotificationType;
-    setType: (type: NotificationType) => void;
-    onClose: () => void;
-    onSend: () => void;
-    isSending: boolean;
+    show: boolean; message: string; setMessage: (message: string) => void;
+    type: NotificationType; setType: (type: NotificationType) => void;
+    onClose: () => void; onSend: () => void; isSending: boolean;
 }
 
 const NotificationTypeOption: React.FC<{
-    value: NotificationType;
-    label: string;
-    checked: boolean;
-    onChange: (value: NotificationType) => void;
-    color: string;
+    value: NotificationType; label: string; checked: boolean;
+    onChange: (value: NotificationType) => void; color: string;
 }> = ({ value, label, checked, onChange, color }) => (
     <label className="flex-1">
-        <input 
-            type="radio" 
-            name="notificationType" 
-            value={value} 
-            checked={checked} 
-            onChange={() => onChange(value)}
-            className="sr-only"
-        />
+        <input type="radio" name="notificationType" value={value} checked={checked} onChange={() => onChange(value)} className="sr-only"/>
         <div className={`w-full text-center p-2 rounded-md cursor-pointer transition-all duration-200 ${checked ? `${color} text-white font-bold shadow-md` : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
             {label}
         </div>
     </label>
 );
 
-
 const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, setMessage, type, setType, onClose, onSend, isSending }) => {
     if (!show) return null;
-
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
@@ -115,37 +102,66 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, se
                     </div>
                 </div>
                 <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    value={message} onChange={(e) => setMessage(e.target.value)}
                     placeholder="Digite a mensagem da notificação..."
                     className="w-full p-2 border border-gray-300 rounded-md resize-y min-h-[100px] focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="flex justify-end gap-3 mt-4">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={onSend} 
-                        disabled={isSending || !message.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-                    >
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button onClick={onSend} disabled={isSending || !message.trim()} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400">
                         {isSending ? 'Enviando...' : 'Enviar'}
                     </button>
                 </div>
-                 <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">
-                    <XMarkIcon className="w-6 h-6"/>
-                </button>
+                 <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full"><XMarkIcon className="w-6 h-6"/></button>
             </div>
         </div>
     );
 };
 
-// FIX: Define the FilterStatus type to resolve TypeScript errors.
+// --- StatCard Component ---
+const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number | string; color: string; }> = ({ icon, title, value, color }) => (
+    <div className={`p-4 rounded-lg shadow-md flex items-center gap-4 text-white ${color}`}>
+        <div className="p-3 bg-white/20 rounded-full">{icon}</div>
+        <div>
+            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-sm opacity-90">{title}</p>
+        </div>
+    </div>
+);
+
+// --- NotificationHistoryItem Component ---
+const NotificationHistoryItem: React.FC<{ notification: Notification; onDelete: (id: string) => void; }> = ({ notification, onDelete }) => {
+    const iconMap: Record<NotificationType, React.ReactNode> = {
+        info: <InformationCircleIcon className="w-6 h-6 text-blue-500" />,
+        warning: <ExclamationTriangleIcon className="w-6 h-6 text-yellow-500" />,
+        urgent: <ExclamationCircleIcon className="w-6 h-6 text-red-500" />,
+    };
+
+    const formattedDate = new Date(notification.createdAt.seconds * 1000).toLocaleString('pt-BR', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    return (
+        <div className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-md">
+            <div className="flex-shrink-0 mt-1">{iconMap[notification.type]}</div>
+            <div className="flex-grow">
+                <p className="text-sm text-gray-700">{notification.message}</p>
+                <p className="text-xs text-gray-400 mt-1">{formattedDate}</p>
+            </div>
+            <button onClick={() => onDelete(notification.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-full">
+                <TrashIcon className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
+
+
 type FilterStatus = 'all' | 'pending' | 'approved';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { getAllUsers, deleteUser, updateUser, createNotification } = useAuth();
+    const { getAllUsers, deleteUser, updateUser, createNotification, deleteNotification } = useAuth();
+    const { notifications: allNotifications } = useNotifications();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -160,22 +176,23 @@ const AdminDashboard: React.FC = () => {
     // Toast State
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
-
     const fetchUsers = useCallback(async () => {
         setLoading(true);
         try {
             const allUsers = await getAllUsers();
             setUsers(allUsers.filter(u => !u.isAdmin));
-        } catch (error) {
-            console.error("Failed to fetch users:", error);
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { console.error("Failed to fetch users:", error); } 
+        finally { setLoading(false); }
     }, [getAllUsers]);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+    useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+    const { totalUsers, approvedUsers, pendingUsers, sentNotifications } = useMemo(() => ({
+        totalUsers: users.length,
+        approvedUsers: users.filter(u => u.status === 'approved').length,
+        pendingUsers: users.filter(u => u.status === 'pending').length,
+        sentNotifications: allNotifications.length,
+    }), [users, allNotifications]);
 
     const filteredUsers = useMemo(() => {
         return users
@@ -186,8 +203,7 @@ const AdminDashboard: React.FC = () => {
             })
             .filter(user =>
                 user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.institutionalLogin.toLowerCase().includes(searchTerm.toLowerCase())
+                user.email.toLowerCase().includes(searchTerm.toLowerCase())
             );
     }, [users, searchTerm, activeFilter]);
 
@@ -196,29 +212,19 @@ const AdminDashboard: React.FC = () => {
             await updateUser(userToApprove.uid, { status: 'approved' });
             setToast({ show: true, message: `Usuário ${userToApprove.fullName} aprovado!`, type: 'success' });
             fetchUsers();
-        } catch (error: any) {
-            console.error("Failed to approve user:", error);
-            let message = 'Falha ao aprovar o usuário.';
-            if (error.code === 'permission-denied') {
-                message = 'Permissão negada. Verifique se sua conta de admin tem as permissões corretas no Firestore.';
-            }
-            setToast({ show: true, message, type: 'error' });
+        } catch (error) {
+            setToast({ show: true, message: 'Falha ao aprovar o usuário.', type: 'error' });
         }
     };
 
     const handleReprove = async (user: User) => {
-        if (window.confirm(`Tem certeza que deseja reprovar (excluir) o usuário ${user.fullName}? Esta ação não pode ser desfeita.`)) {
+        if (window.confirm(`Tem certeza que deseja reprovar (excluir) o usuário ${user.fullName}?`)) {
             try {
                 await deleteUser(user.uid);
                 setToast({ show: true, message: 'Usuário excluído com sucesso.', type: 'success' });
                 fetchUsers();
-            } catch (error: any) {
-                console.error("Failed to delete user:", error);
-                let message = 'Falha ao excluir o usuário.';
-                if (error.code === 'permission-denied') {
-                    message = 'Permissão negada. Verifique se sua conta de admin tem as permissões corretas no Firestore.';
-                }
-                setToast({ show: true, message, type: 'error' });
+            } catch (error) {
+                setToast({ show: true, message: 'Falha ao excluir o usuário.', type: 'error' });
             }
         }
     };
@@ -228,32 +234,37 @@ const AdminDashboard: React.FC = () => {
         setIsSendingNotification(true);
         try {
             await createNotification(notificationMessage, notificationType);
-            setToast({ show: true, message: 'Notificação enviada com sucesso!', type: 'success' });
-            setNotificationMessage('');
-            setNotificationType('info');
+            setToast({ show: true, message: 'Notificação enviada!', type: 'success' });
             setShowNotificationModal(false);
+            setNotificationMessage('');
         } catch (error) {
-            console.error("Failed to send notification:", error);
             setToast({ show: true, message: 'Falha ao enviar notificação.', type: 'error' });
         } finally {
             setIsSendingNotification(false);
         }
     };
 
-    const StatusBadge: React.FC<{ status: User['status'] }> = ({ status }) => {
-        const baseClasses = 'px-2 py-1 text-xs font-semibold rounded-full';
-        if (status === 'approved') {
-            return <span className={`${baseClasses} bg-green-100 text-green-800`}>Aprovado</span>;
+    const handleDeleteNotification = async (id: string) => {
+        if (window.confirm('Deseja excluir esta notificação do histórico?')) {
+            try {
+                await deleteNotification(id);
+                setToast({ show: true, message: 'Notificação excluída.', type: 'success' });
+            } catch (error) {
+                setToast({ show: true, message: 'Falha ao excluir.', type: 'error' });
+            }
         }
-        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Pendente</span>;
     };
+
+    const StatusBadge: React.FC<{ status: User['status'] }> = ({ status }) => (
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            {status === 'approved' ? 'Aprovado' : 'Pendente'}
+        </span>
+    );
     
     const FilterButton: React.FC<{ filter: FilterStatus; label: string }> = ({ filter, label }) => (
         <button
             onClick={() => setActiveFilter(filter)}
-            className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors ${
-                activeFilter === filter ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors ${activeFilter === filter ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
         >
             {label}
         </button>
@@ -263,14 +274,9 @@ const AdminDashboard: React.FC = () => {
         <div className="flex flex-col h-screen bg-gray-100">
             <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <NotificationModal 
-                show={showNotificationModal}
-                message={notificationMessage}
-                setMessage={setNotificationMessage}
-                type={notificationType}
-                setType={setNotificationType}
-                onClose={() => setShowNotificationModal(false)}
-                onSend={handleSendNotification}
-                isSending={isSendingNotification}
+                show={showNotificationModal} message={notificationMessage} setMessage={setNotificationMessage}
+                type={notificationType} setType={setNotificationType} onClose={() => setShowNotificationModal(false)}
+                onSend={handleSendNotification} isSending={isSendingNotification}
             />
             <header className="p-4 bg-white shadow-sm sticky top-0 z-10 border-b">
                  <div className="flex items-center justify-between">
@@ -278,82 +284,104 @@ const AdminDashboard: React.FC = () => {
                         <button onClick={() => navigate('/profile')} className="mr-4 p-1 rounded-full hover:bg-gray-100">
                             <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
                         </button>
-                        <h1 className="font-semibold text-lg text-gray-800">Admin Dashboard</h1>
+                        <h1 className="font-semibold text-lg text-gray-800">Dashboard</h1>
                     </div>
                     <button onClick={fetchUsers} disabled={loading} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-wait">
                         <ArrowPathIcon className={`w-6 h-6 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
-                 <div className="relative mt-4">
-                    <input
-                        type="text"
-                        placeholder="Buscar por nome, email, login..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                </div>
-                <div className="flex items-center justify-center gap-2 mt-4">
-                    <FilterButton filter="all" label="Todos" />
-                    <FilterButton filter="pending" label="Pendentes" />
-                    <FilterButton filter="approved" label="Aprovados" />
-                </div>
             </header>
 
             <main className="flex-grow p-4 overflow-y-auto pb-24">
-                 <div className="bg-white p-4 rounded-lg shadow-md border mb-6">
-                    <h2 className="text-md font-bold text-gray-700 mb-3">Funções de Admin</h2>
-                    <div className="flex flex-col gap-2">
-                        <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
-                            <BellAlertIcon className="w-5 h-5" />
-                            <span>Enviar Notificação Push</span>
-                        </button>
-                    </div>
-                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    {/* --- Left Column --- */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-700 mb-4">Visão Geral</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                               <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total de Usuários" value={totalUsers} color="bg-blue-500" />
+                               <StatCard icon={<CheckCircleSolid className="w-6 h-6"/>} title="Usuários Aprovados" value={approvedUsers} color="bg-green-500" />
+                               <StatCard icon={<ClockIcon className="w-6 h-6"/>} title="Usuários Pendentes" value={pendingUsers} color="bg-yellow-500" />
+                               <StatCard icon={<BellIcon className="w-6 h-6"/>} title="Notificações Enviadas" value={sentNotifications} color="bg-indigo-500" />
+                           </div>
+                        </div>
 
-                {loading ? (
-                    <p className="text-center text-gray-500 mt-8">Carregando usuários...</p>
-                ) : filteredUsers.length === 0 ? (
-                    <p className="text-center text-gray-500 mt-8">
-                        {searchTerm ? 'Nenhum usuário encontrado.' : 'Nenhum usuário para gerenciar.'}
-                    </p>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                        {filteredUsers.map(user => (
-                            <div key={user.uid} className="bg-white p-4 rounded-lg shadow-md border flex flex-col">
-                                <div className="flex items-center gap-4">
-                                    <img 
-                                        src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=random`} 
-                                        alt={user.fullName} 
-                                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                        <h2 className="font-bold text-gray-800 truncate">{user.fullName}</h2>
-                                        <p className="text-sm text-gray-500 truncate">{user.institutionalLogin}</p>
-                                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                                        <div className="mt-2">
-                                            <StatusBadge status={user.status} />
+                        <div className="bg-white p-4 rounded-lg shadow-md border">
+                            <h2 className="text-lg font-bold text-gray-700 mb-3">Funções de Admin</h2>
+                            <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                                <BellAlertIcon className="w-5 h-5" />
+                                <span>Enviar Notificação Push</span>
+                            </button>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg shadow-md border">
+                            <h2 className="text-lg font-bold text-gray-700 mb-2">Histórico de Notificações</h2>
+                            <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                                {allNotifications.length > 0 ? (
+                                    allNotifications.map(n => <NotificationHistoryItem key={n.id} notification={n} onDelete={handleDeleteNotification} />)
+                                ) : (
+                                    <p className="text-sm text-gray-500 text-center py-4">Nenhuma notificação enviada.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- Right Column --- */}
+                    <div className="lg:col-span-3">
+                        <h2 className="text-xl font-bold text-gray-700 mb-4">Gerenciamento de Usuários</h2>
+                        <div className="relative mb-4">
+                            <input
+                                type="text" placeholder="Buscar por nome ou email..."
+                                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            />
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                        <div className="flex items-center justify-center gap-2 mb-4">
+                            <FilterButton filter="all" label="Todos" />
+                            <FilterButton filter="pending" label="Pendentes" />
+                            <FilterButton filter="approved" label="Aprovados" />
+                        </div>
+
+                        {loading ? (
+                            <p className="text-center text-gray-500 mt-8">Carregando usuários...</p>
+                        ) : filteredUsers.length === 0 ? (
+                            <p className="text-center text-gray-500 mt-8">Nenhum usuário encontrado.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {filteredUsers.map(user => (
+                                    <div key={user.uid} className="bg-white p-4 rounded-lg shadow-md border flex flex-col">
+                                        <div className="flex items-center gap-4">
+                                            <img 
+                                                src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=random`} 
+                                                alt={user.fullName} 
+                                                className="w-16 h-16 rounded-full object-cover border"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-gray-800 truncate">{user.fullName}</h3>
+                                                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                                <div className="mt-2"><StatusBadge status={user.status} /></div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-end space-x-1 mt-4 pt-3 border-t border-gray-100">
+                                            {user.status === 'pending' && (
+                                                <button onClick={() => handleApprove(user)} className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors" title="Aprovar usuário">
+                                                    <CheckCircleOutline className="w-6 h-6" />
+                                                </button>
+                                            )}
+                                            <button onClick={() => navigate(`/admin/edit-user/${user.uid}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Editar perfil">
+                                                <PencilIcon className="w-6 h-6" />
+                                            </button>
+                                            <button onClick={() => handleReprove(user)} className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Excluir usuário">
+                                                <TrashIcon className="w-6 h-6" />
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center justify-end space-x-1 mt-4 pt-3 border-t border-gray-100">
-                                    {user.status === 'pending' && (
-                                        <button onClick={() => handleApprove(user)} className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors" title="Aprovar">
-                                            <CheckCircleOutline className="w-6 h-6" />
-                                        </button>
-                                    )}
-                                    <button onClick={() => navigate(`/admin/edit-user/${user.uid}`)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Editar">
-                                        <PencilIcon className="w-6 h-6" />
-                                    </button>
-                                    <button onClick={() => handleReprove(user)} className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Reprovar/Excluir">
-                                        <TrashIcon className="w-6 h-6" />
-                                    </button>
-                                </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
                     </div>
-                )}
+                </div>
             </main>
             <BottomNav />
         </div>
