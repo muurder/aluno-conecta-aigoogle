@@ -116,6 +116,20 @@ service cloud.firestore {
         allow read, write, delete: if request.auth.uid == userId;
       }
     }
+    
+    // --- Global Chat ---
+    match /chat/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.userName is string && request.resource.data.userName.size() > 0 &&
+                      request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() < 1024 &&
+                      (!request.resource.data.keys().has('photoURL') || 
+                       request.resource.data.photoURL == null || 
+                       request.resource.data.photoURL is string);
+      // Prevent users from updating/deleting messages to maintain chat history integrity.
+      allow update, delete: if false;
+    }
 
     // --- Posts (Mural/Feed) ---
     match /posts/{postId} {
