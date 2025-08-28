@@ -98,12 +98,17 @@ const AdminEditUser: React.FC = () => {
     useEffect(() => {
         const fetchUser = async () => {
             if (!uid) return;
-            const users = await getAllUsers();
-            const userToEdit = users.find(u => u.uid === uid);
-            if (userToEdit) {
-                setFormData(userToEdit);
-            } else {
-                setError('Usuário não encontrado.');
+            try {
+                const users = await getAllUsers();
+                const userToEdit = users.find(u => u.uid === uid);
+                if (userToEdit) {
+                    setFormData(userToEdit);
+                } else {
+                    setError('Usuário não encontrado.');
+                }
+            } catch (e) {
+                setError('Falha ao carregar dados do usuário.');
+                console.error(e);
             }
         };
         fetchUser();
@@ -148,11 +153,16 @@ const AdminEditUser: React.FC = () => {
             }
 
             setImageProcessing(true);
-            setError('');
             try {
                 const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 });
                 setPhotoFile(compressedFile);
-                setFormData({ ...formData, photo: previewUrl });
+                setFormData(prev => {
+                    if (!prev) return prev;
+                    if (prev.photo && prev.photo.startsWith('blob:')) {
+                        URL.revokeObjectURL(prev.photo);
+                    }
+                    return { ...prev, photo: previewUrl };
+                });
             } catch (err) {
                 console.error("Image processing failed:", err);
                 setToast({ show: true, message: 'Falha ao processar a imagem.', type: 'error' });
@@ -172,8 +182,8 @@ const AdminEditUser: React.FC = () => {
             setToast({ show: true, message: 'Perfil atualizado com sucesso!', type: 'success' });
             setTimeout(() => navigate('/admin/dashboard'), 2000);
         } catch(err) {
-            setError('Falha ao atualizar o perfil. Tente novamente.');
-            setToast({ show: true, message: 'Falha ao atualizar o perfil.', type: 'error' });
+            console.error(err);
+            setToast({ show: true, message: 'Falha ao atualizar o perfil. Verifique as permissões do Storage.', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -181,8 +191,9 @@ const AdminEditUser: React.FC = () => {
 
     if (!formData) {
         return (
-            <div className="p-4 flex items-center justify-center h-full">
-                <p className="text-gray-600">{error || 'Carregando...'}</p>
+            <div className="p-4 flex flex-col items-center justify-center h-full">
+                <ArrowPathIcon className="w-8 h-8 animate-spin text-gray-500"/>
+                <p className="text-gray-600 mt-2">{error || 'Carregando...'}</p>
             </div>
         );
     }
@@ -194,7 +205,7 @@ const AdminEditUser: React.FC = () => {
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
-                <h1 className="font-semibold text-lg">Editar Usuário: {formData.institutionalLogin}</h1>
+                <h1 className="font-semibold text-lg truncate">Editar: {formData.fullName}</h1>
             </header>
             
             <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-grow overflow-y-auto">
