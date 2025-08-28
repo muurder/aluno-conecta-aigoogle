@@ -58,17 +58,23 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     isInitialLoad.current = true;
     
     // --- Listener 1: Global Notifications ---
-    // Fetches all notifications. Admins see all, while regular users see only 'active' ones.
-    // This query reads directly from the global collection for all users, fixing the refresh issue.
-    const notificationsQuery = user.isAdmin
-      ? db.collection("notifications").orderBy("createdAt", "desc")
-      : db.collection("notifications").where("active", "==", true).orderBy("createdAt", "desc");
+    // To solve the refresh problem for normal users, we unify the query logic.
+    // Both admins and normal users now fetch from the global collection using the same base query.
+    // This avoids issues with composite indexes that might not be configured in Firestore.
+    // We will filter for 'active' notifications on the client-side for non-admins.
+    const notificationsQuery = db.collection("notifications").orderBy("createdAt", "desc");
       
     const unsubNotifications = notificationsQuery.onSnapshot((snapshot: QuerySnapshot) => {
-        const allNotifs = snapshot.docs.map(doc => ({
+        let allNotifs = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         })) as Notification[];
+
+        // Client-side filtering for regular users to ensure they only see active notifications.
+        if (!user.isAdmin) {
+            allNotifs = allNotifs.filter(n => n.active === true);
+        }
+        
         setGlobalNotifications(allNotifs);
 
         // Bell animation logic: trigger only on new documents after the initial load.
