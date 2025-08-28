@@ -20,6 +20,7 @@ interface NotificationsContextType {
   unreadCount: number;
   hasNewNotification: boolean;
   markAllAsRead: () => Promise<void>;
+  markAllAsUnread: () => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   clearAllNotifications: () => Promise<void>;
   toggleReadStatus: (id: string) => Promise<void>;
@@ -146,6 +147,19 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     });
     await batch.commit();
   }, [user, notifications]);
+  
+  const markAllAsUnread = useCallback(async () => {
+    if (!user) return;
+    const batch = db.batch();
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    notifications.forEach(n => {
+        if (n.read && !n.dismissed) {
+            const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(n.id);
+            batch.set(statusRef, { read: false, updatedAt: timestamp }, { merge: true });
+        }
+    });
+    await batch.commit();
+  }, [user, notifications]);
 
   const dismissNotification = useCallback(async (id: string) => {
     if (!user) return;
@@ -186,6 +200,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     unreadCount,
     hasNewNotification,
     markAllAsRead,
+    markAllAsUnread,
     dismissNotification,
     clearAllNotifications,
     toggleReadStatus,

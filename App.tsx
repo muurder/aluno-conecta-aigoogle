@@ -209,6 +209,10 @@ const AppRoutes: React.FC = () => {
   }
 
   if (user) {
+    // FIX: Add a fallback to prevent app crash when user is not found during initial load.
+    if (!user.status) {
+      return <Navigate to="/login" replace />;
+    }
     if (user.status === 'pending') {
       return (
         <Routes>

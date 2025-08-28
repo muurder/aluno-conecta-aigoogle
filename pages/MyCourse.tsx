@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import firebase from 'firebase/compat/app';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/solid';
+import { FaceSmileIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 
 // Define the shape of a chat message
@@ -19,20 +20,25 @@ interface ChatMessage {
 }
 
 const GlobalChat: React.FC = () => {
-    const { user } = useAuth();
+    const { user, updateChatLastReadTimestamp } = useAuth();
     const navigate = useNavigate();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
+    const [showEmojis, setShowEmojis] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const emojis = ['😀', '😂', '❤️', '👍', '🙏', '😢', '🔥', '🎉', '🤔', '😊', '😎', '🚀', '💯', '🙌', '😮', '😴'];
 
     // Auto-scroll to the bottom of the chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Set up Firestore listener for real-time messages
+    // Set up Firestore listener for real-time messages and mark as read
     useEffect(() => {
+        updateChatLastReadTimestamp();
+
         const unsubscribe = db.collection('chat')
             .orderBy('timestamp', 'asc')
             .limitToLast(50) // To avoid loading too many messages at once
@@ -49,7 +55,7 @@ const GlobalChat: React.FC = () => {
             });
             
         return () => unsubscribe();
-    }, []);
+    }, [updateChatLastReadTimestamp]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -106,7 +112,27 @@ const GlobalChat: React.FC = () => {
             </main>
             
             <footer className="fixed inset-x-0 bottom-[64px] max-w-sm mx-auto bg-gray-100/90 backdrop-blur-sm md:max-w-md lg:max-w-lg" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                 {showEmojis && (
+                    <div className="p-3 grid grid-cols-8 gap-2 bg-white border-t border-gray-200">
+                        {emojis.map(emoji => (
+                            <button 
+                                key={emoji} 
+                                onClick={() => setNewMessage(prev => prev + emoji)} 
+                                className="text-2xl rounded-lg hover:bg-gray-200 p-1 transition-colors"
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                )}
                 <form onSubmit={handleSendMessage} className="flex items-center space-x-2 p-3 border-t border-gray-200">
+                    <button 
+                        type="button" 
+                        onClick={() => setShowEmojis(prev => !prev)} 
+                        className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-200 transition-colors flex-shrink-0"
+                    >
+                        <FaceSmileIcon className="h-6 w-6" />
+                    </button>
                     <input
                         type="text"
                         value={newMessage}
