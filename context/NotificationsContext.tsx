@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
 import { db } from '../firebase';
-// FIX: Removed modular imports and switched to compat API to resolve module export errors.
-import type firebase from 'firebase/compat/app';
+import firebase from 'firebase/compat/app';
 import { useAuth } from './AuthContext';
 import type { Notification } from '../types';
 
@@ -32,83 +31,87 @@ type QuerySnapshot = firebase.firestore.QuerySnapshot;
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  
+  // Final merged notifications for the UI
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // State for raw data from listeners
+  const [globalNotifications, setGlobalNotifications] = useState<Notification[]>([]);
+  const [userStatuses, setUserStatuses] = useState<NotificationStatusMap>({});
+  
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const isInitialLoad = useRef(true);
 
-  // This effect fetches global notifications and merges them with user-specific statuses.
-  // It uses nested listeners to ensure data consistency and avoids race conditions.
-  // The dependency is only on `user`, so listeners are set up once per session.
+  // This refactored effect sets up two parallel, independent listeners.
+  // One for the global `/notifications` collection and one for the user-specific status subcollection.
+  // This approach is more robust and avoids potential race conditions from nested listeners.
   useEffect(() => {
     // On logout or if no user, clean up state and listeners.
     if (!user) {
-      setNotifications([]);
-      return () => {}; // Return a no-op cleanup function if there's no user
+      setGlobalNotifications([]);
+      setUserStatuses({});
+      return;
     }
 
-    // This ref helps prevent the "new notification" bell animation on the initial data load.
     isInitialLoad.current = true;
     
-    // This will hold the cleanup function for the nested listener on user statuses.
-    let unsubStatus: () => void = () => {};
-
-    // Listener for global notifications, conditional by user role
+    // --- Listener 1: Global Notifications ---
+    // Fetches all notifications visible to the current user (admins see all, users see active ones).
     const notificationsQuery = user.isAdmin
       ? db.collection("notifications").orderBy("createdAt", "desc")
       : db.collection("notifications").where("active", "==", true).orderBy("createdAt", "desc");
       
-    const unsubNotifications = notificationsQuery.onSnapshot((notifSnap: QuerySnapshot) => {
-        // First, detach the previous status listener to avoid memory leaks and race conditions.
-        unsubStatus();
+    const unsubNotifications = notificationsQuery.onSnapshot((snapshot: QuerySnapshot) => {
+        const allNotifs = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Notification[];
+        setGlobalNotifications(allNotifs);
 
         // Bell animation logic: trigger only on new documents after the initial load.
         if (isInitialLoad.current) {
           isInitialLoad.current = false;
         } else {
-          const hasAddedChange = notifSnap.docChanges().some(change => change.type === "added");
+          const hasAddedChange = snapshot.docChanges().some(change => change.type === "added");
           if (hasAddedChange) {
             setHasNewNotification(true);
             setTimeout(() => setHasNewNotification(false), 1500); // Animation duration
           }
         }
+    });
 
-        const allNotifications = notifSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Notification[];
-
-        // Now, set up the new nested listener for the user's individual notification statuses.
-        unsubStatus = db.collection("profiles")
-          .doc(user.uid)
-          .collection("notificationStatus")
-          .onSnapshot((statusSnap: QuerySnapshot) => {
-            const statusMap: NotificationStatusMap = {};
-            statusSnap.docs.forEach((doc) => {
-              statusMap[doc.id] = doc.data() as NotificationStatus;
-            });
-
-            // Combine global notifications with individual user statuses
-            const mergedNotifications = allNotifications
-              .map((notif) => {
-                const state = statusMap[notif.id];
-                return {
-                  ...notif,
-                  read: state?.read || false, // Apply read status, default to false
-                  dismissed: state?.dismissed || false, // Apply dismissed status
-                };
-              }) as Notification[];
-
-            setNotifications(mergedNotifications);
-          });
-      });
+    // --- Listener 2: User-specific Statuses ---
+    // Fetches the read/dismissed status for notifications for the logged-in user.
+    const statusQuery = db.collection("profiles").doc(user.uid).collection("notificationStatus");
+    const unsubStatuses = statusQuery.onSnapshot((snapshot: QuerySnapshot) => {
+        const statusMap: NotificationStatusMap = {};
+        snapshot.docs.forEach((doc) => {
+            statusMap[doc.id] = doc.data() as NotificationStatus;
+        });
+        setUserStatuses(statusMap);
+    });
 
     // The main cleanup function for the useEffect hook.
-    // This will be called when the component unmounts or the user changes.
     return () => {
       unsubNotifications();
-      unsubStatus();
+      unsubStatuses();
     };
   }, [user]);
+
+  // This effect runs whenever the global list or user statuses change.
+  // It merges the two sources of data into the final `notifications` state for the UI.
+  useEffect(() => {
+      const merged = globalNotifications.map((notif) => {
+          const status = userStatuses[notif.id];
+          return {
+              ...notif,
+              read: status?.read || false,
+              dismissed: status?.dismissed || false,
+          };
+      });
+      setNotifications(merged);
+  }, [globalNotifications, userStatuses]);
+
 
   const unreadCount = useMemo(() => {
     return notifications.filter(n => !n.read && !n.dismissed).length;
@@ -117,10 +120,11 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const markAllAsRead = useCallback(async () => {
     if (!user) return;
     const batch = db.batch();
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
     notifications.forEach(n => {
         if (!n.read) {
             const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(n.id);
-            batch.set(statusRef, { read: true }, { merge: true });
+            batch.set(statusRef, { read: true, updatedAt: timestamp }, { merge: true });
         }
     });
     await batch.commit();
@@ -129,15 +133,19 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const dismissNotification = useCallback(async (id: string) => {
     if (!user) return;
     const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(id);
-    await statusRef.set({ dismissed: true }, { merge: true });
+    await statusRef.set({ 
+      dismissed: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
   }, [user]);
 
   const clearAllNotifications = useCallback(async () => {
     if (!user) return;
     const batch = db.batch();
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
     notifications.forEach(n => {
         const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(n.id);
-        batch.set(statusRef, { dismissed: true }, { merge: true });
+        batch.set(statusRef, { dismissed: true, updatedAt: timestamp }, { merge: true });
     });
     await batch.commit();
   }, [user, notifications]);
@@ -149,7 +157,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     
     const currentReadStatus = !!notification.read;
     const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(id);
-    await statusRef.set({ read: !currentReadStatus }, { merge: true });
+    await statusRef.set({
+      read: !currentReadStatus,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp() 
+    }, { merge: true });
   }, [user, notifications]);
 
 
