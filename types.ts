@@ -25,7 +25,6 @@ export interface User {
   photo: string | null;
   status: UserStatus;
   isAdmin?: boolean;
-  chatLastRead?: firebase.firestore.Timestamp; // For chat unread count
 }
 
 export interface Comment {
