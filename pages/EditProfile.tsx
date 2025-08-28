@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 // FIX: Update react-router-dom import to v6. 'useHistory' is replaced by 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,7 +7,62 @@ import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, CheckCircleIcon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
+
+// --- Toast Component ---
+const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolean; onClose: () => void }> = ({ message, type, show, onClose }) => {
+    useEffect(() => {
+        if (show) {
+            const timer = setTimeout(() => onClose(), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [show, onClose]);
+
+    if (!show) return null;
+
+    const isSuccess = type === 'success';
+    const bgColor = isSuccess ? 'bg-green-600' : 'bg-red-600';
+    const Icon = isSuccess ? CheckCircleIcon : ExclamationCircleIcon;
+
+    // Responsive classes for positioning
+    const positionClasses = `
+        fixed z-[100] w-11/12 max-w-sm top-4 left-1/2 -translate-x-1/2
+        md:w-auto md:max-w-none md:top-auto md:left-auto md:bottom-5 md:right-5 md:translate-x-0
+    `;
+
+    return (
+        <div 
+            className={`${positionClasses} flex items-center gap-4 p-4 rounded-lg shadow-2xl text-white ${bgColor} animate-toast`}
+            role="alert"
+        >
+            <Icon className="w-6 h-6 flex-shrink-0" />
+            <p className="text-sm font-semibold">{message}</p>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20">
+                <XMarkIcon className="w-5 h-5" />
+            </button>
+            <style>{`
+                @keyframes slide-in-top {
+                    from { opacity: 0; transform: translate(-50%, -100%); }
+                    to { opacity: 1; transform: translate(-50%, 0); }
+                }
+                @keyframes slide-in-right {
+                    from { opacity: 0; transform: translateX(100%); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                .animate-toast {
+                    animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                }
+                @media (min-width: 768px) {
+                    .animate-toast {
+                        animation-name: slide-in-right;
+                    }
+                }
+            `}</style>
+        </div>
+    );
+};
+
 
 // Helper function to compress images client-side before upload
 const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<{ compressedFile: File; previewUrl: string }> => {
@@ -87,6 +142,7 @@ const EditProfile: React.FC = () => {
     const [error, setError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -117,7 +173,7 @@ const EditProfile: React.FC = () => {
             setImageProcessing(true);
             setError('');
             try {
-                const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.8 });
+                const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 });
                 setPhotoFile(compressedFile);
                 setFormData(prev => {
                     if (!prev) return prev;
@@ -143,10 +199,11 @@ const EditProfile: React.FC = () => {
         setError('');
         try {
             await updateUser(formData.uid, formData, photoFile ?? undefined);
-            // FIX: Use navigate() for navigation.
-            navigate('/profile');
+            setToast({ show: true, message: 'Perfil atualizado com sucesso!', type: 'success' });
+            setTimeout(() => navigate('/profile'), 2000);
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
+            setToast({ show: true, message: 'Falha ao atualizar o perfil.', type: 'error' });
             console.error(err);
         } finally {
             setLoading(false);
@@ -191,6 +248,7 @@ const EditProfile: React.FC = () => {
 
     return (
         <div className="flex-grow flex flex-col bg-gray-100">
+            <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 {/* FIX: Use navigate(-1) for back navigation. */}
                 <button onClick={() => navigate(-1)} className="mr-4">

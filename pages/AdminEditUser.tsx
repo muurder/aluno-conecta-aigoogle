@@ -6,7 +6,81 @@ import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
-import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, SparklesIcon, CheckCircleIcon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
+
+// --- Toast Component ---
+const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolean; onClose: () => void }> = ({ message, type, show, onClose }) => {
+    useEffect(() => {
+        if (show) {
+            const timer = setTimeout(() => onClose(), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [show, onClose]);
+
+    if (!show) return null;
+
+    const isSuccess = type === 'success';
+    const bgColor = isSuccess ? 'bg-green-600' : 'bg-red-600';
+    const Icon = isSuccess ? CheckCircleIcon : ExclamationCircleIcon;
+
+    return (
+        <div 
+            className={`fixed z-[100] w-11/12 max-w-sm top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 p-4 rounded-lg shadow-2xl text-white ${bgColor} animate-toast`}
+            role="alert"
+        >
+            <Icon className="w-6 h-6 flex-shrink-0" />
+            <p className="text-sm font-semibold">{message}</p>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20">
+                <XMarkIcon className="w-5 h-5" />
+            </button>
+            <style>{`
+                @keyframes slide-in-top {
+                    from { opacity: 0; transform: translate(-50%, -100%); }
+                    to { opacity: 1; transform: translate(-50%, 0); }
+                }
+                .animate-toast { animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+            `}</style>
+        </div>
+    );
+};
+
+// Helper function to compress images client-side before upload
+const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<{ compressedFile: File; previewUrl: string }> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onerror = reject;
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onerror = reject;
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > height) {
+                    if (width > options.maxWidth) { height = Math.round((height * options.maxWidth) / width); width = options.maxWidth; }
+                } else {
+                    if (height > options.maxHeight) { width = Math.round((width * options.maxHeight) / height); height = options.maxHeight; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return reject(new Error('Could not get canvas context.'));
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) return reject(new Error('Canvas to Blob conversion failed.'));
+                        const compressedFile = new File([blob], file.name.split('.').slice(0, -1).join('.') + '.jpeg', { type: 'image/jpeg', lastModified: Date.now() });
+                        const previewUrl = URL.createObjectURL(blob);
+                        resolve({ compressedFile, previewUrl });
+                    }, 'image/jpeg', options.quality
+                );
+            };
+            img.src = e.target?.result as string;
+        };
+    });
+};
+
 
 const AdminEditUser: React.FC = () => {
     const { uid } = useParams<{ uid: string }>();
@@ -17,6 +91,9 @@ const AdminEditUser: React.FC = () => {
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [newPassword, setNewPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [imageProcessing, setImageProcessing] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
     
     useEffect(() => {
         const fetchUser = async () => {
@@ -61,31 +138,44 @@ const AdminEditUser: React.FC = () => {
         setFormData(newFormData);
     };
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!formData) return;
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setPhotoFile(file);
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                if (event.target?.result) {
-                    setFormData({ ...formData, photo: event.target.result as string });
-                }
-            };
-            reader.readAsDataURL(file);
+            if (!file.type.startsWith('image/')) {
+                setToast({ show: true, message: 'Por favor, selecione um arquivo de imagem.', type: 'error' });
+                return;
+            }
+
+            setImageProcessing(true);
+            setError('');
+            try {
+                const { compressedFile, previewUrl } = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 });
+                setPhotoFile(compressedFile);
+                setFormData({ ...formData, photo: previewUrl });
+            } catch (err) {
+                console.error("Image processing failed:", err);
+                setToast({ show: true, message: 'Falha ao processar a imagem.', type: 'error' });
+            } finally {
+                setImageProcessing(false);
+            }
         }
     };
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData || !uid) return;
+        setLoading(true);
+        setError('');
         try {
-            // Note: Changing user password requires backend logic (e.g., Cloud Function)
-            // This implementation will only update Firestore data.
             await updateUser(uid, formData, photoFile ?? undefined);
-            navigate('/admin/dashboard');
+            setToast({ show: true, message: 'Perfil atualizado com sucesso!', type: 'success' });
+            setTimeout(() => navigate('/admin/dashboard'), 2000);
         } catch(err) {
             setError('Falha ao atualizar o perfil. Tente novamente.');
+            setToast({ show: true, message: 'Falha ao atualizar o perfil.', type: 'error' });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -99,6 +189,7 @@ const AdminEditUser: React.FC = () => {
 
     return (
         <div className="flex-grow flex flex-col bg-gray-50">
+            <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <header className="p-4 flex items-center text-gray-700 bg-white shadow-sm sticky top-0 z-10">
                 <button onClick={() => navigate(-1)} className="mr-4">
                     <ArrowLeftIcon className="w-6 h-6" />
@@ -112,8 +203,8 @@ const AdminEditUser: React.FC = () => {
                  <div className="flex flex-col items-center space-y-2">
                      <div className="relative w-28 h-28 mx-auto">
                         <img src={formData.photo || 'https://i.imgur.com/V4RclNb.png'} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-lg" />
-                        <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 shadow-md cursor-pointer">
-                            <CameraIcon className="w-5 h-5" />
+                        <label htmlFor="photo-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 shadow-md cursor-pointer hover:bg-blue-700">
+                            {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CameraIcon className="w-5 h-5" />}
                         </label>
                         <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
                     </div>
@@ -174,7 +265,9 @@ const AdminEditUser: React.FC = () => {
                 </div>
 
                 <div className="pt-4 sticky bottom-0 bg-gray-50 pb-4">
-                    <button type="submit" className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700">Salvar Alterações</button>
+                    <button type="submit" disabled={loading || imageProcessing} className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
+                        {loading ? 'Salvando...' : 'Salvar Alterações'}
+                    </button>
                 </div>
             </form>
         </div>
