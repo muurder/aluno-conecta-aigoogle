@@ -30,6 +30,9 @@ interface AuthContextType {
   toggleReaction: (postId: string, emoji: string) => Promise<void>;
   // Admin notification function
   createNotification: (message: string, type: NotificationType) => Promise<void>;
+  // Chat unread count
+  unreadChatCount: number;
+  updateChatLastReadTimestamp: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +40,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const isInitialSnapshot = useRef(true);
 
   useEffect(() => {
@@ -99,6 +103,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
   }, [user]);
+
+  // Effect for unread chat message count
+  useEffect(() => {
+    if (!user) {
+        setUnreadChatCount(0);
+        return;
+    }
+
+    const chatQuery = db.collection('chat').orderBy('timestamp', 'desc').limit(100);
+
+    const unsubscribe = chatQuery.onSnapshot(snapshot => {
+        const lastRead = user.chatLastRead?.toDate() ?? new Date(0);
+        let count = 0;
+        
+        for (const doc of snapshot.docs) {
+            const message = doc.data();
+            const messageTimestamp = message.timestamp?.toDate();
+            if (messageTimestamp && messageTimestamp > lastRead) {
+                if (message.userId !== user.uid) {
+                    count++;
+                }
+            } else {
+                // Since messages are ordered by timestamp descending, we can stop early.
+                break;
+            }
+        }
+        setUnreadChatCount(count);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
 
   const login = async (email: string, pass: string) => {
     // FIX: Refactored auth call to use v8 namespaced API.
@@ -340,6 +376,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const updateChatLastReadTimestamp = async () => {
+    if (!user) return;
+    try {
+        const userDocRef = db.collection('profiles').doc(user.uid);
+        const newTimestamp = firebase.firestore.Timestamp.now();
+        await userDocRef.update({ chatLastRead: newTimestamp });
+        // Also update the local user state to reflect the change immediately
+        setUser(prevUser => prevUser ? { ...prevUser, chatLastRead: newTimestamp } : null);
+    } catch (error) {
+        // This might fail if the field doesn't exist, but it's not critical.
+        console.warn("Could not update chat last read timestamp:", error);
+    }
+  };
+
   const value = {
     isAuthenticated: !!user,
     user,
@@ -358,6 +408,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     deleteComment,
     toggleReaction,
     createNotification,
+    unreadChatCount,
+    updateChatLastReadTimestamp,
   };
   
   return (

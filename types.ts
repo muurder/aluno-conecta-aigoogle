@@ -1,5 +1,7 @@
 
 
+import type firebase from 'firebase/compat/app';
+
 
 export const universityNames = [
   "Anhanguera", "Anhembi Morumbi", "Estacio", "Fiesp", "FMU", "São Judas", 
@@ -23,6 +25,7 @@ export interface User {
   photo: string | null;
   status: UserStatus;
   isAdmin?: boolean;
+  chatLastRead?: firebase.firestore.Timestamp; // For chat unread count
 }
 
 export interface Comment {

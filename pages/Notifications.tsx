@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationsContext';
-import { ArrowLeftIcon, CheckBadgeIcon, TrashIcon, BellSlashIcon } from '@heroicons/react/24/solid';
+import { ArrowLeftIcon, CheckBadgeIcon, TrashIcon, BellSlashIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/solid';
 import { XMarkIcon, InformationCircleIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '@heroicons/react/24/solid';
 import { EnvelopeIcon, EnvelopeOpenIcon } from '@heroicons/react/24/outline';
 import type { Notification } from '../types';
@@ -91,11 +91,12 @@ const ToggleSwitch: React.FC<{ checked: boolean, onChange: (checked: boolean) =>
 
 const Notifications: React.FC = () => {
     const navigate = useNavigate();
-    const { notifications, markAllAsRead, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
+    const { notifications, markAllAsRead, markAllAsUnread, clearAllNotifications, dismissNotification, toggleReadStatus } = useNotifications();
     const [hideRead, setHideRead] = useState(false);
     
     const visibleNotifications = useMemo(() => {
-        return hideRead ? notifications.filter(n => !n.read) : notifications;
+        const nonDismissed = notifications.filter(n => !n.dismissed);
+        return hideRead ? nonDismissed.filter(n => !n.read) : nonDismissed;
     }, [notifications, hideRead]);
 
     return (
@@ -109,6 +110,9 @@ const Notifications: React.FC = () => {
                         <h1 className="font-bold text-lg">Notificações</h1>
                     </div>
                     <div className="flex items-center gap-2">
+                        <button onClick={markAllAsUnread} title="Marcar todas como não lidas" className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
+                            <ArrowUturnLeftIcon className="w-6 h-6" />
+                        </button>
                          <button onClick={markAllAsRead} title="Marcar todas como lidas" className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
                             <CheckBadgeIcon className="w-6 h-6" />
                         </button>
