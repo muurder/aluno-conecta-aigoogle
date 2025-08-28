@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { HomeIcon, ChatBubbleOvalLeftEllipsisIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
-import { useAuth } from '../context/AuthContext';
+import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
 
 const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string; badgeCount?: number }> = ({ to, icon, label, badgeCount }) => {
   return (
@@ -31,8 +30,6 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string; badg
 };
 
 const BottomNav: React.FC = () => {
-  const { unreadChatCount } = useAuth();
-  
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 
@@ -42,7 +39,7 @@ const BottomNav: React.FC = () => {
       <div className="mx-auto max-w-sm">
         <ul className="grid grid-cols-4 h-[64px] items-center">
           <li><NavItem to="/" icon={<HomeIcon className="w-6 h-6" />} label="Início" /></li>
-          <li><NavItem to="/my-course" icon={<ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6" />} label="Chat" badgeCount={unreadChatCount} /></li>
+          <li><NavItem to="/my-course" icon={<AcademicCapIcon className="w-6 h-6" />} label="Cursos" /></li>
           <li><NavItem to="/financial" icon={<BanknotesIcon className="w-6 h-6" />} label="Financeiro" /></li>
           <li><NavItem to="/profile" icon={<UserIcon className="w-6 h-6" />} label="Perfil" /></li>
         </ul>
