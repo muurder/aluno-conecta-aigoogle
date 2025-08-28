@@ -9,6 +9,7 @@ import type { Notification } from '../types';
 interface NotificationStatus {
   read?: boolean;
   dismissed?: boolean;
+  updatedAt?: firebase.firestore.FieldValue;
 }
 
 // A map for easy lookup in the state: { [notificationId]: { read: true, dismissed: false } }
@@ -26,7 +27,7 @@ interface NotificationsContextType {
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
-// FIX: Define QuerySnapshot type for compat mode.
+// Define QuerySnapshot type for compat mode.
 type QuerySnapshot = firebase.firestore.QuerySnapshot;
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,9 +43,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const isInitialLoad = useRef(true);
 
-  // This refactored effect sets up two parallel, independent listeners.
-  // One for the global `/notifications` collection and one for the user-specific status subcollection.
-  // This approach is more robust and avoids potential race conditions from nested listeners.
+  // This effect sets up two parallel, independent listeners:
+  // 1. For the global `/notifications` collection.
+  // 2. For the user-specific `/profiles/{uid}/notificationStatus` subcollection.
+  // This robust approach ensures data is fetched correctly and independently, preventing race conditions.
   useEffect(() => {
     // On logout or if no user, clean up state and listeners.
     if (!user) {
@@ -56,7 +58,8 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     isInitialLoad.current = true;
     
     // --- Listener 1: Global Notifications ---
-    // Fetches all notifications visible to the current user (admins see all, users see active ones).
+    // Fetches all notifications. Admins see all, while regular users see only 'active' ones.
+    // This query reads directly from the global collection for all users, fixing the refresh issue.
     const notificationsQuery = user.isAdmin
       ? db.collection("notifications").orderBy("createdAt", "desc")
       : db.collection("notifications").where("active", "==", true).orderBy("createdAt", "desc");
@@ -78,6 +81,11 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             setTimeout(() => setHasNewNotification(false), 1500); // Animation duration
           }
         }
+    }, (error) => {
+        console.error("Error fetching global notifications:", error);
+        // This error often indicates a missing Firestore index.
+        // Check the browser console for a link to create it in the Firebase console.
+        setGlobalNotifications([]);
     });
 
     // --- Listener 2: User-specific Statuses ---
@@ -89,9 +97,12 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             statusMap[doc.id] = doc.data() as NotificationStatus;
         });
         setUserStatuses(statusMap);
+    }, (error) => {
+        console.error("Error fetching user notification statuses:", error);
+        setUserStatuses({});
     });
 
-    // The main cleanup function for the useEffect hook.
+    // Cleanup function for when the component unmounts or the user changes.
     return () => {
       unsubNotifications();
       unsubStatuses();
@@ -122,7 +133,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const batch = db.batch();
     const timestamp = firebase.firestore.FieldValue.serverTimestamp();
     notifications.forEach(n => {
-        if (!n.read) {
+        if (!n.read && !n.dismissed) {
             const statusRef = db.collection('profiles').doc(user.uid).collection('notificationStatus').doc(n.id);
             batch.set(statusRef, { read: true, updatedAt: timestamp }, { merge: true });
         }
