@@ -34,8 +34,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const predefinedThemes: Omit<ThemeTemplate, 'source' | 'createdAt'>[] = [
-    { id: 'unicsul', name: "Universidade Cruzeiro do Sul", logo: "unicsul.svg", tokens: { primary: "#0C2D5B", onPrimary: "#FFFFFF", secondary: "#1E3A8A", onSecondary: "#FFFFFF", background: "#F5F7FB", surface: "#FFFFFF", text: "#0F172A", muted: "#64748B", accent: "#F59E0B" }},
-    { id: 'unifesp', name: "UNIFESP", logo: "unifesp.svg", tokens: { primary: "#0B5D45", onPrimary: "#FFFFFF", secondary: "#065F46", onSecondary: "#FFFFFF", background: "#F4F7F5", surface: "#FFFFFF", text: "#0F172A", muted: "#64748B", accent: "#94A3B8" }},
+    { id: 'unicsul', name: "Unicsul", logo: "unicsul.svg", tokens: { primary: "#0C2D5B", onPrimary: "#FFFFFF", secondary: "#1E3A8A", onSecondary: "#FFFFFF", background: "#F5F7FB", surface: "#FFFFFF", text: "#0F172A", muted: "#64748B", accent: "#F59E0B" }},
+    { id: 'unifesp', name: "Unifesp", logo: "unifesp.svg", tokens: { primary: "#0B5D45", onPrimary: "#FFFFFF", secondary: "#065F46", onSecondary: "#FFFFFF", background: "#F4F7F5", surface: "#FFFFFF", text: "#0F172A", muted: "#64748B", accent: "#94A3B8" }},
     { id: 'usp', name: "USP", logo: "usp.svg", tokens: { primary: "#111827", onPrimary: "#FFFFFF", secondary: "#374151", onSecondary: "#FFFFFF", background: "#F3F4F6", surface: "#FFFFFF", text: "#111827", muted: "#6B7280", accent: "#60A5FA" }},
     { id: 'anhanguera', name: "Anhanguera", logo: "anhanguera.svg", tokens: { primary: "#F97316", onPrimary: "#FFFFFF", secondary: "#EA580C", onSecondary: "#FFFFFF", background: "#FFF7ED", surface: "#FFFFFF", text: "#111827", muted: "#6B7280", accent: "#FDBA74" }},
     { id: 'anhembimorumbi', name: "Anhembi Morumbi", logo: "anhembimorumbi.svg", tokens: { primary: "#138E84", onPrimary: "#FFFFFF", secondary: "#0E7490", onSecondary: "#FFFFFF", background: "#F0FDFC", surface: "#FFFFFF", text: "#0F172A", muted: "#64748B", accent: "#6B7280" }},
