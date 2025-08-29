@@ -1,10 +1,14 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UNIVERSITY_LOGOS } from '../constants';
 import { hasGenAIKey, streamAnswer, ChatMsg } from '../services/genai';
-import { ArrowLeftIcon, PaperAirplaneIcon, StopCircleIcon, ClipboardIcon, CheckIcon } from '@heroicons/react/24/solid';
+import {
+    ArrowLeftIcon,
+    PaperAirplaneIcon,
+    StopCircleIcon,
+    ClipboardIcon,
+    CheckIcon
+} from '@heroicons/react/24/solid';
 
 const QUICK_ACTIONS = [
     "Gerar 2ª via do boleto",
@@ -14,27 +18,22 @@ const QUICK_ACTIONS = [
     "Trancar/Destrancar matrícula"
 ];
 
-const AIAvatar: React.FC = () => {
-    const { user } = useAuth();
-    const logoSrc = user?.university ? UNIVERSITY_LOGOS[user.university] : null;
+const AIAvatar: React.FC = () => (
+    <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="text-[var(--primary)]">
+            <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 1.828.504 3.55 1.348 5.095.342 1.241 1.519 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.536 3.536 3.536 9.213 0 12.749a.75.75 0 11-1.06-1.06c2.953-2.953 2.953-7.737 0-10.63-1.06-1.06z" />
+            <path d="M16.464 7.226a.75.75 0 011.06 0c2.209 2.209 2.209 5.791 0 8a.75.75 0 11-1.06-1.06c1.626-1.626 1.626-4.308 0-5.933a.75.75 0 010-1.06z" />
+        </svg>
+    </div>
+);
 
-    return (
-        <div className="w-8 h-8 rounded-full bg-[var(--surface)] border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm">
-            {logoSrc ? (
-                <img src={logoSrc} alt={`${user!.university} logo`} className="w-5 h-5 object-contain" />
-            ) : (
-                <span className="text-sm font-bold text-[var(--primary)]">AI</span>
-            )}
-        </div>
-    );
-};
 
 const UserAvatar: React.FC = () => {
     const { user } = useAuth();
     const initials = user?.fullName.split(' ').slice(0, 2).map(n => n[0]).join('') || 'U';
 
     return (
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden" style={{ minWidth: 32, minHeight: 32 }}>
             {user?.photo ? (
                 <img src={user.photo} alt="User" className="w-full h-full object-cover" />
             ) : (
@@ -66,21 +65,25 @@ const MessageBubble: React.FC<{ msg: ChatMsg }> = ({ msg }) => {
                         : 'bg-[var(--surface)] text-[var(--text)] rounded-bl-none'
                 }`}
             >
-                <p className="text-sm whitespace-pre-wrap">{msg.text.trim()}</p>
-                <button
-                    onClick={handleCopy}
-                    className="absolute -top-2 -right-2 p-1 bg-gray-600/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Copiar mensagem"
-                >
-                    {copied ? <CheckIcon className="w-3 h-3" /> : <ClipboardIcon className="w-3 h-3" />}
-                </button>
+                <p className="text-sm whitespace-pre-wrap" style={{ wordBreak: 'break-word' }}>{msg.text.trim()}</p>
+                 {!isUser && msg.text.length > 0 && (
+                     <button
+                        onClick={handleCopy}
+                        style={{ minHeight: 28, minWidth: 28 }}
+                        className="absolute -top-3 -right-3 p-1 bg-gray-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        aria-label="Copiar mensagem"
+                    >
+                        {copied ? <CheckIcon className="w-4 h-4" /> : <ClipboardIcon className="w-4 h-4" />}
+                    </button>
+                 )}
             </div>
             {isUser && <UserAvatar />}
         </div>
     );
 };
 
-const SupportAI: React.FC = () => {
+
+export default function SupportAI() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -91,52 +94,49 @@ const SupportAI: React.FC = () => {
     const abortControllerRef = useRef<AbortController | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
-    // Load history from localStorage on mount
+    const storageKey = useMemo(() => `supportAI.history.${user?.uid || 'anon'}`, [user]);
+
+    // Load history from localStorage on mount or create welcome message
     useEffect(() => {
-        const storageKey = `supportAI.history.${user?.uid || 'anon'}`;
         const storedHistory = localStorage.getItem(storageKey);
         if (storedHistory) {
             setMessages(JSON.parse(storedHistory));
-        }
-    }, [user]);
-
-    // Save history to localStorage on change
-    useEffect(() => {
-        if (messages.length > 0) {
-            const storageKey = `supportAI.history.${user?.uid || 'anon'}`;
-            localStorage.setItem(storageKey, JSON.stringify(messages));
-        }
-    }, [messages, user]);
-    
-    // Initial welcome message
-    useEffect(() => {
-        if (messages.length === 0 && user) {
+        } else if (user) {
             const universityContext = user.university ? ` com assuntos da ${user.university}` : '';
             setMessages([{
                 role: 'model',
                 text: `Olá, ${user.fullName.split(' ')[0]}! Sou seu assistente virtual. Como posso te ajudar hoje${universityContext}?`
             }]);
         }
-    }, [user, messages.length]);
+    }, [user, storageKey]);
 
+    // Save history to localStorage on change
+    useEffect(() => {
+        if (messages.length > 0) {
+            localStorage.setItem(storageKey, JSON.stringify(messages));
+        }
+    }, [messages, storageKey]);
 
+    // Auto-scroll to bottom
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, partialResponse, loading]);
+    }, [messages, partialResponse]);
 
-    const systemPrompt = `Você é um assistente virtual amigável e prestativo para o "Portal do Aluno". Seu nome é "Portal Bot". Responda a perguntas sobre a vida acadêmica, serviços universitários e procedimentos administrativos. Mantenha as respostas concisas, claras e em português do Brasil. Se não souber a resposta, diga que não possui essa informação. ${user?.university ? `A universidade do aluno é: ${user.university}.` : ''}`;
+    const systemPrompt = `Você é um assistente virtual amigável e prestativo para o "Portal do Aluno". Seu nome é "Portal Bot". Responda a perguntas sobre a vida acadêmica, serviços universitários e procedimentos administrativos. Mantenha as respostas concisas, claras e em português do Brasil. Se não souber a resposta, diga que não possui essa informação. ${user?.university ? `Universidade do aluno: ${user.university}.` : ''}`;
 
     const handleSend = useCallback(async (messageText: string) => {
         if (loading || !messageText.trim()) return;
 
         const newUserMessage: ChatMsg = { role: 'user', text: messageText, at: Date.now() };
-        setMessages(prev => [...prev, newUserMessage]);
+        const nextHistory = [...messages, newUserMessage];
+        setMessages(nextHistory);
         setError(null);
         setLoading(true);
         setPartialResponse('');
 
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
+        let fullResponse = '';
 
         try {
             const stream = streamAnswer({
@@ -147,14 +147,18 @@ const SupportAI: React.FC = () => {
             });
 
             for await (const chunk of stream) {
-                setPartialResponse(prev => prev + chunk);
+                fullResponse += chunk;
+                setPartialResponse(fullResponse);
             }
             
-            setMessages(prev => [...prev, { role: 'model', text: partialResponse, at: Date.now() }]);
-
-        } catch (err) {
-            setError("Desculpe, ocorreu um erro. Tente novamente.");
-            console.error(err);
+            if (fullResponse) {
+                setMessages(prev => [...prev, { role: 'model', text: fullResponse, at: Date.now() }]);
+            }
+        } catch (err: any) {
+            if (err.name !== 'AbortError') {
+                 setError("Desculpe, ocorreu um erro. Tente novamente.");
+                 console.error(err);
+            }
         } finally {
             setLoading(false);
             setPartialResponse('');
@@ -169,16 +173,17 @@ const SupportAI: React.FC = () => {
     };
     
     const handleQuickAction = (action: string) => {
-        setInput(action);
+        setInput(''); // Clear input in case user was typing
         handleSend(action);
     };
 
     const handleCancel = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
-            setLoading(false);
             setMessages(prev => [...prev, { role: 'model', text: `${partialResponse} \n\n⏹️ Geração cancelada.`}]);
             setPartialResponse('');
+            setLoading(false);
+            abortControllerRef.current = null;
         }
     };
     
@@ -188,30 +193,40 @@ const SupportAI: React.FC = () => {
             handleSubmit(e);
         }
     };
+    
+    // Auto-resize textarea
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+    }, [input]);
 
     return (
-        <div className="flex-grow flex flex-col bg-[var(--background)]">
+        <div className="flex-grow flex flex-col bg-[var(--background)] h-full">
             <header className="p-2 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-20 border-b">
-                <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100">
+                <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100" style={{minHeight: 44, minWidth: 44}}>
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-bold text-lg text-center flex-grow">Assistente Virtual</h1>
-                <div className="w-10">
+                <div className="w-12 flex justify-center">
                     {loading && (
-                        <button onClick={handleCancel} className="p-2 rounded-full hover:bg-red-100 text-red-600" aria-label="Parar geração">
+                        <button onClick={handleCancel} className="p-2 rounded-full hover:bg-red-100 text-red-600" aria-label="Parar geração" style={{minHeight: 44, minWidth: 44}}>
                             <StopCircleIcon className="w-6 h-6" />
                         </button>
                     )}
                 </div>
             </header>
             
-            <div className="flex-grow p-4 overflow-y-auto pb-28">
+            <div className="flex-grow p-4 overflow-y-auto" style={{paddingBottom: '140px'}}>
                 {messages.length <= 1 && (
                     <div className="mb-6">
                         <h2 className="text-sm font-semibold text-center text-[var(--muted)] mb-3">Sugestões rápidas</h2>
                         <div className="flex flex-wrap justify-center gap-2">
                             {QUICK_ACTIONS.map(action => (
-                                <button key={action} onClick={() => handleQuickAction(action)} className="px-3 py-1.5 bg-[var(--surface)] text-[var(--text)] text-sm rounded-full border border-gray-200 hover:bg-gray-100 transition">
+                                <button key={action} onClick={() => handleQuickAction(action)} className="px-3 py-1.5 bg-[var(--surface)] text-[var(--text)] text-sm rounded-full border border-gray-200 hover:bg-gray-100 transition" style={{minHeight: 44}}>
                                     {action}
                                 </button>
                             ))}
@@ -226,7 +241,7 @@ const SupportAI: React.FC = () => {
                          <div className="flex items-end gap-2 justify-start" aria-live="polite">
                             <AIAvatar />
                             <div className="max-w-[85%] px-4 py-2 rounded-2xl bg-[var(--surface)] text-[var(--text)] rounded-bl-none border border-black/5 shadow-sm">
-                                <p className="text-sm whitespace-pre-wrap">{partialResponse.trim()}<span className="inline-block w-1 h-4 bg-[var(--text)] animate-pulse ml-1"></span></p>
+                                <p className="text-sm whitespace-pre-wrap" style={{ wordBreak: 'break-word' }}>{partialResponse.trim()}<span className="inline-block w-1 h-4 bg-[var(--text)] animate-pulse ml-1"></span></p>
                             </div>
                         </div>
                     )}
@@ -253,29 +268,30 @@ const SupportAI: React.FC = () => {
                     ) : (
                     <form onSubmit={handleSubmit} className="flex items-end space-x-2">
                         <textarea
+                            ref={textareaRef}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="Digite sua mensagem..."
-                            className="flex-grow p-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition shadow-sm resize-none max-h-32"
+                            className="flex-grow p-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition shadow-sm resize-none max-h-32 bg-[var(--surface)] text-[var(--text)]"
                             rows={1}
                             disabled={loading}
                         />
                         <button
                             type="submit"
-                            className="bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-3 w-11 h-11 flex items-center justify-center hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
+                            className="bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-3 flex items-center justify-center hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
                             disabled={loading || !input.trim()}
                             aria-label="Enviar mensagem"
+                            style={{ minHeight: 44, minWidth: 44 }}
                         >
                             <PaperAirplaneIcon className="h-5 w-5" />
                         </button>
                     </form>
                     )}
-                     <p className="text-xs text-center text-[var(--muted)] mt-2 px-2">Pergunte sobre matrícula, boletos, horários, carteirinha, AVA, documentos.</p>
+                    {error && <p className="text-xs text-center text-red-600 mt-2 px-2">{error}</p>}
+                    <p className="text-xs text-center text-[var(--muted)] mt-2 px-2">Pergunte sobre matrícula, boletos, horários, carteirinha, AVA, documentos.</p>
                 </div>
             </footer>
         </div>
     );
 };
-
-export default SupportAI;
