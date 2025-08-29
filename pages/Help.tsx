@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { hasGenAIKey, streamAnswer, ChatMsg } from '../services/genai';
@@ -93,6 +93,18 @@ export default function SupportAI() {
     const [error, setError] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    
+    const composerRef = React.useRef<HTMLFormElement>(null);
+    const [composerH, setComposerH] = React.useState(64);
+    const BOTTOM_NAV_H = 64; 
+
+    React.useLayoutEffect(() => {
+      const el = composerRef.current;
+      if (!el) return;
+      const ro = new ResizeObserver(() => setComposerH(el.offsetHeight));
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
 
     const storageKey = useMemo(() => `supportAI.history.${user?.uid || 'anon'}`, [user]);
 
@@ -205,7 +217,7 @@ export default function SupportAI() {
     }, [input]);
 
     return (
-        <div className="flex-grow flex flex-col bg-[var(--background)] h-full">
+        <div className="flex flex-col bg-[var(--background)]" style={{ minHeight: '100dvh' }}>
             <header className="p-2 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-20 border-b">
                 <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100" style={{minHeight: 44, minWidth: 44}}>
                     <ArrowLeftIcon className="w-6 h-6" />
@@ -220,7 +232,7 @@ export default function SupportAI() {
                 </div>
             </header>
             
-            <div className="flex-grow p-4 overflow-y-auto" style={{paddingBottom: '140px'}}>
+            <div className="flex-grow p-4 overflow-y-auto" style={{ flex: 1, paddingBottom: `calc(${composerH + BOTTOM_NAV_H}px + env(safe-area-inset-bottom))` }}>
                 {messages.length <= 1 && (
                     <div className="mb-6">
                         <h2 className="text-sm font-semibold text-center text-[var(--muted)] mb-3">Sugestões rápidas</h2>
@@ -261,37 +273,43 @@ export default function SupportAI() {
                 </div>
             </div>
 
-            <footer className="fixed inset-x-0 bottom-0 max-w-sm mx-auto bg-[var(--background)]/80 backdrop-blur-sm" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                <div className="p-3 border-t border-gray-200">
-                    {!hasGenAIKey ? (
-                        <p className="text-center text-sm text-red-600 bg-red-100 p-2 rounded-lg">A chave da API do assistente não foi configurada.</p>
-                    ) : (
-                    <form onSubmit={handleSubmit} className="flex items-end space-x-2">
-                        <textarea
-                            ref={textareaRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Digite sua mensagem..."
-                            className="flex-grow p-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition shadow-sm resize-none max-h-32 bg-[var(--surface)] text-[var(--text)]"
-                            rows={1}
-                            disabled={loading}
-                        />
-                        <button
-                            type="submit"
-                            className="bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-3 flex items-center justify-center hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
-                            disabled={loading || !input.trim()}
-                            aria-label="Enviar mensagem"
-                            style={{ minHeight: 44, minWidth: 44 }}
-                        >
-                            <PaperAirplaneIcon className="h-5 w-5" />
-                        </button>
-                    </form>
-                    )}
-                    {error && <p className="text-xs text-center text-red-600 mt-2 px-2">{error}</p>}
-                    <p className="text-xs text-center text-[var(--muted)] mt-2 px-2">Pergunte sobre matrícula, boletos, horários, carteirinha, AVA, documentos.</p>
+            <form
+                ref={composerRef}
+                onSubmit={handleSubmit}
+                className="sticky bottom-0 max-w-sm mx-auto w-full bg-[var(--surface)] border-t border-gray-200"
+                style={{
+                    padding: '12px',
+                    paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+                }}
+            >
+                {!hasGenAIKey ? (
+                    <p className="text-center text-sm text-red-600 bg-red-100 p-2 rounded-lg">A chave da API do assistente não foi configurada.</p>
+                ) : (
+                <div className="flex items-end space-x-2">
+                    <textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Digite sua mensagem..."
+                        className="flex-grow p-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition shadow-sm resize-none max-h-32 bg-[var(--surface)] text-[var(--text)]"
+                        rows={1}
+                        disabled={loading}
+                    />
+                    <button
+                        type="submit"
+                        className="bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-3 flex items-center justify-center hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
+                        disabled={loading || !input.trim()}
+                        aria-label="Enviar mensagem"
+                        style={{ minHeight: 44, minWidth: 44 }}
+                    >
+                        <PaperAirplaneIcon className="h-5 w-5" />
+                    </button>
                 </div>
-            </footer>
+                )}
+                {error && <p className="text-xs text-center text-red-600 mt-2 px-2">{error}</p>}
+                <p className="text-xs text-center text-[var(--muted)] mt-2 px-2">Pergunte sobre matrícula, boletos, horários, carteirinha, AVA, documentos.</p>
+            </form>
         </div>
     );
 };
