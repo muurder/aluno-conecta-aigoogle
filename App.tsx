@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 // FIX: Upgrading react-router-dom from v5 to v6 to fix module export errors.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -16,7 +17,7 @@ import EditProfile from './pages/EditProfile';
 import MainLayout from './layouts/MainLayout';
 import MyCourse from './pages/MyCourse';
 import Financial from './pages/Financial';
-import Help from './pages/Help';
+import SupportAI from './pages/Help';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminEditUser from './pages/AdminEditUser';
 import ValidateIdCard from './pages/ValidateIdCard';
@@ -239,7 +240,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/my-course" element={<MyCourse />} />
           <Route path="/financial" element={<Financial />} />
-          <Route path="/help" element={<Help />} />
+          <Route path="/assistant" element={<SupportAI />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/class-schedule" element={<ClassSchedule />} />
           {user.isAdmin && (

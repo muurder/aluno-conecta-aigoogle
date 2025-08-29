@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 // FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
@@ -159,7 +160,7 @@ const Profile: React.FC = () => {
         <MenuItem
           icon={<QuestionMarkCircleIcon className="w-6 h-6" />}
           label="Ajuda e Suporte"
-          onClick={() => navigate('/help')}
+          onClick={() => navigate('/assistant')}
         />
       </main>
       <footer className="p-4">
