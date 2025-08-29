@@ -298,7 +298,7 @@ const AdminDashboard: React.FC = () => {
             .filter(user =>
                 user.fullName.toLowerCase().includes(lowerCaseSearchTerm) ||
                 user.email.toLowerCase().includes(lowerCaseSearchTerm) ||
-                user.rgm.includes(lowerCaseSearchTerm)
+                user.rgm.toLowerCase().includes(lowerCaseSearchTerm)
             );
     }, [users, searchTerm, activeFilter]);
     
