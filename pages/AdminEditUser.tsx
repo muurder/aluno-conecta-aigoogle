@@ -1,7 +1,9 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
@@ -85,6 +87,7 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
 const AdminEditUser: React.FC = () => {
     const { uid } = useParams<{ uid: string }>();
     const { getAllUsers, updateUser } = useAuth();
+    const { themesRegistry } = useTheme();
     const navigate = useNavigate();
     
     const [formData, setFormData] = useState<User | null>(null);
@@ -188,6 +191,18 @@ const AdminEditUser: React.FC = () => {
             setLoading(false);
         }
     };
+    
+    const handleThemeSelect = (themeId: string) => {
+        if (!formData) return;
+        setFormData(prev => ({
+            ...prev!,
+            theme: themeId,
+            themeSource: 'admin' // Set source to admin when admin changes it
+        }));
+    };
+
+    const themeOptions = Object.values(themesRegistry)
+        .sort((a, b) => (a.id === 'default' ? -1 : b.id === 'default' ? 1 : a.name.localeCompare(b.name)));
 
     if (!formData) {
         return (
@@ -273,6 +288,33 @@ const AdminEditUser: React.FC = () => {
                            <ArrowPathIcon className="h-4 w-4"/>
                         </button>
                     </div>
+                </div>
+                
+                <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Tema do Aplicativo</h2>
+                <div>
+                    <label className="text-sm font-medium text-gray-700">Origem do Tema</label>
+                    <select name="themeSource" value={formData.themeSource || 'auto'} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="auto">Automático (pela faculdade)</option>
+                        <option value="user">Escolhido pelo usuário</option>
+                        <option value="admin">Definido pelo admin</option>
+                        <option value="system">Padrão do sistema</option>
+                    </select>
+                </div>
+                <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {themeOptions.map(theme => (
+                        <div key={theme.id} onClick={() => handleThemeSelect(theme.id)} className="cursor-pointer">
+                            <div className={`w-full h-16 rounded-lg border-2 flex items-center justify-center transition-all ${formData.theme === theme.id ? 'border-blue-600 ring-2 ring-blue-600 ring-offset-2' : 'border-gray-300'}`} style={{ backgroundColor: theme.tokens.surface }}>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.primary }}></div>
+                                    <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.accent }}></div>
+                                    <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.secondary }}></div>
+                                </div>
+                            </div>
+                            <p className={`text-center text-xs mt-1 font-medium ${formData.theme === theme.id ? 'text-blue-600' : 'text-gray-600'}`}>
+                                {theme.name.replace('Universidade ', '').replace(' (Default)','')}
+                            </p>
+                        </div>
+                    ))}
                 </div>
 
                 <div className="pt-4 sticky bottom-0 bg-gray-50 pb-4">
