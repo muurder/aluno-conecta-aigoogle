@@ -20,7 +20,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     // 100dvh + padding-bottom para não ficar escondido pelo nav fixo
     <div
-      className="relative flex-grow flex flex-col bg-gray-50"
+      className="relative flex-grow flex flex-col bg-[var(--background)]"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 64px)' }}
     >
       <style>{`
@@ -34,7 +34,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
       `}</style>
       {showHeader && (
-        <header className="bg-white px-4 pt-6 pb-4 border-b border-gray-200">
+        <header className="bg-[var(--surface)] px-4 pt-6 pb-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200" onClick={() => navigate('/profile')}>
               {user?.photo ? (
@@ -44,7 +44,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               )}
             </div>
             {/* FIX: Use navigate() for navigation. */}
-            <button className="relative text-gray-500 hover:text-gray-700" onClick={() => navigate('/notifications')}>
+            <button className="relative text-[var(--muted)] hover:text-[var(--text)]" onClick={() => navigate('/notifications')}>
               <BellIcon className={`w-7 h-7 ${hasNewNotification ? 'animate-ring' : ''}`} />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 block h-5 w-5 rounded-full bg-red-600 text-white text-xs flex items-center justify-center ring-2 ring-white">
@@ -54,7 +54,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </button>
           </div>
           <div className="mt-4">
-            <h1 className="text-2xl font-bold text-gray-800">
+            <h1 className="text-2xl font-bold text-[var(--text)]">
               Olá, {user?.fullName?.split(' ').slice(0, 2).join(' ') || 'Aluno'} :)
             </h1>
           </div>

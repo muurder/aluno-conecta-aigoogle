@@ -24,14 +24,14 @@ const PendingApproval: React.FC = () => {
   };
 
   return (
-    <div className="flex-grow flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg text-center space-y-6">
+    <div className="flex-grow flex items-center justify-center bg-[var(--background)] p-4">
+      <div className="w-full max-w-md bg-[var(--surface)] p-8 rounded-2xl shadow-lg text-center space-y-6">
         <ClockIcon className="mx-auto h-16 w-16 text-yellow-500" />
-        <h1 className="text-2xl font-bold text-gray-800">Aguardando aprovação do administrador</h1>
-        <p className="text-gray-600">
-          Usuário: <span className="font-semibold text-gray-900">{user?.email}</span>
+        <h1 className="text-2xl font-bold text-[var(--text)]">Aguardando aprovação do administrador</h1>
+        <p className="text-[var(--muted)]">
+          Usuário: <span className="font-semibold text-[var(--text)]">{user?.email}</span>
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-[var(--muted)]">
           Sua conta foi criada com sucesso e está aguardando aprovação. Você será redirecionado automaticamente assim que for aprovado.
         </p>
         

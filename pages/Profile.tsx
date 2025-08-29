@@ -14,14 +14,14 @@ const ContactModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             onClick={onClose}
         >
             <div 
-                className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-sm relative"
+                className="bg-[var(--surface)] rounded-2xl p-6 shadow-2xl w-full max-w-sm relative"
                 onClick={(e) => e.stopPropagation()}
             >
-                <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                <button onClick={onClose} className="absolute top-3 right-3 p-1 text-[var(--muted)] hover:text-[var(--text)] rounded-full">
                     <XMarkIcon className="w-6 h-6"/>
                 </button>
-                <h2 className="text-xl font-bold text-gray-800 mb-2">Contato e Contrato</h2>
-                <p className="text-gray-600 mb-6 text-sm">Para questões sobre o contrato de serviços, entre em contato por um dos canais abaixo:</p>
+                <h2 className="text-xl font-bold text-[var(--text)] mb-2">Contato e Contrato</h2>
+                <p className="text-[var(--muted)] mb-6 text-sm">Para questões sobre o contrato de serviços, entre em contato por um dos canais abaixo:</p>
                 
                 <div className="space-y-3">
                     <a href="https://wa.me/5511987697684" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
@@ -90,7 +90,7 @@ const Profile: React.FC = () => {
   const balao2 = '/decors/balao2.svg';
 
   const ProfileHeader: React.FC = () => (
-    <div className="bg-gradient-to-b from-cyan-400 to-teal-500 relative text-white text-center p-6 pt-10 rounded-b-3xl overflow-hidden">
+    <div className="bg-gradient-to-b from-[var(--primary)] to-[var(--secondary)] relative text-[var(--on-primary)] text-center p-6 pt-10 rounded-b-3xl overflow-hidden">
       <img src={balao1} alt="" className="absolute -bottom-10 -left-10 w-32 h-32 opacity-30 transform-gpu" />
       <img src={balao2} alt="" className="absolute -top-12 -right-16 w-48 h-48 opacity-30 transform-gpu" />
       <div className="relative z-10">
@@ -115,17 +115,17 @@ const Profile: React.FC = () => {
   );
 
   const MenuItem: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void }> = ({ icon, label, onClick }) => (
-    <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-white rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
+    <button onClick={onClick} className="w-full flex items-center justify-between p-4 bg-[var(--surface)] rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
       <div className="flex items-center gap-4">
-        <div className="text-gray-500">{icon}</div>
-        <span className="font-semibold text-gray-700">{label}</span>
+        <div className="text-[var(--muted)]">{icon}</div>
+        <span className="font-semibold text-[var(--text)]">{label}</span>
       </div>
       <ChevronRightIcon className="w-5 h-5 text-gray-400" />
     </button>
   );
 
   return (
-    <div className="flex-grow flex flex-col bg-gray-100">
+    <div className="flex-grow flex flex-col bg-[var(--background)]">
       {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} />}
       <ProfileHeader />
       <main className="p-4 space-y-3">

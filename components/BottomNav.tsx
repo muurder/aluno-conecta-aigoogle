@@ -13,7 +13,7 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string; badg
       // FIX: Use a function for `className` for v6 NavLink styling, replacing `activeClassName`.
       className={({ isActive }) =>
         "flex flex-col items-center justify-center w-full pt-2 pb-1 " +
-        (isActive ? "text-blue-600" : "text-gray-500")
+        (isActive ? "text-[var(--primary)]" : "text-[var(--muted)]")
       }
     >
       <div className="relative">
@@ -33,7 +33,7 @@ const BottomNav: React.FC = () => {
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 
-                 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
+                 bg-[var(--surface)]/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // notch iOS
     >
       <div className="mx-auto max-w-sm">

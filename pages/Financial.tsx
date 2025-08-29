@@ -77,22 +77,22 @@ const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
 const CurrentBillCard: React.FC<{ boleto: Boleto }> = ({ boleto }) => {
     const statusInfo: Record<Status, { icon: React.ReactNode; text: string; color: string }> = {
         'Pago': { icon: <CheckCircleIcon className="w-8 h-8"/>, text: 'Sua mensalidade está em dia!', color: 'text-green-500' },
-        'Em aberto': { icon: <ClockIcon className="w-8 h-8"/>, text: 'Aguardando pagamento', color: 'text-blue-500' },
+        'Em aberto': { icon: <ClockIcon className="w-8 h-8"/>, text: 'Aguardando pagamento', color: 'text-[var(--accent)]' },
         'Vencido': { icon: <ExclamationCircleIcon className="w-8 h-8"/>, text: 'Mensalidade vencida', color: 'text-red-500' },
     };
     const info = statusInfo[boleto.status];
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 text-center">
-            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${info.color} bg-opacity-10 ${info.color.replace('text', 'bg').replace('-500', '-100')}`}>
+        <div className="bg-[var(--surface)] p-6 rounded-2xl shadow-lg border border-gray-200 text-center">
+            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${info.color} bg-opacity-10 ${info.color.replace('text', 'bg').replace('-500', '-100').replace('-[var(--accent)]', '[var(--accent)]/10')}`}>
                 {info.icon}
             </div>
-            <p className="text-gray-500 mt-4">Mensalidade de {boleto.month}</p>
-            <p className="text-4xl font-bold text-gray-800 my-1">{boleto.amount}</p>
+            <p className="text-[var(--muted)] mt-4">Mensalidade de {boleto.month}</p>
+            <p className="text-4xl font-bold text-[var(--text)] my-1">{boleto.amount}</p>
             <p className={`font-semibold ${info.color}`}>{info.text}</p>
-            <p className="text-sm text-gray-500 mt-2">Vencimento em {boleto.dueDate}</p>
+            <p className="text-sm text-[var(--muted)] mt-2">Vencimento em {boleto.dueDate}</p>
             {boleto.status !== 'Pago' && (
-                <button className="mt-6 w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                <button className="mt-6 w-full bg-[var(--primary)] text-[var(--on-primary)] font-bold p-3 rounded-lg hover:opacity-90 transition flex items-center justify-center gap-2">
                     <DocumentDuplicateIcon className="w-5 h-5"/>
                     Copiar código de barras
                 </button>
@@ -102,13 +102,13 @@ const CurrentBillCard: React.FC<{ boleto: Boleto }> = ({ boleto }) => {
 };
 
 const HistoryItem: React.FC<{ boleto: Boleto }> = ({ boleto }) => (
-    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-[var(--surface)] rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
         <div>
-            <p className="font-semibold text-gray-800">Mensalidade - {boleto.month}</p>
-            <p className="text-sm text-gray-500">Venceu em {boleto.dueDate}</p>
+            <p className="font-semibold text-[var(--text)]">Mensalidade - {boleto.month}</p>
+            <p className="text-sm text-[var(--muted)]">Venceu em {boleto.dueDate}</p>
         </div>
         <div className="text-right">
-             <p className="font-bold text-gray-800">{boleto.amount}</p>
+             <p className="font-bold text-[var(--text)]">{boleto.amount}</p>
              <StatusBadge status={boleto.status} />
         </div>
     </div>
@@ -119,8 +119,8 @@ const Financial: React.FC = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
-             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
+        <div className="flex flex-col h-screen bg-[var(--background)]">
+             <header className="p-4 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-10 border-b">
                 <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
@@ -131,7 +131,7 @@ const Financial: React.FC = () => {
                 {currentBoleto && <CurrentBillCard boleto={currentBoleto} />}
                 
                 <div>
-                    <h2 className="text-lg font-bold text-gray-700 mb-3">Histórico de Pagamentos</h2>
+                    <h2 className="text-lg font-bold text-[var(--text)] mb-3">Histórico de Pagamentos</h2>
                     <div className="space-y-3">
                         {financialData
                             .filter(b => b.id !== currentBoleto?.id)

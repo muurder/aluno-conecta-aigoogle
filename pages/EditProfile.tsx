@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 // FIX: Update react-router-dom import to v6. 'useHistory' is replaced by 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
@@ -123,6 +124,7 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
 
 const EditProfile: React.FC = () => {
     const { user, updateUser, changePassword } = useAuth();
+    const { themesRegistry, setCurrentThemeById, resetToDefaultTheme } = useTheme();
     // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
     
@@ -143,6 +145,12 @@ const EditProfile: React.FC = () => {
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
+    // Live theme preview
+    useEffect(() => {
+        if (formData.theme) {
+            setCurrentThemeById(formData.theme);
+        }
+    }, [formData.theme, setCurrentThemeById]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -155,11 +163,36 @@ const EditProfile: React.FC = () => {
                 const university = value as UniversityName;
                 const details = UNIVERSITY_DETAILS[university];
                 newFormData.campus = details.campuses[0]; 
+
+                 // Auto-update theme if source is 'auto' or 'system'
+                 if (prevData.themeSource === 'auto' || prevData.themeSource === 'system') {
+                    const themeId = Object.values(themesRegistry).find(t => t.name === university)?.id || 'default';
+                    newFormData.theme = themeId;
+                    newFormData.themeSource = 'auto';
+                }
             }
 
             return newFormData;
         });
-    }, []);
+    }, [themesRegistry]);
+
+    const handleThemeSelect = (themeId: string) => {
+        setFormData(prev => ({
+            ...prev!,
+            theme: themeId,
+            themeSource: 'user'
+        }));
+    };
+
+    const handleRestoreDefaultTheme = () => {
+        resetToDefaultTheme();
+        setFormData(prev => ({
+            ...prev!,
+            theme: 'default',
+            themeSource: 'system'
+        }));
+        setToast({show: true, message: "Tema padrão restaurado", type: 'success'});
+    };
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -204,6 +237,8 @@ const EditProfile: React.FC = () => {
                 course: formData.course,
                 campus: formData.campus,
                 validity: formData.validity,
+                theme: formData.theme,
+                themeSource: formData.themeSource,
             };
             await updateUser(formData.uid, dataToUpdate, photoFile ?? undefined);
             setToast({ show: true, message: 'Perfil atualizado com sucesso!', type: 'success' });
@@ -248,9 +283,12 @@ const EditProfile: React.FC = () => {
         }
     };
 
-    const inputClasses = "w-full p-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-shadow";
-    const selectClasses = `${inputClasses} appearance-none bg-white`;
+    const inputClasses = "w-full p-3 border border-gray-300 rounded-lg focus:ring-1 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition-shadow bg-white";
+    const selectClasses = `${inputClasses} appearance-none`;
     const labelClasses = "block text-sm font-medium text-gray-600 mb-1";
+    
+    const themeOptions = Object.values(themesRegistry)
+        .sort((a, b) => (a.id === 'default' ? -1 : b.id === 'default' ? 1 : a.name.localeCompare(b.name)));
 
     return (
         <div className="flex-grow flex flex-col bg-gray-100">
@@ -277,7 +315,7 @@ const EditProfile: React.FC = () => {
                             />
                             <label 
                                 htmlFor="photo-upload" 
-                                className="absolute bottom-1 right-1 bg-blue-600 text-white rounded-full p-2 shadow-md cursor-pointer hover:bg-blue-700 transition"
+                                className="absolute bottom-1 right-1 bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-2 shadow-md cursor-pointer hover:opacity-90 transition"
                             >
                                 {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CameraIcon className="w-5 h-5" />}
                             </label>
@@ -339,7 +377,27 @@ const EditProfile: React.FC = () => {
                         <label className={labelClasses}>Validade da Carteirinha</label>
                         <input name="validity" value={formData.validity} onChange={handleInputChange} className={inputClasses} required />
                     </div>
-                    <button type="submit" disabled={loading || imageProcessing} className="w-full mt-4 bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400">
+                    
+                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Tema do Aplicativo</h2>
+                    <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {themeOptions.map(theme => (
+                            <div key={theme.id} onClick={() => handleThemeSelect(theme.id)} className="cursor-pointer">
+                                <div className={`w-full h-16 rounded-lg border-2 flex items-center justify-center transition-all ${formData.theme === theme.id ? 'border-[var(--primary)] ring-2 ring-[var(--primary)] ring-offset-2' : 'border-gray-300'}`} style={{ backgroundColor: theme.tokens.surface }}>
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.primary }}></div>
+                                        <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.accent }}></div>
+                                        <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.secondary }}></div>
+                                    </div>
+                                </div>
+                                <p className={`text-center text-xs mt-1 font-medium ${formData.theme === theme.id ? 'text-[var(--primary)]' : 'text-gray-600'}`}>
+                                    {theme.name.replace('Universidade ', '').replace(' (Default)','')}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                     <button type="button" onClick={handleRestoreDefaultTheme} className="w-full text-sm text-center text-gray-600 hover:text-blue-600 p-2">Restaurar Padrão</button>
+                    
+                    <button type="submit" disabled={loading || imageProcessing} className="w-full mt-4 bg-[var(--primary)] text-[var(--on-primary)] font-bold p-3 rounded-lg hover:opacity-90 disabled:opacity-70">
                         {loading ? 'Salvando...' : 'Salvar Alterações'}
                     </button>
                 </form>

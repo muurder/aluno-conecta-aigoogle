@@ -25,6 +25,8 @@ export interface User {
   photo: string | null;
   status: UserStatus;
   isAdmin?: boolean;
+  theme?: string; // e.g., 'default', 'unicsul', etc.
+  themeSource?: 'auto' | 'user' | 'admin' | 'system';
 }
 
 export interface Comment {

@@ -4,23 +4,26 @@ import React, { useState, useEffect, useCallback } from 'react';
 // FIX: Update react-router-dom imports to v6. 'useHistory' is 'useNavigate'.
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
 import { CameraIcon, ArrowPathIcon, SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
-type FormData = Omit<User, 'uid' | 'email' | 'isAdmin'>;
+type FormData = Omit<User, 'uid' | 'email' | 'isAdmin' | 'theme' | 'themeSource'>;
 
 const Register: React.FC = () => {
     // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
     const auth = useAuth();
-    const [formData, setFormData] = useState({
+    const { themesRegistry, setCurrentThemeById } = useTheme();
+
+    const [formData, setFormData] = useState<FormData>({
         status: 'pending' as const,
         institutionalLogin: '',
         rgm: '',
         fullName: '',
-        university: '',
+        university: '' as any, // Start empty, will be validated
         course: '',
         campus: '',
         validity: '',
@@ -35,6 +38,26 @@ const Register: React.FC = () => {
     const [imageProcessing, setImageProcessing] = useState(false);
     const [selectedLogo, setSelectedLogo] = useState<string | null>(null);
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
+    const [selectedThemeId, setSelectedThemeId] = useState('default');
+    const [themeSource, setThemeSource] = useState<'system' | 'auto' | 'user'>('system');
+
+    // Live theme preview
+    useEffect(() => {
+        setCurrentThemeById(selectedThemeId);
+    }, [selectedThemeId, setCurrentThemeById]);
+    
+    // Auto-select theme based on university
+    useEffect(() => {
+        if (formData.university) {
+            const themeId = Object.values(themesRegistry).find(t => t.name === formData.university)?.id || 'default';
+            setSelectedThemeId(themeId);
+            setThemeSource('auto');
+        } else {
+            setSelectedThemeId('default');
+            setThemeSource('system');
+        }
+    }, [formData.university, themesRegistry]);
+
 
     const generateRGM = useCallback(() => {
         const randomPart = Math.floor(10000000 + Math.random() * 90000000).toString();
@@ -199,9 +222,11 @@ const Register: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const userData = {
+            const userData: Omit<User, 'uid' | 'email'> = {
                 ...formData,
                 university: formData.university as UniversityName,
+                theme: selectedThemeId,
+                themeSource: themeSource,
             };
             await auth.register(userData, email, password, photoFile ?? undefined);
             setRegistrationSuccess(true);
@@ -215,6 +240,14 @@ const Register: React.FC = () => {
             setLoading(false);
         }
     };
+
+    const handleThemeSelect = (themeId: string) => {
+        setSelectedThemeId(themeId);
+        setThemeSource('user');
+    };
+
+    const themeOptions = Object.values(themesRegistry)
+        .sort((a, b) => (a.id === 'default' ? -1 : b.id === 'default' ? 1 : a.name.localeCompare(b.name)));
     
     return (
         <div className="flex-grow flex flex-col justify-center bg-gradient-to-b from-cyan-50 to-blue-100 p-4">
@@ -351,11 +384,31 @@ const Register: React.FC = () => {
                                 )}
                             </label>
                         </div>
+                        
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Tema do App</label>
+                             <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                {themeOptions.map(theme => (
+                                    <div key={theme.id} onClick={() => handleThemeSelect(theme.id)} className="cursor-pointer">
+                                        <div className={`w-full h-16 rounded-lg border-2 flex items-center justify-center transition-all ${selectedThemeId === theme.id ? 'border-[var(--primary)] ring-2 ring-[var(--primary)] ring-offset-2' : 'border-gray-300'}`} style={{ backgroundColor: theme.tokens.surface }}>
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.primary }}></div>
+                                                <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.accent }}></div>
+                                                <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.secondary }}></div>
+                                            </div>
+                                        </div>
+                                        <p className={`text-center text-xs mt-1 font-medium ${selectedThemeId === theme.id ? 'text-[var(--primary)]' : 'text-gray-600'}`}>
+                                            {theme.name.replace('Universidade ', '').replace(' (Default)','')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
                         <button
                             type="submit"
                             disabled={loading || imageProcessing}
-                            className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 mt-4"
+                            className="w-full bg-[var(--primary)] text-[var(--on-primary)] font-bold p-3 rounded-lg hover:opacity-90 disabled:opacity-70 mt-4"
                         >
                             {loading ? 'Criando...' : 'Criar Conta'}
                         </button>

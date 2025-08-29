@@ -6,6 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Student Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --primary: #2563eb; /* blue-600 */
+        --on-primary: #ffffff;
+        --secondary: #10b981; /* emerald-500 */
+        --on-secondary: #ffffff;
+        --background: #f1f5f9; /* slate-100 */
+        --surface: #ffffff;
+        --text: #0f172a; /* slate-900 */
+        --muted: #64748b; /* slate-500 */
+        --accent: #3b82f6; /* blue-500 */
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -29,7 +42,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-100">
+  <body class="bg-[var(--background)] text-[var(--text)]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
