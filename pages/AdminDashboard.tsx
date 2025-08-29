@@ -288,6 +288,7 @@ const AdminDashboard: React.FC = () => {
     }), [users, allNotifications]);
 
     const filteredUsers = useMemo(() => {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
         return users
             .filter(user => {
                 if (activeFilter === 'pending') return user.status === 'pending';
@@ -295,8 +296,9 @@ const AdminDashboard: React.FC = () => {
                 return true;
             })
             .filter(user =>
-                user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchTerm.toLowerCase())
+                user.fullName.toLowerCase().includes(lowerCaseSearchTerm) ||
+                user.email.toLowerCase().includes(lowerCaseSearchTerm) ||
+                user.rgm.includes(lowerCaseSearchTerm)
             );
     }, [users, searchTerm, activeFilter]);
     
@@ -446,7 +448,7 @@ const AdminDashboard: React.FC = () => {
                          <CollapsibleSection title="Gerenciamento de Usuários" isOpen={collapsedSections.userManagement} onToggle={() => toggleSection('userManagement')}>
                             <div className="relative mb-4">
                                 <input
-                                    type="text" placeholder="Buscar por nome ou email..."
+                                    type="text" placeholder="Buscar por nome, email ou RGM..."
                                     value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 />
