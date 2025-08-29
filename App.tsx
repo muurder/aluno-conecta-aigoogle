@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState } from 'react';
 // FIX: Upgrading react-router-dom from v5 to v6 to fix module export errors.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -23,6 +24,7 @@ import AdminEditUser from './pages/AdminEditUser';
 import ValidateIdCard from './pages/ValidateIdCard';
 import ClassSchedule from './pages/ClassSchedule';
 import Notifications from './pages/Notifications';
+import CourseDetail from './pages/CourseDetail';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -239,6 +241,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/virtual-id" element={<VirtualIdCard />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/my-course" element={<MyCourse />} />
+          <Route path="/course/:courseName" element={<CourseDetail />} />
           <Route path="/financial" element={<Financial />} />
           <Route path="/assistant" element={<SupportAI />} />
           <Route path="/notifications" element={<Notifications />} />
