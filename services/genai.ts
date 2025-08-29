@@ -1,6 +1,7 @@
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
-const API_KEY = process.env.API_KEY;
+// Read the API key exclusively from the Vite environment variable as requested.
+const API_KEY = import.meta.env.VITE_GENAI_API_KEY;
 
 export const hasGenAIKey = !!API_KEY;
 
@@ -13,38 +14,36 @@ export type ChatMsg = {
 
 interface StreamAnswerParams {
     system?: string;
-    history: ChatMsg[];
+    history?: ChatMsg[];
     input: string;
-    signal: AbortSignal;
+    signal?: AbortSignal;
     temperature?: number;
     maxOutputTokens?: number;
 }
 
 export async function* streamAnswer({
     system,
-    history,
+    history = [],
     input,
     signal,
     temperature = 0.25,
     maxOutputTokens = 1024,
 }: StreamAnswerParams): AsyncGenerator<string> {
     if (!hasGenAIKey) {
-        console.error("Gemini API key is not configured.");
-        yield "Desculpe, o assistente virtual está temporariamente indisponível. A chave de API não foi configurada.";
+        console.warn("Gemini API key is not configured. Please add VITE_GENAI_API_KEY to your .env.local file.");
+        yield "A chave de API do assistente não foi configurada.";
         return;
     }
 
-    const ai = new GoogleGenAI({ apiKey: API_KEY! });
-
-    // The Gemini API expects the history in a specific format.
-    // We map our application's message format to the API's format.
-    const contents = history.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }],
-    }));
-    contents.push({ role: "user", parts: [{ text: input }] });
-
     try {
+        const ai = new GoogleGenAI({ apiKey: API_KEY! });
+
+        const contents = history.map(msg => ({
+            role: msg.role,
+            parts: [{ text: msg.text }],
+        }));
+        contents.push({ role: "user", parts: [{ text: input }] });
+
         const response = await ai.models.generateContentStream({
             model: "gemini-2.5-flash",
             contents: contents,
@@ -60,16 +59,19 @@ export async function* streamAnswer({
                 ],
             },
         });
-
+        
         for await (const chunk of response) {
-            // Check for the abort signal on each iteration to allow cancellation.
-            if (signal.aborted) {
-                break;
+            if (signal?.aborted) {
+                throw new DOMException('Aborted by user', 'AbortError');
             }
             yield chunk.text;
         }
-    } catch (error) {
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+             console.log("Stream aborted by user.");
+             return;
+        }
         console.error("Error streaming answer from Gemini:", error);
-        yield "Desculpe, ocorreu um erro ao me comunicar com o assistente. Por favor, tente novamente mais tarde.";
+        yield "Desculpe, ocorreu um erro ao me comunicar com o assistente. Tente novamente.";
     }
 }
