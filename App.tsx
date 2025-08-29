@@ -275,8 +275,8 @@ const App: React.FC = () => {
     }
 
     return (
-        <AuthProvider>
-            <ThemeProvider>
+        <ThemeProvider>
+            <AuthProvider>
                 <NotificationsProvider>
                     <HashRouter>
                         <div className="flex flex-col h-screen max-w-sm mx-auto bg-[var(--surface)] shadow-2xl md:max-w-md lg:max-w-lg">
@@ -284,8 +284,8 @@ const App: React.FC = () => {
                         </div>
                     </HashRouter>
                 </NotificationsProvider>
-            </ThemeProvider>
-        </AuthProvider>
+            </AuthProvider>
+        </ThemeProvider>
     );
 }
 
