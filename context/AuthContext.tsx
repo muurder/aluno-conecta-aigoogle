@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { auth, db, storage } from '../firebase';
+import { useTheme } from './ThemeContext';
 // FIX: Switched to Firebase compat libraries to resolve module export errors.
 // Removed modular imports for auth, firestore, and storage.
 import firebase from 'firebase/compat/app';
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const isInitialSnapshot = useRef(true);
+  const { setCurrentThemeById, resetToDefaultTheme } = useTheme();
 
   useEffect(() => {
     // FIX: Refactored listener to use v8 namespaced API.
@@ -49,19 +51,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userDoc = await userDocRef.get();
 
         if (userDoc.exists) {
-          setUser({ uid: userDoc.id, ...(userDoc.data() as object) } as User);
+          const userData = { uid: userDoc.id, ...(userDoc.data() as object) } as User;
+          setUser(userData);
+          if (userData.theme) {
+            setCurrentThemeById(userData.theme);
+          } else {
+            resetToDefaultTheme();
+          }
         } else {
           console.error("User is authenticated, but no profile found in Firestore.");
           setUser(null);
+          resetToDefaultTheme();
         }
       } else {
         setUser(null);
+        resetToDefaultTheme();
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [setCurrentThemeById, resetToDefaultTheme]);
 
   // Effect for admin notifications on new user registration
   useEffect(() => {
@@ -130,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // to ensure only the final storage URL is saved.
       const { photo, ...restOfUserData } = userData;
 
-      const finalUserData = {
+      const finalUserData: Partial<User> = {
           ...restOfUserData,
           email: authUser.email!,
           status: 'pending' as const,
@@ -163,7 +173,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user?.uid === uid) {
           const updatedUserDoc = await userDocRef.get();
           if (updatedUserDoc.exists) {
-              setUser({ uid: updatedUserDoc.id, ...updatedUserDoc.data() } as User);
+              const updatedUserData = { uid: updatedUserDoc.id, ...updatedUserDoc.data() } as User;
+              setUser(updatedUserData);
+              if (updatedUserData.theme) {
+                setCurrentThemeById(updatedUserData.theme);
+              }
           }
       }
   };

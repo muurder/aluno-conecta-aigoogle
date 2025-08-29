@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationsProvider } from './context/NotificationsContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import PendingApproval from './pages/PendingApproval';
@@ -209,8 +210,8 @@ const AppRoutes: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-screen bg-[var(--background)]">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[var(--primary)]"></div>
       </div>
     );
   }
@@ -275,13 +276,15 @@ const App: React.FC = () => {
 
     return (
         <AuthProvider>
-            <NotificationsProvider>
-                <HashRouter>
-                    <div className="flex flex-col h-screen max-w-sm mx-auto bg-white shadow-2xl md:max-w-md lg:max-w-lg">
-                        <AppRoutes />
-                    </div>
-                </HashRouter>
-            </NotificationsProvider>
+            <ThemeProvider>
+                <NotificationsProvider>
+                    <HashRouter>
+                        <div className="flex flex-col h-screen max-w-sm mx-auto bg-[var(--surface)] shadow-2xl md:max-w-md lg:max-w-lg">
+                            <AppRoutes />
+                        </div>
+                    </HashRouter>
+                </NotificationsProvider>
+            </ThemeProvider>
         </AuthProvider>
     );
 }

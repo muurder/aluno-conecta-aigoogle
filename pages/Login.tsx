@@ -101,20 +101,20 @@ const Login: React.FC = () => {
 
   const isFormValid = email.trim() !== '' && password.trim() !== '';
 
-  const inputClasses = `mt-1 w-full p-3 border rounded-lg transition focus:ring-2 border-gray-300 focus:ring-blue-500 focus:border-blue-500`;
+  const inputClasses = `mt-1 w-full p-3 border rounded-lg transition focus:ring-2 border-gray-300 focus:ring-[var(--accent)] focus:border-[var(--accent)]`;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
       <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl space-y-6">
+      <div className="w-full max-w-md bg-[var(--surface)] p-8 rounded-2xl shadow-xl space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-800">Entrar</h1>
-          <p className="text-gray-500 mt-2">Acesse seu Portal do Aluno</p>
+          <h1 className="text-3xl font-bold text-[var(--text)]">Entrar</h1>
+          <p className="text-[var(--muted)] mt-2">Acesse seu Portal do Aluno</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-700">Seu E-mail Pessoal</label>
+            <label className="text-sm font-medium text-[var(--muted)]">Seu E-mail Pessoal</label>
             <input
               type="email"
               value={email}
@@ -127,8 +127,8 @@ const Login: React.FC = () => {
           </div>
           <div>
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-gray-700">Senha</label>
-              <a href="#" className="text-sm font-medium text-blue-600 hover:underline">
+              <label className="text-sm font-medium text-[var(--muted)]">Senha</label>
+              <a href="#" className="text-sm font-medium text-[var(--accent)] hover:underline">
                 Esqueci minha senha
               </a>
             </div>
@@ -144,14 +144,14 @@ const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500"
+                className="absolute inset-y-0 right-0 px-3 flex items-center text-[var(--muted)]"
               >
                 {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
               </button>
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <label htmlFor="remember-me-switch" className="text-sm text-gray-700 select-none">
+            <label htmlFor="remember-me-switch" className="text-sm text-[var(--muted)] select-none">
                 Salvar o login
             </label>
             <button
@@ -160,7 +160,7 @@ const Login: React.FC = () => {
                 role="switch"
                 aria-checked={rememberMe}
                 onClick={() => setRememberMe(!rememberMe)}
-                className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${rememberMe ? 'bg-blue-600' : 'bg-gray-300'}`}
+                className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)] ${rememberMe ? 'bg-[var(--primary)]' : 'bg-gray-300'}`}
             >
                 <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${rememberMe ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
@@ -168,7 +168,7 @@ const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading || !isFormValid}
-            className="w-full bg-blue-600 text-white font-bold p-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2 transition-transform transform hover:scale-105 disabled:bg-blue-400 disabled:scale-100 disabled:cursor-not-allowed"
+            className="w-full bg-[var(--primary)] text-[var(--on-primary)] font-bold p-3 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)] flex items-center justify-center gap-2 transition-transform transform hover:scale-105 disabled:opacity-70 disabled:scale-100 disabled:cursor-not-allowed"
           >
             {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
@@ -179,9 +179,9 @@ const Login: React.FC = () => {
           </button>
         </form>
         <div className="text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[var(--muted)]">
             Não tem conta?{' '}
-            <Link to="/register" className="font-medium text-blue-600 hover:underline">
+            <Link to="/register" className="font-medium text-[var(--accent)] hover:underline">
               Cadastre-se
             </Link>
           </p>
