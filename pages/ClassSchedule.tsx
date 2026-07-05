@@ -34,7 +34,7 @@ const ClassSchedule: React.FC = () => {
     const dayOrder: (keyof typeof groupedSchedule)[] = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100">
+        <div className="flex flex-col bg-gray-100 min-h-[100dvh]">
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeftIcon className="w-6 h-6" />
@@ -42,7 +42,7 @@ const ClassSchedule: React.FC = () => {
                 <h1 className="font-bold text-lg">Horário de Aulas</h1>
             </header>
 
-            <main className="flex-grow p-4 overflow-y-auto space-y-6">
+            <main className="flex-grow p-4 overflow-y-auto space-y-6 pb-6">
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <h2 className="text-xl font-bold text-blue-800">{user?.course}</h2>
                     <p className="text-gray-500">{user?.campus}</p>

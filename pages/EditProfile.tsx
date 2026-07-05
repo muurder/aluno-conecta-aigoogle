@@ -294,7 +294,7 @@ const EditProfile: React.FC = () => {
         .sort((a, b) => (a.id === 'default' ? -1 : b.id === 'default' ? 1 : a.name.localeCompare(b.name)));
 
     return (
-        <div className="flex-grow flex flex-col bg-gray-100">
+        <div className="flex-grow flex flex-col bg-gray-100 min-h-[100dvh]">
             <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 {/* FIX: Use navigate(-1) for back navigation. */}

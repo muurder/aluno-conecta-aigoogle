@@ -70,7 +70,7 @@ const CourseDetail: React.FC = () => {
     const courseIcon = (decodedCourseName && COURSE_ICONS[decodedCourseName]) || COURSE_ICONS["Default"];
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100">
+        <div className="flex flex-col bg-gray-100 min-h-[100dvh]">
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeftIcon className="w-6 h-6" />
@@ -81,7 +81,6 @@ const CourseDetail: React.FC = () => {
             <main className="flex-grow p-4 overflow-y-auto space-y-6">
                 <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 text-center">
                     <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 mb-4">
-                        {/* FIX: Cast icon to a ReactElement that accepts a className prop to resolve TypeScript error. */}
                         {React.cloneElement(courseIcon as React.ReactElement<{ className: string }>, { className: "w-8 h-8" })}
                     </div>
                     <h2 className="text-2xl font-bold text-gray-800">{decodedCourseName}</h2>

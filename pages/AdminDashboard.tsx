@@ -564,7 +564,7 @@ const AdminDashboard: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100">
+        <div className="flex flex-col bg-gray-100 min-h-[100dvh]">
             <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <NotificationModal 
                 show={showNotificationModal} message={notificationMessage} setMessage={setNotificationMessage}
@@ -603,7 +603,7 @@ const AdminDashboard: React.FC = () => {
                                <StatCard icon={<CheckCircleSolid className="w-6 h-6"/>} title="Usuários Aprovados" value={stats.approvedUsers} color="bg-green-500" onClick={() => handleCardClick('approved', 'Usuários Aprovados')} />
                                <StatCard icon={<ClockIcon className="w-6 h-6"/>} title="Usuários Pendentes" value={stats.pendingUsers} color="bg-yellow-500" onClick={() => handleCardClick('pending', 'Usuários Pendentes')} />
                                <StatCard icon={<BellIcon className="w-6 h-6"/>} title="Notificações Enviadas" value={stats.sentNotifications} color="bg-indigo-500" />
-                           </div>
+                            </div>
                         </CollapsibleSection>
 
                         <CollapsibleSection title="Funções de Admin" isOpen={collapsedSections.adminFunctions} onToggle={() => toggleSection('adminFunctions')}>

@@ -90,8 +90,8 @@ const VirtualIdCard: React.FC = () => {
     );
   };
   
-  return (
-    <div className="flex-grow flex flex-col bg-gray-50">
+    return (
+     <div className="flex-grow flex flex-col bg-gray-50 min-h-[100dvh]">
         <header className="p-4 flex items-center justify-between text-gray-700">
             {/* FIX: Use navigate(-1) for back navigation in v6. */}
             <button onClick={() => navigate(-1)} className="mr-4">
@@ -144,7 +144,7 @@ const VirtualIdCard: React.FC = () => {
             )}
         </main>
         
-        <footer className="p-6 h-[96px] flex items-center justify-center">
+        <footer className="p-6 h-24 flex items-center justify-center">
             {activeTab === 'card' ? (
                  <div className="text-center text-sm text-gray-500">
                     Apresente esta carteirinha para identificação.

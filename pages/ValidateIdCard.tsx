@@ -146,7 +146,7 @@ const ValidateIdCard: React.FC = () => {
 
     if (isValidating) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+            <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gray-100">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
                 <p className="text-lg font-semibold text-gray-700">Validando...</p>
             </div>
@@ -155,7 +155,7 @@ const ValidateIdCard: React.FC = () => {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-red-50 p-4">
+            <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-red-50 p-4">
                 <XCircleIcon className="w-16 h-16 text-red-400 mb-4" />
                 <h1 className="text-xl font-bold text-red-800">Erro de Validação</h1>
                 <p className="text-red-600 mt-2 text-center">{error}</p>
@@ -168,14 +168,14 @@ const ValidateIdCard: React.FC = () => {
 
     if (!validatedUser) {
         return (
-            <div className="flex justify-center items-center h-screen">
+            <div className="flex justify-center items-center min-h-[100dvh]">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="flex-grow flex flex-col items-center justify-center bg-gray-100 p-4 min-h-screen">
+        <div className="flex-grow flex flex-col items-center justify-center bg-gray-100 p-4">
             <Toast 
                 show={showToast}
                 message="Validado" 

@@ -126,10 +126,10 @@ const Profile: React.FC = () => {
   );
 
   return (
-    <div className="flex-grow flex flex-col bg-[var(--background)]">
+    <div className="flex-grow flex flex-col bg-[var(--background)] min-h-[100dvh]">
       {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} />}
       <ProfileHeader />
-      <main className="p-4 space-y-3">
+      <main className="flex-grow p-4 space-y-3 pb-4">
         {user?.isAdmin && (
           <MenuItem
             icon={<ChartBarIcon className="w-6 h-6" />}

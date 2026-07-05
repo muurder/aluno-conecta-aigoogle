@@ -100,7 +100,7 @@ const Notifications: React.FC = () => {
     }, [notifications, hideRead]);
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100">
+        <div className="flex flex-col bg-gray-100 min-h-[100dvh]">
             <header className="p-4 flex flex-col gap-4 text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -126,7 +126,7 @@ const Notifications: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-grow p-4 overflow-y-auto">
+            <main className="flex-grow p-4 overflow-y-auto pb-6">
                 {visibleNotifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
                         <BellSlashIcon className="w-16 h-16 text-gray-300 mb-4" />

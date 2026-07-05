@@ -119,7 +119,7 @@ const Financial: React.FC = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="flex flex-col h-screen bg-[var(--background)]">
+        <div className="flex flex-col bg-[var(--background)] min-h-[100dvh]">
              <header className="p-4 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-10 border-b">
                 <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100">
                     <ArrowLeftIcon className="w-6 h-6" />
@@ -127,7 +127,7 @@ const Financial: React.FC = () => {
                 <h1 className="font-bold text-lg">Financeiro</h1>
             </header>
 
-            <main className="flex-grow p-4 overflow-y-auto space-y-6">
+            <main className="flex-grow p-4 overflow-y-auto space-y-6 pb-24">
                 {currentBoleto && <CurrentBillCard boleto={currentBoleto} />}
                 
                 <div>

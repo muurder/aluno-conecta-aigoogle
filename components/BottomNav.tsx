@@ -34,10 +34,10 @@ const BottomNav: React.FC = () => {
     <nav
       className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 
                  bg-[var(--surface)]/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} // notch iOS
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="mx-auto max-w-sm">
-        <ul className="grid grid-cols-4 h-[64px] items-center">
+        <ul className="grid grid-cols-4 h-16 items-center">
           <li><NavItem to="/" icon={<HomeIcon className="w-6 h-6" />} label="Início" /></li>
           <li><NavItem to="/my-course" icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />} label="Chat" /></li>
           <li><NavItem to="/financial" icon={<BanknotesIcon className="w-6 h-6" />} label="Financeiro" /></li>

@@ -296,7 +296,7 @@ const App: React.FC = () => {
             <AuthProvider>
                 <NotificationsProvider>
                     <HashRouter>
-                        <div className="flex flex-col h-screen max-w-sm mx-auto bg-[var(--surface)] shadow-2xl md:max-w-md lg:max-w-lg">
+                        <div className="flex flex-col h-[100dvh] bg-[var(--surface)]">
                             <AppRoutes />
                         </div>
                     </HashRouter>

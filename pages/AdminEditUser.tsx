@@ -235,7 +235,7 @@ const AdminEditUser: React.FC = () => {
                 <h1 className="font-semibold text-lg truncate">Editar: {formData.fullName}</h1>
             </header>
             
-            <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-grow overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-4 space-y-4 flex-grow overflow-y-auto pb-6">
                  {error && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{error}</p>}
                 
                  <div className="flex flex-col items-center space-y-2">

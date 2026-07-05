@@ -217,7 +217,7 @@ export default function SupportAI() {
     }, [input]);
 
     return (
-        <div className="flex flex-col bg-[var(--background)]" style={{ minHeight: '100dvh' }}>
+        <div className="flex flex-col bg-[var(--background)]">
             <header className="p-2 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-20 border-b">
                 <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100" style={{minHeight: 44, minWidth: 44}}>
                     <ArrowLeftIcon className="w-6 h-6" />
@@ -232,7 +232,7 @@ export default function SupportAI() {
                 </div>
             </header>
             
-            <div className="flex-grow p-4 overflow-y-auto" style={{ flex: 1, paddingBottom: `calc(${composerH + BOTTOM_NAV_H}px + env(safe-area-inset-bottom))` }}>
+            <div className="flex-grow overflow-y-auto p-4" style={{ flex: 1, paddingBottom: `calc(${composerH + BOTTOM_NAV_H}px + env(safe-area-inset-bottom, 0px))` }}>
                 {messages.length <= 1 && (
                     <div className="mb-6">
                         <h2 className="text-sm font-semibold text-center text-[var(--muted)] mb-3">Sugestões rápidas</h2>
@@ -279,7 +279,7 @@ export default function SupportAI() {
                 className="sticky bottom-0 max-w-sm mx-auto w-full bg-[var(--surface)] border-t border-gray-200"
                 style={{
                     padding: '12px',
-                    paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+                    paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
                 }}
             >
                 {!hasGenAIKey ? (
