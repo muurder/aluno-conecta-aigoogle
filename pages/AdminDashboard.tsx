@@ -119,62 +119,236 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ show, message, se
 };
 
 const StatusBadge: React.FC<{ status: User['status'] }> = ({ status }) => (
-    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${status === 'approved' ? 'bg-green-150 text-green-800' : 'bg-yellow-150 text-yellow-800'}`}>
         {status === 'approved' ? 'Aprovado' : 'Pendente'}
     </span>
 );
 
-const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void; onDelete: () => void; }> = ({ user, onApprove, onEdit, onDelete }) => (
-    <div className="bg-white p-4 rounded-lg shadow-md border flex flex-col">
-        <div className="flex items-center gap-4">
-            <img 
-                src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=random`} 
-                alt={user.fullName} 
-                className="w-16 h-16 rounded-full object-cover border"
-            />
-            <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-800 truncate">{user.fullName}</h3>
-                <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                <div className="mt-2"><StatusBadge status={user.status} /></div>
+const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void; onDelete: () => void; }> = ({ user, onApprove, onEdit, onDelete }) => {
+    const formatDateTime = (dateStr?: string) => {
+        if (!dateStr) return 'Nunca acessou';
+        return new Date(dateStr).toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return 'Não cadastrada';
+        return new Date(dateStr).toLocaleDateString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+        });
+    };
+
+    const genderLabels: Record<string, string> = {
+        masculino: 'Masculino',
+        feminino: 'Feminino',
+        outro: 'Outro'
+    };
+
+    const genderColors: Record<string, string> = {
+        masculino: 'bg-blue-50 text-blue-700 border-blue-100',
+        feminino: 'bg-pink-50 text-pink-700 border-pink-100',
+        outro: 'bg-slate-100 text-slate-700 border-slate-200'
+    };
+
+    return (
+        <div className="bg-white p-5 rounded-2xl shadow-md border border-gray-100 flex flex-col hover:shadow-lg transition-all duration-300">
+            <div className="flex items-start gap-4">
+                <img 
+                    src={user.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=random`} 
+                    alt={user.fullName} 
+                    className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shadow-sm"
+                />
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-gray-800 text-base truncate">{user.fullName}</h3>
+                        <StatusBadge status={user.status} />
+                        {user.gender && (
+                            <span className={`px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${genderColors[user.gender] || genderColors.outro}`}>
+                                {genderLabels[user.gender] || 'Outro'}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-sm text-gray-500 truncate mt-0.5">{user.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">RGM: <span className="font-semibold text-gray-600">{user.rgm || 'Sem RGM'}</span> | Curso: <span className="font-semibold text-gray-600">{user.course || 'Não informado'}</span></p>
+                </div>
+            </div>
+
+            {/* Extra Analytics Details */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4 pt-3.5 border-t border-gray-100 text-[11px] text-gray-500">
+                <div>
+                    <span className="text-gray-400 font-light">Último Acesso:</span>
+                    <p className="font-semibold text-gray-700 mt-0.5">{formatDateTime(user.lastAccess)}</p>
+                </div>
+                <div>
+                    <span className="text-gray-400 font-light">Total de Acessos:</span>
+                    <p className="font-semibold text-gray-700 mt-0.5">{user.accessCount ?? 0} { (user.accessCount ?? 0) === 1 ? 'acesso' : 'acessos' }</p>
+                </div>
+                <div>
+                    <span className="text-gray-400 font-light">Data de Cadastro:</span>
+                    <p className="font-semibold text-gray-700 mt-0.5">{formatDate(user.createdAt)}</p>
+                </div>
+                <div>
+                    <span className="text-gray-400 font-light">Nascimento:</span>
+                    <p className="font-semibold text-gray-700 mt-0.5">
+                        {user.birthDate ? new Date(user.birthDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+                    </p>
+                </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-gray-100">
+                {user.status === 'pending' && (
+                    <button onClick={onApprove} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-150 border border-green-200 rounded-lg transition-colors" title="Aprovar usuário">
+                        <CheckCircleOutline className="w-4 h-4" />
+                        <span>Aprovar</span>
+                    </button>
+                )}
+                <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-105 border border-blue-200 rounded-lg transition-colors" title="Editar perfil">
+                    <PencilIcon className="w-4 h-4" />
+                    <span>Editar</span>
+                </button>
+                <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-105 border border-red-200 rounded-lg transition-colors" title="Excluir usuário">
+                    <TrashIcon className="w-4 h-4" />
+                    <span>Excluir</span>
+                </button>
             </div>
         </div>
-        <div className="flex items-center justify-end space-x-1 mt-4 pt-3 border-t border-gray-100">
-            {user.status === 'pending' && (
-                <button onClick={onApprove} className="p-2 text-green-600 hover:bg-green-100 rounded-full transition-colors" title="Aprovar usuário">
-                    <CheckCircleOutline className="w-6 h-6" />
-                </button>
-            )}
-            <button onClick={onEdit} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors" title="Editar perfil">
-                <PencilIcon className="w-6 h-6" />
-            </button>
-            <button onClick={onDelete} className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors" title="Excluir usuário">
-                <TrashIcon className="w-6 h-6" />
-            </button>
-        </div>
-    </div>
-);
+    );
+};
 
 // --- UserListModal Component ---
 interface UserListModalProps {
     isOpen: boolean; onClose: () => void; title: string; users: User[];
     onApprove: (user: User) => void; onEdit: (uid: string) => void; onDelete: (user: User) => void;
 }
+
 const UserListModal: React.FC<UserListModalProps> = ({ isOpen, onClose, title, users, onApprove, onEdit, onDelete }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOption, setSortOption] = useState<string>('newest');
+    const [genderFilter, setGenderFilter] = useState<string>('all');
+
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchTerm('');
+            setSortOption('newest');
+            setGenderFilter('all');
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
+
+    const safeGetTime = (dateValue: any, fallback: number = 0): number => {
+        if (!dateValue) return fallback;
+        if (typeof dateValue === 'object' && dateValue.seconds !== undefined) {
+            return dateValue.seconds * 1000;
+        }
+        if (typeof dateValue === 'object' && typeof dateValue.toDate === 'function') {
+            return dateValue.toDate().getTime();
+        }
+        const parsed = new Date(dateValue).getTime();
+        return isNaN(parsed) ? fallback : parsed;
+    };
+
+    const processedUsers = [...users]
+        .filter(user => {
+            const term = searchTerm.toLowerCase();
+            return (
+                user.fullName?.toLowerCase().includes(term) ||
+                user.email?.toLowerCase().includes(term) ||
+                user.rgm?.includes(term)
+            );
+        })
+        .filter(user => {
+            if (genderFilter === 'all') return true;
+            return user.gender === genderFilter;
+        })
+        .sort((a, b) => {
+            switch (sortOption) {
+                case 'az':
+                    return (a.fullName || '').localeCompare(b.fullName || '');
+                case 'za':
+                    return (b.fullName || '').localeCompare(a.fullName || '');
+                case 'newest':
+                    return safeGetTime(b.createdAt, 0) - safeGetTime(a.createdAt, 0);
+                case 'oldest':
+                    return safeGetTime(a.createdAt, Infinity) - safeGetTime(b.createdAt, Infinity);
+                case 'recentAccess':
+                    return safeGetTime(b.lastAccess, 0) - safeGetTime(a.lastAccess, 0);
+                case 'oldAccess':
+                    return safeGetTime(a.lastAccess, Infinity) - safeGetTime(b.lastAccess, Infinity);
+                case 'mostActive':
+                    return (b.accessCount || 0) - (a.accessCount || 0);
+                case 'leastActive':
+                    return (a.accessCount || 0) - (b.accessCount || 0);
+                default:
+                    return 0;
+            }
+        });
 
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-40 p-4" onClick={onClose}>
-            <div className="bg-gray-100 rounded-lg shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <header className="p-4 border-b bg-white rounded-t-lg flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-800">{title} ({users.length})</h2>
+            <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <header className="p-4 border-b bg-white flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+                        <p className="text-xs text-gray-500 mt-0.5">Exibindo {processedUsers.length} de {users.length} usuários</p>
+                    </div>
                     <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100">
                         <XMarkIcon className="w-6 h-6" />
                     </button>
                 </header>
+
+                {/* Search, Sort and Gender Filters Dashboard */}
+                <div className="bg-white px-4 py-3 border-b border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Search */}
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar nesta lista..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full p-2.5 pl-9 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-700"
+                        />
+                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    </div>
+
+                    {/* Sorting */}
+                    <div>
+                        <select
+                            value={sortOption}
+                            onChange={(e) => setSortOption(e.target.value)}
+                            className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-700"
+                        >
+                            <option value="newest">Últimos Cadastrados</option>
+                            <option value="oldest">Primeiros Cadastrados</option>
+                            <option value="az">Nome (A - Z)</option>
+                            <option value="za">Nome (Z - A)</option>
+                            <option value="recentAccess">Último Acesso (Recente)</option>
+                            <option value="oldAccess">Último Acesso (Antigo)</option>
+                            <option value="mostActive">Mais Ativos (Acessos)</option>
+                            <option value="leastActive">Inativos / Menos Ativos</option>
+                        </select>
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                        <select
+                            value={genderFilter}
+                            onChange={(e) => setGenderFilter(e.target.value)}
+                            className="w-full p-2.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-700"
+                        >
+                            <option value="all">Todos os Gêneros</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="feminino">Feminino</option>
+                            <option value="outro">Outro / Não informado</option>
+                        </select>
+                    </div>
+                </div>
+
                 <main className="flex-grow p-4 overflow-y-auto">
-                    {users.length > 0 ? (
+                    {processedUsers.length > 0 ? (
                         <div className="space-y-4">
-                            {users.map(user => (
+                            {processedUsers.map(user => (
                                 <UserCard 
                                     key={user.uid}
                                     user={user}
@@ -185,13 +359,17 @@ const UserListModal: React.FC<UserListModalProps> = ({ isOpen, onClose, title, u
                             ))}
                         </div>
                     ) : (
-                        <p className="text-center text-gray-500 mt-8">Nenhum usuário nesta categoria.</p>
+                        <div className="text-center text-gray-500 py-12">
+                            <UsersIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                            <p className="text-sm font-semibold">Nenhum estudante atende aos filtros</p>
+                            <p className="text-xs text-gray-400 mt-1">Experimente limpar a busca ou alterar as opções de filtragem.</p>
+                        </div>
                     )}
                 </main>
             </div>
         </div>
     );
-}
+};
 
 // --- StatCard Component ---
 const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number | string; color: string; onClick?: () => void }> = ({ icon, title, value, color, onClick }) => (
@@ -212,9 +390,11 @@ const NotificationHistoryItem: React.FC<{ notification: Notification; onDelete: 
         urgent: <ExclamationCircleIcon className="w-6 h-6 text-red-500" />,
     };
 
-    const formattedDate = new Date(notification.createdAt.seconds * 1000).toLocaleString('pt-BR', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    const formattedDate = notification.createdAt
+        ? new Date(notification.createdAt.seconds * 1000).toLocaleString('pt-BR', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          })
+        : 'Enviando...';
 
     return (
         <div className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-md">

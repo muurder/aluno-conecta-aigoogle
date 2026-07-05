@@ -11,11 +11,47 @@ type QuerySnapshot = firebase.firestore.QuerySnapshot;
 type Timestamp = firebase.firestore.Timestamp;
 type AuthUser = firebase.User;
 
+// Helper function to compress images client-side before upload
+const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<File> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onerror = reject;
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onerror = reject;
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > height) {
+                    if (width > options.maxWidth) { height = Math.round((height * options.maxWidth) / width); width = options.maxWidth; }
+                } else {
+                    if (height > options.maxHeight) { width = Math.round((width * options.maxHeight) / height); height = options.maxHeight; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return reject(new Error('Could not get canvas context.'));
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) return reject(new Error('Canvas to Blob conversion failed.'));
+                        const compressedFile = new File([blob], file.name.split('.').slice(0, -1).join('.') + '.jpeg', { type: 'image/jpeg', lastModified: Date.now() });
+                        resolve(compressedFile);
+                    }, 'image/jpeg', options.quality
+                );
+            };
+            img.src = e.target?.result as string;
+        };
+    });
+};
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
   login: (email: string, pass:string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: Omit<User, 'uid' | 'email'>, email: string, pass: string, photoFile?: File) => Promise<void>;
   updateUser: (uid: string, dataToUpdate: Partial<User>, photoFile?: File) => Promise<void>;
@@ -57,6 +93,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCurrentThemeById(userData.theme);
           } else {
             resetToDefaultTheme();
+          }
+
+          // Silently update access analytics in Firestore once per session
+          const sessionLoggedKey = `session_logged_${authUser.uid}`;
+          if (!sessionStorage.getItem(sessionLoggedKey)) {
+            sessionStorage.setItem(sessionLoggedKey, 'true');
+            userDocRef.update({
+              lastAccess: new Date().toISOString(),
+              accessCount: firebase.firestore.FieldValue.increment(1)
+            }).catch(err => console.error("Error updating access logs:", err));
           }
         } else {
           console.error("User is authenticated, but no profile found in Firestore.");
@@ -117,6 +163,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await auth.signInWithEmailAndPassword(email, pass);
   };
 
+  const loginWithGoogle = async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const userCredential = await auth.signInWithPopup(provider);
+    const authUser = userCredential.user;
+    if (!authUser) throw new Error("Não foi possível autenticar com o Google.");
+
+    // Check if the profile document already exists in Firestore
+    const userDocRef = db.collection('profiles').doc(authUser.uid);
+    const userDoc = await userDocRef.get();
+
+    if (!userDoc.exists) {
+      const fullName = authUser.displayName || authUser.email?.split('@')[0] || "Aluno Google";
+      const email = authUser.email || "";
+
+      // Generate institutional login from full name
+      const institutionalLogin = fullName
+          .trim()
+          .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9\s]/g, '')
+          .replace(/\s+/g, '.');
+
+      // Generate RGM
+      const randomPart = Math.floor(10000000 + Math.random() * 90000000).toString();
+      const digit = Math.floor(Math.random() * 10);
+      const rgm = `${randomPart}-${digit}`;
+
+      // Generate validity (1 year from now)
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setFullYear(today.getFullYear() + 1);
+      const month = (futureDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = futureDate.getFullYear();
+      const validity = `${month}/${year}`;
+
+      const defaultProfile = {
+        fullName,
+        email,
+        institutionalLogin,
+        rgm,
+        university: "São Judas" as const,
+        course: "Ciência da Computação",
+        campus: "Mooca",
+        validity,
+        photo: authUser.photoURL || null,
+        status: 'pending' as const,
+        isAdmin: false,
+        theme: 'saojudas',
+        themeSource: 'auto' as const,
+        createdAt: new Date().toISOString(),
+        lastAccess: new Date().toISOString(),
+        accessCount: 1,
+        gender: 'outro' as const,
+      };
+
+      await userDocRef.set(defaultProfile);
+    }
+  };
+
   const logout = async () => {
     // FIX: Refactored auth call to use v8 namespaced API.
     await auth.signOut();
@@ -130,10 +235,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       let photoURL: string | null = null;
       if (photoFile) {
-          // FIX: Refactored storage calls to use v8 namespaced API.
-          const photoRef = storage.ref(`profile-photos/${authUser.uid}/profile-photo`);
-          const snapshot = await photoRef.put(photoFile);
-          photoURL = await snapshot.ref.getDownloadURL();
+          try {
+              const compressedPhoto = await compressImage(photoFile, { maxWidth: 500, maxHeight: 500, quality: 0.6 });
+              const photoRef = storage.ref(`profile-photos/${authUser.uid}/profile-photo`);
+              const snapshot = await photoRef.put(compressedPhoto, { contentType: 'image/jpeg' });
+              photoURL = await snapshot.ref.getDownloadURL();
+          } catch (err) {
+              console.error("Profile picture compression failed, uploading raw file instead:", err);
+              const photoRef = storage.ref(`profile-photos/${authUser.uid}/profile-photo`);
+              const snapshot = await photoRef.put(photoFile, { contentType: photoFile.type });
+              photoURL = await snapshot.ref.getDownloadURL();
+          }
       }
 
       // Explicitly remove the 'photo' property from userData, which may contain a temporary blob URL,
@@ -146,6 +258,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'pending' as const,
           isAdmin: false,
           photo: photoURL,
+          createdAt: new Date().toISOString(),
+          lastAccess: new Date().toISOString(),
+          accessCount: 1,
+          gender: 'outro' as const,
       };
       
       // FIX: Refactored doc reference and set to use v8 namespaced API.
@@ -161,9 +277,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       delete finalUpdateData.uid;
 
       if (photoFile) {
-          const photoRef = storage.ref(`profile-photos/${uid}/profile-photo`);
-          const snapshot = await photoRef.put(photoFile);
-          finalUpdateData.photo = await snapshot.ref.getDownloadURL();
+          try {
+              const compressedPhoto = await compressImage(photoFile, { maxWidth: 500, maxHeight: 500, quality: 0.6 });
+              const photoRef = storage.ref(`profile-photos/${uid}/profile-photo`);
+              const snapshot = await photoRef.put(compressedPhoto, { contentType: 'image/jpeg' });
+              finalUpdateData.photo = await snapshot.ref.getDownloadURL();
+          } catch (err) {
+              console.error("Profile picture update compression failed, uploading raw instead:", err);
+              const photoRef = storage.ref(`profile-photos/${uid}/profile-photo`);
+              const snapshot = await photoRef.put(photoFile, { contentType: photoFile.type });
+              finalUpdateData.photo = await snapshot.ref.getDownloadURL();
+          }
       }
       
       const userDocRef = db.collection('profiles').doc(uid);
@@ -253,10 +377,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error("User not authenticated");
     let image_url: string | null = null;
     if (imageFile) {
-      // FIX: Refactored storage calls to use v8 namespaced API.
-      const imageRef = storage.ref(`posts/${Date.now()}_${imageFile.name}`);
-      const snapshot = await imageRef.put(imageFile);
-      image_url = await snapshot.ref.getDownloadURL();
+      try {
+        const compressedPostImg = await compressImage(imageFile, { maxWidth: 800, maxHeight: 800, quality: 0.6 });
+        const imageRef = storage.ref(`posts/${Date.now()}_${imageFile.name.split('.').slice(0, -1).join('.')}.jpeg`);
+        const snapshot = await imageRef.put(compressedPostImg, { contentType: 'image/jpeg' });
+        image_url = await snapshot.ref.getDownloadURL();
+      } catch (err) {
+        console.error("Post image compression failed, uploading raw instead:", err);
+        const imageRef = storage.ref(`posts/${Date.now()}_${imageFile.name}`);
+        const snapshot = await imageRef.put(imageFile, { contentType: imageFile.type });
+        image_url = await snapshot.ref.getDownloadURL();
+      }
     }
     
     // FIX: Refactored collection add to use v8 namespaced API.
@@ -365,6 +496,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     login,
+    loginWithGoogle,
     logout,
     register,
     updateUser,

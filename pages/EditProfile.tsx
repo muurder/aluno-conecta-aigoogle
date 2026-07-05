@@ -238,6 +238,8 @@ const EditProfile: React.FC = () => {
                 course: formData.course,
                 campus: formData.campus,
                 validity: formData.validity,
+                birthDate: formData.birthDate || '',
+                gender: formData.gender || 'outro',
                 theme: formData.theme,
                 themeSource: formData.themeSource,
             };
@@ -331,6 +333,18 @@ const EditProfile: React.FC = () => {
                     <div>
                         <label className={labelClasses}>Nome Completo</label>
                         <input name="fullName" value={formData.fullName} onChange={handleInputChange} className={inputClasses} required />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Data de Nascimento</label>
+                        <input type="date" name="birthDate" value={formData.birthDate || ''} onChange={handleInputChange} className={inputClasses} />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Gênero</label>
+                        <select name="gender" value={formData.gender || 'outro'} onChange={handleInputChange} className={inputClasses}>
+                            <option value="masculino">Masculino</option>
+                            <option value="feminino">Feminino</option>
+                            <option value="outro">Outro / Não informado</option>
+                        </select>
                     </div>
                     <div>
                         <label className={labelClasses}>RGM</label>

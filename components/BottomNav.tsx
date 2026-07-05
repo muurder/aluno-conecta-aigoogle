@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { HomeIcon, AcademicCapIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
+import { HomeIcon, ChatBubbleLeftRightIcon, BanknotesIcon, UserIcon } from '@heroicons/react/24/solid';
 
 const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string; badgeCount?: number }> = ({ to, icon, label, badgeCount }) => {
   return (
@@ -39,7 +39,7 @@ const BottomNav: React.FC = () => {
       <div className="mx-auto max-w-sm">
         <ul className="grid grid-cols-4 h-[64px] items-center">
           <li><NavItem to="/" icon={<HomeIcon className="w-6 h-6" />} label="Início" /></li>
-          <li><NavItem to="/my-course" icon={<AcademicCapIcon className="w-6 h-6" />} label="Cursos" /></li>
+          <li><NavItem to="/my-course" icon={<ChatBubbleLeftRightIcon className="w-6 h-6" />} label="Chat" /></li>
           <li><NavItem to="/financial" icon={<BanknotesIcon className="w-6 h-6" />} label="Financeiro" /></li>
           <li><NavItem to="/profile" icon={<UserIcon className="w-6 h-6" />} label="Perfil" /></li>
         </ul>

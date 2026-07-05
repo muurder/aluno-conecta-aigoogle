@@ -119,6 +119,12 @@ service cloud.firestore {
       match /notificationStatus/{notificationId} {
         allow read, write, delete: if request.auth.uid == userId;
       }
+
+      // Profile Photo Likes subcollection
+      match /photoLikes/{likerId} {
+        allow read: if request.auth != null;
+        allow write, delete: if request.auth != null && request.auth.uid == likerId;
+      }
     }
     
     // --- Global Chat ---
@@ -131,8 +137,14 @@ service cloud.firestore {
                       (!request.resource.data.keys().has('photoURL') || 
                        request.resource.data.photoURL == null || 
                        request.resource.data.photoURL is string);
-      // Prevent users from updating/deleting messages to maintain chat history integrity.
-      allow update, delete: if false;
+      
+      // Allow users to delete their own messages, or admins to delete any message
+      allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || 
+                     (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+                      get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true));
+      
+      // Allow users to update messages (for adding/removing reactions, replies, etc.)
+      allow update: if request.auth != null;
     }
 
     // --- Posts (Mural/Feed) ---
@@ -273,6 +285,7 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
     const isFirebaseConfigured = import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID;
+    console.log("=== APP MOUNTING ===", "isFirebaseConfigured:", isFirebaseConfigured, "isProduction:", isProduction);
 
     if (!isFirebaseConfigured && !isProduction) {
         return <FirebaseConfigWarning />;

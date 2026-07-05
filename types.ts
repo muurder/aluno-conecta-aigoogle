@@ -22,6 +22,12 @@ export interface User {
   course: string;
   campus: string;
   validity: string;
+  birthDate?: string;
+  gender?: 'masculino' | 'feminino' | 'outro';
+  tempPassword?: string;
+  lastAccess?: string;
+  accessCount?: number;
+  createdAt?: string;
   photo: string | null;
   status: UserStatus;
   isAdmin?: boolean;

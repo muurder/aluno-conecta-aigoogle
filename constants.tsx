@@ -139,3 +139,70 @@ export const COURSE_ICONS: Record<string, React.ReactNode> = {
     "Especialização em Nutrição Clínica": <HeartIcon className="w-6 h-6" />,
     "Especialização em Implantodontia (Odontologia)": <UsersIcon className="w-6 h-6" />,
 };
+
+export const COURSE_SUBJECTS: Record<string, string[]> = {
+    "Análise e Desenvolvimento de Sistemas": [
+        "Algoritmos e Estruturas de Dados",
+        "Engenharia de Software",
+        "Banco de Dados",
+        "Desenvolvimento Web e Mobile",
+        "Programação Orientada a Objetos",
+        "Segurança da Informação"
+    ],
+    "Ciência da Computação": [
+        "Cálculo Diferencial e Integral",
+        "Inteligência Artificial",
+        "Teoria da Computação",
+        "Sistemas Operacionais",
+        "Redes de Computadores",
+        "Compiladores"
+    ],
+    "Ciências da Computação": [
+        "Cálculo Diferencial e Integral",
+        "Inteligência Artificial",
+        "Teoria da Computação",
+        "Sistemas Operacionais",
+        "Redes de Computadores",
+        "Compiladores"
+    ],
+    "Direito": [
+        "Direito Constitucional",
+        "Direito Civil e Processual Civil",
+        "Direito Penal e Processual Penal",
+        "Direito do Trabalho",
+        "Direito Administrativo",
+        "Filosofia do Direito"
+    ],
+    "Administração": [
+        "Teoria Geral da Administração",
+        "Gestão Financeira e Orçamentária",
+        "Comportamento Organizacional",
+        "Planejamento Estratégico",
+        "Marketing e Comunicação",
+        "Gestão de Pessoas"
+    ],
+    "Engenharia de Computação": [
+        "Circuitos Digitais e Eletrônica",
+        "Arquitetura de Computadores",
+        "Sistemas Embarcados",
+        "Processamento Digital de Sinais",
+        "Redes e Comunicações Industriais",
+        "Física Geral e Experimental"
+    ],
+    "Design": [
+        "Design Gráfico e Editorial",
+        "História do Design",
+        "Ergonomia e Usabilidade",
+        "Design de Interfaces (UI)",
+        "Processos Criativos e Metodologia",
+        "Teoria das Cores e Semiótica"
+    ],
+    "Default": [
+        "Metodologia Científica",
+        "Ética e Cidadania",
+        "Comunicação e Expressão",
+        "Projeto Multidisciplinar",
+        "Inovação e Empreendedorismo",
+        "Lógica e Resolução de Problemas"
+    ]
+};

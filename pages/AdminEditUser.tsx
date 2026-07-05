@@ -9,6 +9,7 @@ import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { ArrowPathIcon, SparklesIcon, CheckCircleIcon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { auth } from '../firebase';
 
 
 // --- Toast Component ---
@@ -97,6 +98,17 @@ const AdminEditUser: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [imageProcessing, setImageProcessing] = useState(false);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
+    
+    const handleSendResetEmail = async () => {
+        if (!formData || !formData.email) return;
+        try {
+            await auth.sendPasswordResetEmail(formData.email);
+            setToast({ show: true, message: `E-mail de redefinição enviado para ${formData.email}!`, type: 'success' });
+        } catch (err: any) {
+            console.error(err);
+            setToast({ show: true, message: `Falha ao enviar e-mail: ${err.message}`, type: 'error' });
+        }
+    };
     
     useEffect(() => {
         const fetchUser = async () => {
@@ -240,13 +252,52 @@ const AdminEditUser: React.FC = () => {
                     <label className="text-sm font-medium text-gray-700">Login Institucional</label>
                     <input name="institutionalLogin" value={formData.institutionalLogin} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
                 </div>
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Nova Senha (Ignorado)</label>
-                    <input name="password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-1 w-full p-2 border border-gray-300 rounded-lg bg-gray-100" placeholder="Alteração de senha via admin requer backend" disabled />
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 space-y-4 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-800 border-b pb-2">Segurança & Senha</h3>
+                    
+                    {/* Manual Password Input */}
+                    <div>
+                        <label className="text-xs font-semibold text-gray-600 block mb-1">Definir Nova Senha Manualmente</label>
+                        <input 
+                            name="tempPassword" 
+                            type="text" 
+                            value={formData.tempPassword || ''} 
+                            onChange={handleInputChange} 
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white" 
+                            placeholder="Digite a nova senha para o aluno" 
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1 leading-normal">
+                            Nota: Como o app roda no front-end, salvar aqui registrará a senha no Firestore. O e-mail abaixo continua disponível para redefinição oficial do Firebase.
+                        </p>
+                    </div>
+
+                    {/* Official Reset Email Trigger */}
+                    <div className="pt-2 border-t border-gray-150">
+                        <button
+                            type="button"
+                            onClick={handleSendResetEmail}
+                            className="w-full flex items-center justify-center gap-2 p-2.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                            <SparklesIcon className="w-4 h-4 text-blue-500" />
+                            <span>Enviar Link de Redefinição de Senha</span>
+                        </button>
+                    </div>
                 </div>
                  <div>
                     <label className="text-sm font-medium text-gray-700">Nome Completo</label>
                     <input name="fullName" value={formData.fullName} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required />
+                </div>
+                <div>
+                    <label className="text-sm font-medium text-gray-700">Data de Nascimento</label>
+                    <input name="birthDate" type="date" value={formData.birthDate || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" />
+                </div>
+                <div>
+                    <label className="text-sm font-medium text-gray-700">Gênero</label>
+                    <select name="gender" value={formData.gender || 'outro'} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                        <option value="outro">Outro / Não informado</option>
+                    </select>
                 </div>
                  <div>
                     <label className="text-sm font-medium text-gray-700">RGM</label>

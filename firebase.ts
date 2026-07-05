@@ -16,11 +16,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const hasKeys = !!(import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID);
 
-// Initialize Firebase
-if (!firebase.apps.length) {
+// Initialize Firebase only if config is present to prevent crashes at import time
+if (hasKeys && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-export const auth = firebase.auth();
-export const db = firebase.firestore();
-export const storage = firebase.storage();
+
+export const auth = hasKeys ? firebase.auth() : null as any;
+export const db = hasKeys ? firebase.firestore() : null as any;
+export const storage = hasKeys ? firebase.storage() : null as any;

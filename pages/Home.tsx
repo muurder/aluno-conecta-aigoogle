@@ -14,6 +14,7 @@ import {
     IdentificationIcon,
     CalendarDaysIcon,
     ComputerDesktopIcon,
+    ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
 const Home: React.FC = () => {
@@ -136,6 +137,19 @@ const Home: React.FC = () => {
                     textColor="var(--on-primary)"
                     icon={<CalendarDaysIcon className="w-7 h-7" />}
                     onClick={() => navigate('/class-schedule')}
+                />
+                <ActionCard 
+                    title="Aplicativo Android" 
+                    subtitle="Baixar o app oficial (.APK)" 
+                    bgColor="#0f172a" 
+                    textColor="#ffffff"
+                    icon={<ArrowDownTrayIcon className="w-7 h-7" />}
+                    onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = '/portal-do-estudante.apk';
+                        link.download = 'portal-do-estudante.apk';
+                        link.click();
+                    }}
                 />
             </div>
 

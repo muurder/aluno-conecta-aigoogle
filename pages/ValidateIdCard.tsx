@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import StudentIdCard from '../components/StudentIdCard';
 import type { User } from '../types';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
+import { db } from '../firebase';
 
 const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({ message, userName, show }) => {
     if (!show) {
@@ -55,37 +56,92 @@ const ValidateIdCard: React.FC = () => {
     const [isValidating, setIsValidating] = useState(true);
 
     useEffect(() => {
-        const validationTimer = setTimeout(() => {
+        let isMounted = true;
+        const validationTimer = setTimeout(async () => {
             if (data) {
                 try {
-                    const decodedData = decodeURIComponent(escape(atob(data)));
-                    const userObject = JSON.parse(decodedData);
-                    setValidatedUser(userObject);
-                    setShowToast(true);
-                    setIsValidating(false);
+                    let decodedData = '';
+                    let userObject: User | null = null;
+                    let uid = '';
 
-                    const timer = setTimeout(() => {
-                        const toastElement = document.querySelector('.animate-fade-in');
-                        if (toastElement) {
-                            toastElement.classList.add('animate-fade-out');
+                    // Try to decode Base64 data
+                    try {
+                        decodedData = decodeURIComponent(escape(atob(data)));
+                    } catch (e) {
+                        // If it's not base64, assume it's a raw UID
+                        decodedData = data;
+                    }
+
+                    // Check if it's the old JSON format
+                    if (decodedData.trim().startsWith('{')) {
+                        try {
+                            userObject = JSON.parse(decodedData);
+                        } catch (e) {
+                            console.error("Failed to parse JSON:", e);
                         }
-                        setTimeout(() => setShowToast(false), 500);
-                    }, 3000);
+                    } else {
+                        // It's the new UID format
+                        uid = decodedData;
+                    }
 
-                    return () => clearTimeout(timer);
+                    if (userObject) {
+                        if (isMounted) {
+                            setValidatedUser(userObject);
+                            setShowToast(true);
+                            setIsValidating(false);
+                        }
+                    } else if (uid) {
+                        // Fetch from Firestore
+                        const doc = await db.collection('profiles').doc(uid).get();
+                        if (doc.exists) {
+                            if (isMounted) {
+                                setValidatedUser({ uid: doc.id, ...doc.data() } as User);
+                                setShowToast(true);
+                                setIsValidating(false);
+                            }
+                        } else {
+                            if (isMounted) {
+                                setError("Estudante não encontrado no banco de dados.");
+                                setIsValidating(false);
+                            }
+                        }
+                    } else {
+                        throw new Error("Invalid validation data format");
+                    }
+
+                    if (isMounted && (userObject || uid)) {
+                        const timer = setTimeout(() => {
+                            if (!isMounted) return;
+                            const toastElement = document.querySelector('.animate-fade-in');
+                            if (toastElement) {
+                                toastElement.classList.add('animate-fade-out');
+                            }
+                            setTimeout(() => {
+                                if (isMounted) setShowToast(false);
+                            }, 500);
+                        }, 3000);
+                        return () => clearTimeout(timer);
+                    }
 
                 } catch (e) {
-                    console.error("Failed to decode user data:", e);
-                    setError("O código QR é inválido ou os dados estão corrompidos.");
-                    setIsValidating(false);
+                    console.error("Validation failed:", e);
+                    if (isMounted) {
+                        setError("O código QR é inválido ou os dados estão corrompidos.");
+                        setIsValidating(false);
+                    }
                 }
             } else {
-                setError("Nenhum dado de validação fornecido.");
-                setIsValidating(false);
+                if (isMounted) {
+                    setError("Nenhum dado de validação fornecido.");
+                    setIsValidating(false);
+                }
             }
         }, 4000); // 4-second loading period
 
-        return () => clearTimeout(validationTimer);
+        return () => {
+            isMounted = false;
+            clearTimeout(validationTimer);
+        };
     }, [data]);
 
     if (isValidating) {

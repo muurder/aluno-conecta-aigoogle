@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Portal do Aluno</string>
+    <string name="title_activity_main">Portal do Aluno</string>
+    <string name="package_name">com.alunoconecta.app</string>
+    <string name="custom_url_scheme">com.alunoconecta.app</string>
+</resources>
