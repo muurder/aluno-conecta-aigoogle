@@ -71,6 +71,16 @@ const Login: React.FC = () => {
   const { login, loginWithGoogle } = useAuth();
 
   const handleGoogleLogin = async () => {
+    const isApp = !!(window as any).Capacitor;
+    if (isApp) {
+      setToast({ 
+        show: true, 
+        message: 'O login com o Google não é suportado diretamente no aplicativo instalado devido às restrições do Google. Por favor, faça login com seu E-mail Institucional e Senha.', 
+        type: 'error' 
+      });
+      return;
+    }
+
     setGoogleLoading(true);
     try {
       await loginWithGoogle();

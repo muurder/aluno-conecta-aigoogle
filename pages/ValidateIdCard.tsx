@@ -136,7 +136,7 @@ const ValidateIdCard: React.FC = () => {
                     setIsValidating(false);
                 }
             }
-        }, 4000); // 4-second loading period
+        }, 1500); // 1.5-second loading period
 
         return () => {
             isMounted = false;
