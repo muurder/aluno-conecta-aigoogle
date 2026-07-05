@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import StudentIdCard from '../components/StudentIdCard';
 import type { User } from '../types';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({ message, userName, show }) => {
     if (!show) {
@@ -12,7 +12,7 @@ const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({
     }
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in"
             aria-labelledby="toast-title"
             role="alertdialog"
@@ -64,15 +64,12 @@ const ValidateIdCard: React.FC = () => {
                     let userObject: User | null = null;
                     let uid = '';
 
-                    // Try to decode Base64 data
                     try {
                         decodedData = decodeURIComponent(escape(atob(data)));
                     } catch (e) {
-                        // If it's not base64, assume it's a raw UID
                         decodedData = data;
                     }
 
-                    // Check if it's the old JSON format
                     if (decodedData.trim().startsWith('{')) {
                         try {
                             userObject = JSON.parse(decodedData);
@@ -80,7 +77,6 @@ const ValidateIdCard: React.FC = () => {
                             console.error("Failed to parse JSON:", e);
                         }
                     } else {
-                        // It's the new UID format
                         uid = decodedData;
                     }
 
@@ -91,9 +87,17 @@ const ValidateIdCard: React.FC = () => {
                             setIsValidating(false);
                         }
                     } else if (uid) {
-                        // Fetch from Firestore
-                        const doc = await db.collection('profiles').doc(uid).get();
-                        if (doc.exists) {
+                        let doc = null;
+                        try {
+                            if (auth && !auth.currentUser) {
+                                await auth.signInAnonymously();
+                            }
+                            doc = await db.collection('profiles').doc(uid).get();
+                        } catch (firestoreError) {
+                            console.error("Validation fetch error:", firestoreError);
+                        }
+
+                        if (doc && doc.exists) {
                             if (isMounted) {
                                 setValidatedUser({ uid: doc.id, ...doc.data() } as User);
                                 setShowToast(true);
@@ -136,7 +140,7 @@ const ValidateIdCard: React.FC = () => {
                     setIsValidating(false);
                 }
             }
-        }, 1500); // 1.5-second loading period
+        }, 1500);
 
         return () => {
             isMounted = false;
@@ -160,8 +164,8 @@ const ValidateIdCard: React.FC = () => {
                 <h1 className="text-xl font-bold text-red-800">Erro de Validação</h1>
                 <p className="text-red-600 mt-2 text-center">{error}</p>
                  <button onClick={() => navigate('/')} className="mt-8 px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
-                    Voltar
-                </button>
+                     Voltar
+                 </button>
             </div>
         );
     }
@@ -176,9 +180,9 @@ const ValidateIdCard: React.FC = () => {
 
     return (
         <div className="flex-grow flex flex-col items-center justify-center bg-gray-100 p-4">
-            <Toast 
+            <Toast
                 show={showToast}
-                message="Validado" 
+                message="Validado"
                 userName={validatedUser.fullName}
             />
             <StudentIdCard user={validatedUser} />

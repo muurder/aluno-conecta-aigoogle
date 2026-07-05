@@ -71,30 +71,30 @@ const Login: React.FC = () => {
   const { login, loginWithGoogle } = useAuth();
 
   const handleGoogleLogin = async () => {
-    const isApp = !!(window as any).Capacitor;
-    if (isApp) {
-      setToast({ 
-        show: true, 
-        message: 'O login com o Google não é suportado diretamente no aplicativo instalado devido às restrições do Google. Por favor, faça login com seu E-mail Institucional e Senha.', 
-        type: 'error' 
-      });
-      return;
-    }
+     const isApp = !!(window as any).Capacitor;
+     if (isApp) {
+       setToast({
+         show: true,
+         message: 'O login com o Google não é suportado diretamente no aplicativo instalado devido às restrições do Google. Por favor, faça login com seu E-mail Institucional e Senha.',
+         type: 'error'
+       });
+       return;
+     }
 
-    setGoogleLoading(true);
-    try {
-      await loginWithGoogle();
-    } catch (err: any) {
-      console.error("Google Login Error:", err);
-      let errorMessage = 'Ocorreu um erro ao fazer login com o Google. Tente novamente.';
-      if (err.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'A janela de login com o Google foi fechada antes de completar a autenticação.';
-      }
-      setToast({ show: true, message: errorMessage, type: 'error' });
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+     setGoogleLoading(true);
+     try {
+       await loginWithGoogle();
+     } catch (err: any) {
+       console.error("Google Login Error:", err);
+       let errorMessage = 'Ocorreu um erro ao fazer login com o Google. Tente novamente.';
+       if (err.code === 'auth/popup-closed-by-user') {
+         errorMessage = 'A janela de login com o Google foi fechada antes de completar a autenticação.';
+       }
+       setToast({ show: true, message: errorMessage, type: 'error' });
+     } finally {
+       setGoogleLoading(false);
+     }
+   };
 
   useEffect(() => {
     const rememberedEmail = localStorage.getItem('rememberedEmail');

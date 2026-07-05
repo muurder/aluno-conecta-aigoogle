@@ -165,11 +165,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
+    
+    if (typeof window !== 'undefined' && (window as any).Capacitor) {
+      await auth.signInWithRedirect(provider);
+      return;
+    }
+    
     const userCredential = await auth.signInWithPopup(provider);
     const authUser = userCredential.user;
     if (!authUser) throw new Error("Não foi possível autenticar com o Google.");
 
-    // Check if the profile document already exists in Firestore
     const userDocRef = db.collection('profiles').doc(authUser.uid);
     const userDoc = await userDocRef.get();
 
@@ -177,7 +182,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const fullName = authUser.displayName || authUser.email?.split('@')[0] || "Aluno Google";
       const email = authUser.email || "";
 
-      // Generate institutional login from full name
       const institutionalLogin = fullName
           .trim()
           .toLowerCase()
@@ -185,12 +189,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .replace(/[^a-z0-9\s]/g, '')
           .replace(/\s+/g, '.');
 
-      // Generate RGM
       const randomPart = Math.floor(10000000 + Math.random() * 90000000).toString();
       const digit = Math.floor(Math.random() * 10);
       const rgm = `${randomPart}-${digit}`;
 
-      // Generate validity (1 year from now)
       const today = new Date();
       const futureDate = new Date();
       futureDate.setFullYear(today.getFullYear() + 1);
