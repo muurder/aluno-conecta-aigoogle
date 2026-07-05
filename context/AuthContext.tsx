@@ -79,10 +79,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { setCurrentThemeById, resetToDefaultTheme } = useTheme();
 
   useEffect(() => {
-    // FIX: Refactored listener to use v8 namespaced API.
     const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
       if (authUser) {
-        // FIX: Refactored doc reference and get to use v8 namespaced API.
         const userDocRef = db.collection('profiles').doc(authUser.uid);
         const userDoc = await userDocRef.get();
 
@@ -95,7 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             resetToDefaultTheme();
           }
 
-          // Silently update access analytics in Firestore once per session
           const sessionLoggedKey = `session_logged_${authUser.uid}`;
           if (!sessionStorage.getItem(sessionLoggedKey)) {
             sessionStorage.setItem(sessionLoggedKey, 'true');
@@ -105,9 +102,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }).catch(err => console.error("Error updating access logs:", err));
           }
         } else {
-          console.error("User is authenticated, but no profile found in Firestore.");
-          setUser(null);
-          resetToDefaultTheme();
+          const defaultProfile = {
+            fullName: authUser.displayName || authUser.email?.split('@')[0] || "Aluno Google",
+            email: authUser.email || "",
+            institutionalLogin: (authUser.displayName || authUser.email?.split('@')[0] || "aluno.google")
+              .trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, '.'),
+            rgm: `${Math.floor(10000000 + Math.random() * 90000000)}-${Math.floor(Math.random() * 10)}`,
+            university: "São Judas" as const,
+            course: "Ciência da Computação",
+            campus: "Mooca",
+            validity: `${String(new Date().getMonth() + 2).padStart(2, '0')}/${new Date().getFullYear()}`,
+            photo: authUser.photoURL || null,
+            status: 'pending' as const,
+            isAdmin: false,
+            theme: 'saojudas',
+            themeSource: 'auto' as const,
+            createdAt: new Date().toISOString(),
+            lastAccess: new Date().toISOString(),
+            accessCount: 1,
+            gender: 'outro' as const,
+          };
+          await userDocRef.set(defaultProfile);
+          setUser({ uid: authUser.uid, ...defaultProfile } as User);
+          setCurrentThemeById('saojudas');
         }
       } else {
         setUser(null);
@@ -165,63 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    
-    if (typeof window !== 'undefined' && (window as any).Capacitor) {
-      await auth.signInWithRedirect(provider);
-      return;
-    }
-    
-    const userCredential = await auth.signInWithPopup(provider);
-    const authUser = userCredential.user;
-    if (!authUser) throw new Error("Não foi possível autenticar com o Google.");
-
-    const userDocRef = db.collection('profiles').doc(authUser.uid);
-    const userDoc = await userDocRef.get();
-
-    if (!userDoc.exists) {
-      const fullName = authUser.displayName || authUser.email?.split('@')[0] || "Aluno Google";
-      const email = authUser.email || "";
-
-      const institutionalLogin = fullName
-          .trim()
-          .toLowerCase()
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9\s]/g, '')
-          .replace(/\s+/g, '.');
-
-      const randomPart = Math.floor(10000000 + Math.random() * 90000000).toString();
-      const digit = Math.floor(Math.random() * 10);
-      const rgm = `${randomPart}-${digit}`;
-
-      const today = new Date();
-      const futureDate = new Date();
-      futureDate.setFullYear(today.getFullYear() + 1);
-      const month = (futureDate.getMonth() + 1).toString().padStart(2, '0');
-      const year = futureDate.getFullYear();
-      const validity = `${month}/${year}`;
-
-      const defaultProfile = {
-        fullName,
-        email,
-        institutionalLogin,
-        rgm,
-        university: "São Judas" as const,
-        course: "Ciência da Computação",
-        campus: "Mooca",
-        validity,
-        photo: authUser.photoURL || null,
-        status: 'pending' as const,
-        isAdmin: false,
-        theme: 'saojudas',
-        themeSource: 'auto' as const,
-        createdAt: new Date().toISOString(),
-        lastAccess: new Date().toISOString(),
-        accessCount: 1,
-        gender: 'outro' as const,
-      };
-
-      await userDocRef.set(defaultProfile);
-    }
+    await auth.signInWithRedirect(provider);
   };
 
   const logout = async () => {
