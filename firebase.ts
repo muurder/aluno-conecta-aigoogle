@@ -64,6 +64,13 @@ function initFirebaseSafely(): { auth: any; db: any; storage: any; failed: boole
 
   try {
     const app = firebase.initializeApp(firebaseConfig);
+
+    if (/iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      try {
+        app.firestore().disableNetwork();
+      } catch {}
+    }
+
     return {
       auth: app.auth(),
       db: app.firestore(),
