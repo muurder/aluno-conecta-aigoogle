@@ -1,9 +1,15 @@
+# Firestore Rules — versão atual + ajuste QR
+
+Abaixo está o arquivo completo `firestore.rules` para substituir o atual.
+Alteração em relação às suas regras: leitura pública da coleção `profiles` no nível raiz, mantendo toda a proteção anterior para subpastas e escrita. Isso permite validar QR sem login, sem expor postagens, comentários ou reações.
+
+```rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
     // Regras dos perfis de usuário
-    // Ajuste QR: leitura pública habilitada para validação sem login.
+    // Ajuste: leitura pública habilitada para validação de QR sem login.
     match /profiles/{userId} {
       allow read: if true;
       allow write: if request.auth != null;
@@ -53,3 +59,17 @@ service cloud.firestore {
     }
   }
 }
+```
+
+## Como aplicar
+
+```bash
+npx firebase-tools deploy --only firestore:rules --project alunoconecta-a3767
+```
+
+## Importante
+
+- A abertura de leitura foi feita apenas em `/profiles/{userId}`.
+- As subpastas `photoLikes` e `notificationStatus` continuam protegidas para `request.auth != null`.
+- Todas as escritas seguem protegidas.
+- Se quiser reverter depois, basta restaurar a regra anterior para `allow read, write: if request.auth != null;` dentro de `/profiles/{userId}`.
