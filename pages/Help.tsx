@@ -110,22 +110,30 @@ export default function SupportAI() {
 
     // Load history from localStorage on mount or create welcome message
     useEffect(() => {
-        const storedHistory = localStorage.getItem(storageKey);
-        if (storedHistory) {
-            setMessages(JSON.parse(storedHistory));
-        } else if (user) {
-            const universityContext = user.university ? ` com assuntos da ${user.university}` : '';
-            setMessages([{
-                role: 'model',
-                text: `Olá, ${user.fullName.split(' ')[0]}! Sou seu assistente virtual. Como posso te ajudar hoje${universityContext}?`
-            }]);
+        try {
+            const storedHistory = localStorage.getItem(storageKey);
+            if (storedHistory) {
+                setMessages(JSON.parse(storedHistory));
+            } else if (user) {
+                const universityContext = user.university ? ` com assuntos da ${user.university}` : '';
+                setMessages([{
+                    role: 'model',
+                    text: `Olá, ${user.fullName.split(' ')[0]}! Sou seu assistente virtual. Como posso te ajudar hoje${universityContext}?`
+                }]);
+            }
+        } catch (err) {
+            console.warn("Local storage unavailable:", err);
         }
     }, [user, storageKey]);
 
     // Save history to localStorage on change
     useEffect(() => {
         if (messages.length > 0) {
-            localStorage.setItem(storageKey, JSON.stringify(messages));
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(messages));
+            } catch (err) {
+                console.warn("Local storage unavailable:", err);
+            }
         }
     }, [messages, storageKey]);
 

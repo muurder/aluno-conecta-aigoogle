@@ -132,12 +132,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             resetToDefaultTheme();
           }
           const sessionLoggedKey = `session_logged_${authUser.uid}`;
-          if (!sessionStorage.getItem(sessionLoggedKey)) {
-            sessionStorage.setItem(sessionLoggedKey, 'true');
-            userDocRef.update({
-              lastAccess: new Date().toISOString(),
-              accessCount: firebase.firestore.FieldValue.increment(1)
-            }).catch(err => console.error("Error updating access logs:", err));
+          try {
+            if (!sessionStorage.getItem(sessionLoggedKey)) {
+              sessionStorage.setItem(sessionLoggedKey, 'true');
+              userDocRef.update({
+                lastAccess: new Date().toISOString(),
+                accessCount: firebase.firestore.FieldValue.increment(1)
+              }).catch(err => console.error("Error updating access logs:", err));
+            }
+          } catch (err) {
+            console.warn("Session storage unavailable or blocked:", err);
           }
         } else {
           await ensureProfileExists(authUser);

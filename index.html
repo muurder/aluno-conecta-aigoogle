@@ -18,18 +18,16 @@
         --muted: #64748b; /* slate-500 */
         --accent: #3b82f6; /* blue-500 */
       }
+      @supports not (height: 100dvh) {
+        .h-\[100dvh\] {
+          height: 100vh !important;
+        }
+        .min-h-\[100dvh\] {
+          min-height: 100vh !important;
+        }
+      }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.1.0/",
-    "@heroicons/react/": "https://aistudiocdn.com/@heroicons/react@^2.2.0/"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="bg-[var(--background)] text-[var(--text)]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

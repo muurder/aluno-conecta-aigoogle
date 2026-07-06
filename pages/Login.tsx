@@ -87,10 +87,14 @@ const Login: React.FC = () => {
   };
 
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem('rememberedEmail');
-    if (rememberedEmail) {
-      setEmail(rememberedEmail);
-      setRememberMe(true);
+    try {
+      const rememberedEmail = localStorage.getItem('rememberedEmail');
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberMe(true);
+      }
+    } catch (err) {
+      console.warn("Local storage unavailable:", err);
     }
   }, []);
 
@@ -100,9 +104,9 @@ const Login: React.FC = () => {
     try {
       await login(email, password);
       if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
+        try { localStorage.setItem('rememberedEmail', email); } catch {}
       } else {
-        localStorage.removeItem('rememberedEmail');
+        try { localStorage.removeItem('rememberedEmail'); } catch {}
       }
     } catch (err: any) {
       console.error("Login Error:", err.code);
