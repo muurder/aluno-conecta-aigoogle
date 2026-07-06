@@ -18,84 +18,34 @@ const VirtualIdCard: React.FC = () => {
 
     setDownloading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const frontTarget = cardRef.current.querySelector('#card-front') as HTMLElement | null;
       const backTarget = cardRef.current.querySelector('#card-back') as HTMLElement | null;
 
       if (!frontTarget || !backTarget) {
-        throw new Error("Could not find front or back card elements.");
+        throw new Error("Could not find card elements.");
       }
 
-      const [canvasFront, canvasBack] = await Promise.all([
-        html2canvas(frontTarget, {
-          useCORS: true,
-          allowTaint: false,
-          scale: 4,
-          backgroundColor: '#0f172a'
-        }),
-        html2canvas(backTarget, {
-          useCORS: true,
-          allowTaint: false,
-          scale: 4,
-          backgroundColor: '#0f172a'
-        })
+      const [frontCanvas, backCanvas] = await Promise.all([
+        html2canvas(frontTarget, { useCORS: true, allowTaint: false, scale: 3, backgroundColor: null }),
+        html2canvas(backTarget, { useCORS: true, allowTaint: false, scale: 3, backgroundColor: null }),
       ]);
 
-      const imgFront = canvasFront.toDataURL('image/png');
-      const imgBack = canvasBack.toDataURL('image/png');
+      const frontImg = frontCanvas.toDataURL('image/png');
+      const backImg = backCanvas.toDataURL('image/png');
 
       const pdf = new jsPDF({
-        orientation: 'portrait',
+        orientation: 'landscape',
         unit: 'mm',
-        format: 'a4'
+        format: [85, 54],
       });
 
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 20;
-      const cardDisplayWidth = 90;
-      const cardDisplayHeight = 57;
-
-      const frontX = (pageWidth - cardDisplayWidth) / 2;
-      const frontY = 30;
-      const backX = (pageWidth - cardDisplayWidth) / 2;
-      const backY = frontY + cardDisplayHeight + 35;
-
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 41, 59);
-      pdf.text('Carteirinha Estudantil Digital', pageWidth / 2, 16, { align: 'center' });
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(100);
-      pdf.text('Frente', pageWidth / 2, frontY - 8, { align: 'center' });
-
-      pdf.addImage(imgFront, 'PNG', frontX, frontY, cardDisplayWidth, cardDisplayHeight);
-
-      pdf.setDrawColor(203, 213, 225);
-      pdf.setLineWidth(0.2);
-      pdf.line(margin, backY - 8, pageWidth - margin, backY - 8);
-
-      pdf.setFontSize(10);
-      pdf.setTextColor(100);
-      pdf.text('Verso', pageWidth / 2, backY - 8 + 2, { align: 'center' });
-
-      pdf.addImage(imgBack, 'PNG', backX, backY, cardDisplayWidth, cardDisplayHeight);
-
-      pdf.setFontSize(8);
-      pdf.setTextColor(150);
-      pdf.text(
-        `Gerado em: ${new Date().toLocaleDateString('pt-BR')} - ${user.fullName}`,
-        pageWidth / 2,
-        pageHeight - 10,
-        { align: 'center' }
-      );
+      pdf.addImage(frontImg, 'PNG', 0, 0, 85, 54);
+      pdf.addPage([85, 54], 'landscape');
+      pdf.addImage(backImg, 'PNG', 0, 0, 85, 54);
 
       pdf.save(`carteirinha-${user.fullName?.toLowerCase().replace(/\s+/g, '-') || 'estudante'}.pdf`);
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error('PDF generation error:', error);
     } finally {
       setDownloading(false);
     }
@@ -162,7 +112,7 @@ const VirtualIdCard: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
               )}
-              <span>{downloading ? 'Gerando PDF...' : 'Baixar PDF Premium'}</span>
+              <span>{downloading ? 'Gerando PDF...' : 'Baixar PDF'}</span>
             </button>
           </div>
         ) : (
