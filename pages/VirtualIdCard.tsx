@@ -22,7 +22,6 @@ const VirtualIdCard: React.FC = () => {
     
     setDownloading(true);
     try {
-      // Ensure images are fully loaded
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const frontElement = cardRef.current.querySelector('#card-front') as HTMLElement;
@@ -35,35 +34,31 @@ const VirtualIdCard: React.FC = () => {
       const canvasFront = await html2canvas(frontElement, {
         useCORS: true,
         allowTaint: false,
-        scale: 3,
-        backgroundColor: null
+        scale: 4,
+        backgroundColor: '#0f172a'
       });
       
       const canvasBack = await html2canvas(backElement, {
         useCORS: true,
         allowTaint: false,
-        scale: 3,
-        backgroundColor: null
+        scale: 4,
+        backgroundColor: '#0f172a'
       });
       
       const imgFront = canvasFront.toDataURL('image/png');
       const imgBack = canvasBack.toDataURL('image/png');
       
-      const cardWidth = 85;
-      const cardHeight = 54; // Standard ID card size (landscape ratio)
+      const orientation = canvasFront.width > canvasFront.height ? 'landscape' : 'portrait';
       
       const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: [cardWidth, cardHeight]
+        orientation,
+        unit: 'px',
+        format: [canvasFront.width, canvasFront.height]
       });
       
-      // Page 1: Front
-      pdf.addImage(imgFront, 'PNG', 0, 0, cardWidth, cardHeight);
-      
-      // Page 2: Back
-      pdf.addPage([cardWidth, cardHeight], 'landscape');
-      pdf.addImage(imgBack, 'PNG', 0, 0, cardWidth, cardHeight);
+      pdf.addImage(imgFront, 'PNG', 0, 0, canvasFront.width, canvasFront.height);
+      pdf.addPage([canvasBack.width, canvasBack.height], orientation);
+      pdf.addImage(imgBack, 'PNG', 0, 0, canvasBack.width, canvasBack.height);
       
       pdf.save(`carteirinha-${user.fullName?.toLowerCase().replace(/\s+/g, '-') || 'estudante'}.pdf`);
     } catch (error) {
