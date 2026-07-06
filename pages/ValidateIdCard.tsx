@@ -1,15 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import StudentIdCard from '../components/StudentIdCard';
 import type { User } from '../types';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { db, auth } from '../firebase';
-
-const PUBLIC_FIELDS = [
-  'fullName','email','institutionalLogin','rgm','university','course','campus',
-  'validity','photo','status','isAdmin','theme','themeSource','gender',
-];
 
 const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({ message, userName, show }) => {
     if (!show) {
@@ -55,93 +49,122 @@ const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({
 const ValidateIdCard: React.FC = () => {
     const { data } = useParams<{ data: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const [validatedUser, setValidatedUser] = useState<User | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [rawError, setRawError] = useState<string | null>(null);
+    const [rawUid, setRawUid] = useState<string | null>(null);
     const [showToast, setShowToast] = useState(false);
     const [isValidating, setIsValidating] = useState(true);
 
     useEffect(() => {
         let isMounted = true;
         const validationTimer = setTimeout(async () => {
-            if (data) {
-                try {
-                    let decodedData = '';
-                    let userObject: User | null = null;
-                    let uid = '';
+            let localDecoded = '';
+            let localUid = '';
 
-                    try {
-                        decodedData = decodeURIComponent(escape(atob(data)));
-                    } catch (e) {
-                        decodedData = data;
-                    }
-
-                    if (decodedData.trim().startsWith('{')) {
-                        try {
-                            userObject = JSON.parse(decodedData);
-                        } catch (e) {
-                            console.error("[ValidateIdCard] JSON parse failed", e);
-                        }
-                    } else {
-                        uid = decodedData;
-                    }
-
-                    console.log("[ValidateIdCard] decoded uid:", uid, "json:", !!userObject);
-
-                    if (userObject) {
-                        if (isMounted) {
-                            setValidatedUser(userObject);
-                            setShowToast(true);
-                            setIsValidating(false);
-                        }
-                    } else if (uid) {
-                        let doc = null;
-                        try {
-                            doc = await db.collection('profiles').doc(uid).get();
-                            console.log("[ValidateIdCard] Firestore result exists:", doc.exists, "id:", doc.id);
-                        } catch (firestoreError) {
-                            console.error("[ValidateIdCard] Firestore error:", firestoreError);
-                        }
-
-                        if (doc && doc.exists) {
-                            if (isMounted) {
-                                setValidatedUser({ uid: doc.id, ...doc.data() } as User);
-                                setShowToast(true);
-                                setIsValidating(false);
-                            }
-                        } else {
-                            if (isMounted) {
-                                setError("Estudante não encontrado no banco de dados.");
-                                setIsValidating(false);
-                            }
-                        }
-                    } else {
-                        throw new Error("Invalid validation data format");
-                    }
-
-                    if (isMounted && (userObject || uid)) {
-                        const timer = setTimeout(() => {
-                            if (!isMounted) return;
-                            const toastElement = document.querySelector('.animate-fade-in');
-                            if (toastElement) {
-                                toastElement.classList.add('animate-fade-out');
-                            }
-                            setTimeout(() => {
-                                if (isMounted) setShowToast(false);
-                            }, 500);
-                        }, 3000);
-                        return () => clearTimeout(timer);
-                    }
-
-                } catch (e) {
-                    console.error("[ValidateIdCard] Validation failed:", e);
+            try {
+                if (!data) {
                     if (isMounted) {
-                        setError("O código QR é inválido ou os dados estão corrompidos.");
+                        setError('Nenhum dado de validação fornecido.');
+                        setIsValidating(false);
+                    }
+                    return;
+                }
+
+                try {
+                    localDecoded = decodeURIComponent(escape(atob(data)));
+                } catch (e) {
+                    localDecoded = data;
+                }
+
+                let userObject: User | null = null;
+                if (localDecoded.trim().startsWith('{')) {
+                    try {
+                        userObject = JSON.parse(localDecoded) as User;
+                    } catch (e) {
+                        console.error("[ValidateIdCard] JSON parse failed", e);
+                    }
+                } else {
+                    localUid = localDecoded;
+                }
+
+                if (isMounted) {
+                    setRawUid(localUid || userObject?.uid || null);
+                }
+
+                if (userObject) {
+                    if (isMounted) {
+                        setValidatedUser(userObject);
+                        setShowToast(true);
+                        setIsValidating(false);
+                    }
+                    return;
+                }
+
+                if (!localUid) {
+                    if (isMounted) {
+                        setError('O código QR é inválido ou os dados estão corrompidos.');
+                        setRawError('UID vazio após decode');
+                        setIsValidating(false);
+                    }
+                    return;
+                }
+
+                if (!db || !auth) {
+                    if (isMounted) {
+                        setError('Configuração do Firebase indisponível para validação.');
+                        setRawError('db/auth is null');
+                        setIsValidating(false);
+                    }
+                    return;
+                }
+
+                try {
+                    if (!auth.currentUser) {
+                        await auth.signInAnonymously();
+                    }
+                } catch (authError) {
+                    console.error("[ValidateIdCard] Anonymous auth error:", authError);
+                    if (isMounted) {
+                        setError('Não foi possível iniciar a validação agora.');
+                        setRawError(String(authError));
+                        setIsValidating(false);
+                    }
+                    return;
+                }
+
+                let doc = null;
+                try {
+                    doc = await db.collection('profiles').doc(localUid).get();
+                } catch (firestoreError) {
+                    console.error("[ValidateIdCard] Firestore error:", firestoreError);
+                    if (isMounted) {
+                        setError('Falha ao consultar o banco na validação.');
+                        setRawError(String(firestoreError));
+                        setIsValidating(false);
+                    }
+                    return;
+                }
+
+                if (doc && doc.exists) {
+                    if (isMounted) {
+                        setValidatedUser({ uid: doc.id, ...doc.data() } as User);
+                        setShowToast(true);
+                        setIsValidating(false);
+                    }
+                } else {
+                    if (isMounted) {
+                        setError("Estudante não encontrado no banco de dados.");
+                        setRawError(`doc.exists=false for uid=${localUid}`);
                         setIsValidating(false);
                     }
                 }
-            } else {
+            } catch (e) {
+                console.error("[ValidateIdCard] Validation failed:", e);
                 if (isMounted) {
-                    setError("Nenhum dado de validação fornecido.");
+                    setError("O código QR é inválido ou os dados estão corrompidos.");
+                    setRawError(String(e));
                     setIsValidating(false);
                 }
             }
@@ -152,6 +175,18 @@ const ValidateIdCard: React.FC = () => {
             clearTimeout(validationTimer);
         };
     }, [data]);
+
+    useEffect(() => {
+        if (!isValidating) return;
+        const timer = setTimeout(() => {
+            if (!validatedUser && !error) {
+                setError('A validação demorou mais do que o esperado.');
+                setRawError('timeout');
+                setIsValidating(false);
+            }
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, [isValidating, validatedUser, error]);
 
     if (isValidating) {
         return (
@@ -168,8 +203,9 @@ const ValidateIdCard: React.FC = () => {
                 <XCircleIcon className="w-16 h-16 text-red-400 mb-4" />
                 <h1 className="text-xl font-bold text-red-800">Erro de Validação</h1>
                 <p className="text-red-600 mt-2 text-center">{error}</p>
-                <p className="text-xs text-gray-500 mt-2 break-all">UID buscado: {decodedData || uid}</p>
-                 <button onClick={() => navigate('/')} className="mt-8 px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
+                <p className="text-xs text-gray-500 mt-2 break-all">UID buscado: {rawUid || '-'}</p>
+                <p className="text-[10px] text-gray-400 mt-1 break-all">Detalhe: {rawError || '-'}</p>
+                <button onClick={() => navigate('/')} className="mt-6 px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
                      Voltar
                  </button>
             </div>
@@ -178,8 +214,9 @@ const ValidateIdCard: React.FC = () => {
 
     if (!validatedUser) {
         return (
-            <div className="flex justify-center items-center min-h-[100dvh]">
+            <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gray-50">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+                <p className="text-gray-600 mt-4">Carregando carteirinha...</p>
             </div>
         );
     }
