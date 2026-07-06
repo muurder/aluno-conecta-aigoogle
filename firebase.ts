@@ -4,9 +4,6 @@ import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/storage';
 
-// The component App.tsx already prevents the application from rendering if these keys
-// are not defined, so we can assume they exist here.
-// FIX: Removed the 'measurementId' property as its corresponding environment variable was not defined in the project's TypeScript types. This is an optional property for Firebase Analytics and not required for the app to function.
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,11 +15,78 @@ const firebaseConfig = {
 
 const hasKeys = !!(import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID);
 
-// Initialize Firebase only if config is present to prevent crashes at import time
-if (hasKeys && !firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+function createFallbackAuth() {
+  return {
+    currentUser: null,
+    onAuthStateChanged: (cb: (user: any) => void) => {
+      cb(null);
+      return () => {};
+    },
+    signInWithEmailAndPassword: async () => { throw new Error('Firebase indisponível (fallback)'); },
+    signOut: async () => {},
+    createUserWithEmailAndPassword: async () => { throw new Error('Firebase indisponível (fallback)'); },
+  } as any;
 }
 
-export const auth = hasKeys ? firebase.auth() : null as any;
-export const db = hasKeys ? firebase.firestore() : null as any;
-export const storage = hasKeys ? firebase.storage() : null as any;
+function createFallbackFirestore() {
+  return {
+    collection: () => ({
+      doc: () => ({
+        get: async () => ({ exists: false, data: () => null }),
+        update: async () => {},
+        set: async () => {},
+      }),
+      get: async () => ({ docs: [] }),
+      add: async () => ({}),
+    }),
+    enablePersistence: async () => {},
+  } as any;
+}
+
+function createFallbackStorage() {
+  return {
+    ref: () => ({
+      put: async () => ({}),
+      getDownloadURL: async () => '',
+    }),
+  } as any;
+}
+
+function initFirebaseSafely(): { auth: any; db: any; storage: any; failed: boolean } {
+  if (!hasKeys) {
+    return {
+      auth: createFallbackAuth(),
+      db: createFallbackFirestore(),
+      storage: createFallbackStorage(),
+      failed: true,
+    };
+  }
+
+  try {
+    const app = firebase.initializeApp(firebaseConfig);
+    return {
+      auth: app.auth(),
+      db: app.firestore(),
+      storage: app.storage(),
+      failed: false,
+    };
+  } catch (err) {
+    console.error('[firebase] init failed, using fallback:', err);
+    return {
+      auth: createFallbackAuth(),
+      db: createFallbackFirestore(),
+      storage: createFallbackStorage(),
+      failed: true,
+    };
+  }
+}
+
+const initialized = initFirebaseSafely();
+
+export const auth = initialized.auth;
+export const db = initialized.db;
+export const storage = initialized.storage;
+export { firebase };
+export const firebaseInitFailed = initialized.failed;
+export const firebaseApp = firebase.apps.length > 0 ? firebase.apps[0] : null;
+
