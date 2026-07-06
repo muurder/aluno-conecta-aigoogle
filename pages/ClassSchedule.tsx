@@ -3,7 +3,7 @@ import React, { useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { schedulesData, Schedule } from '../schedules';
-import { ArrowLeftIcon, ClockIcon, UserIcon, MapPinIcon, InformationCircleIcon, ArrowDownOnRectangleIcon } from '@heroicons/react/24/solid';
+import { ArrowLeftIcon, ClockIcon, UserIcon, MapPinIcon, InformationCircleIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -127,7 +127,7 @@ const ClassSchedule: React.FC = () => {
              {downloading ? (
                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
              ) : (
-                 <ArrowDownOnRectangleIcon className="w-4 h-4" />
+                  <ArrowDownTrayIcon className="w-4 h-4" />
              )}
              <span>{downloading ? 'Gerando PDF...' : 'Baixar Horário'}</span>
          </button>
