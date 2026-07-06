@@ -391,7 +391,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         console.error("Post image compression failed, uploading raw instead:", err);
         const imageRef = storage.ref(`posts/${Date.now()}_${imageFile.name}`);
-        const snapshot = await photoRef.put(imageFile, { contentType: imageFile.type });
+        const snapshot = await imageRef.put(imageFile, { contentType: imageFile.type });
         image_url = await snapshot.ref.getDownloadURL();
       }
     }

@@ -2,10 +2,10 @@ console.log("=== INDEX.TSX RUNNING ===");
 
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
+    console.error('[Global] Error:', event.error);
   });
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
+    console.error('[Global] Unhandled rejection:', event.reason);
   });
 }
 

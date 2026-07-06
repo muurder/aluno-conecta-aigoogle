@@ -3,7 +3,6 @@
 
 
 import React, { useState } from 'react';
-// FIX: Upgrading react-router-dom from v5 to v6 to fix module export errors.
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationsProvider } from './context/NotificationsContext';
@@ -25,6 +24,7 @@ import ValidateIdCard from './pages/ValidateIdCard';
 import ClassSchedule from './pages/ClassSchedule';
 import Notifications from './pages/Notifications';
 import CourseDetail from './pages/CourseDetail';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -225,8 +225,9 @@ const AppRoutes: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[var(--background)]">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[var(--primary)]"></div>
+      <div className="flex flex-col items-center justify-center h-screen bg-[var(--background)] gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--primary)] border-t-transparent"></div>
+        <p className="text-sm text-[var(--muted)]">Carregando aplicativo...</p>
       </div>
     );
   }
@@ -292,17 +293,19 @@ const App: React.FC = () => {
     }
 
     return (
-        <ThemeProvider>
-            <AuthProvider>
-                <NotificationsProvider>
-                    <HashRouter>
-                        <div className="flex flex-col h-[100dvh] bg-[var(--surface)]">
-                            <AppRoutes />
-                        </div>
-                    </HashRouter>
-                </NotificationsProvider>
-            </AuthProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+            <ThemeProvider>
+                <AuthProvider>
+                    <NotificationsProvider>
+                        <HashRouter>
+                            <div className="flex flex-col h-[100dvh] bg-[var(--surface)]">
+                                <AppRoutes />
+                            </div>
+                        </HashRouter>
+                    </NotificationsProvider>
+                </AuthProvider>
+            </ThemeProvider>
+        </ErrorBoundary>
     );
 }
 
