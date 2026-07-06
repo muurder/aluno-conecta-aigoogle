@@ -111,24 +111,10 @@ const ValidateIdCard: React.FC = () => {
                     return;
                 }
 
-                if (!db || !auth) {
+                if (!db) {
                     if (isMounted) {
                         setError('Configuração do Firebase indisponível para validação.');
-                        setRawError('db/auth is null');
-                        setIsValidating(false);
-                    }
-                    return;
-                }
-
-                try {
-                    if (!auth.currentUser) {
-                        await auth.signInAnonymously();
-                    }
-                } catch (authError) {
-                    console.error("[ValidateIdCard] Anonymous auth error:", authError);
-                    if (isMounted) {
-                        setError('Não foi possível iniciar a validação agora.');
-                        setRawError(String(authError));
+                        setRawError('db is null');
                         setIsValidating(false);
                     }
                     return;
