@@ -48,17 +48,27 @@ const VirtualIdCard: React.FC = () => {
       const imgFront = canvasFront.toDataURL('image/png');
       const imgBack = canvasBack.toDataURL('image/png');
       
-      const orientation = canvasFront.width > canvasFront.height ? 'landscape' : 'portrait';
-      
       const pdf = new jsPDF({
-        orientation,
-        unit: 'px',
-        format: [canvasFront.width, canvasFront.height]
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
       });
       
-      pdf.addImage(imgFront, 'PNG', 0, 0, canvasFront.width, canvasFront.height);
-      pdf.addPage([canvasBack.width, canvasBack.height], orientation);
-      pdf.addImage(imgBack, 'PNG', 0, 0, canvasBack.width, canvasBack.height);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      
+      const cardWidth = pageWidth - margin * 2;
+      const cardHeight = (canvasFront.height / canvasFront.width) * cardWidth;
+      
+      pdf.addImage(imgFront, 'PNG', margin, margin, cardWidth, cardHeight);
+      
+      pdf.addPage();
+      
+      const backCardWidth = pageWidth - margin * 2;
+      const backCardHeight = (canvasBack.height / canvasBack.width) * backCardWidth;
+      
+      pdf.addImage(imgBack, 'PNG', margin, margin, backCardWidth, backCardHeight);
       
       pdf.save(`carteirinha-${user.fullName?.toLowerCase().replace(/\s+/g, '-') || 'estudante'}.pdf`);
     } catch (error) {

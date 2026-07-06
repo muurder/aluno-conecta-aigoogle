@@ -39,7 +39,7 @@ const ClassSchedule: React.FC = () => {
 
     const handleDownloadSchedulePDF = async () => {
         if (!scheduleRef.current) return;
-         setDownloading(true);
+        setDownloading(true);
         try {
             await new Promise(resolve => setTimeout(resolve, 300));
             const element = scheduleRef.current;
@@ -50,12 +50,33 @@ const ClassSchedule: React.FC = () => {
                 backgroundColor: '#ffffff'
             });
             const img = canvas.toDataURL('image/png');
+
+            const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
             const pdf = new jsPDF({
-                orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
+                orientation,
+                unit: 'mm',
+                format: 'a4'
             });
-            pdf.addImage(img, 'PNG', 0, 0, canvas.width, canvas.height);
+
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 15;
+            const safeWidth = pageWidth - margin * 2;
+            const safeHeight = pageHeight - margin * 2;
+
+            const imageRatio = canvas.width / canvas.height;
+            let renderWidth = safeWidth;
+            let renderHeight = safeWidth / imageRatio;
+
+            if (renderHeight > safeHeight) {
+                renderHeight = safeHeight;
+                renderWidth = safeHeight * imageRatio;
+            }
+
+            const x = margin + (safeWidth - renderWidth) / 2;
+            const y = margin + (safeHeight - renderHeight) / 2;
+
+            pdf.addImage(img, 'PNG', x, y, renderWidth, renderHeight);
             pdf.save(`horario-${user?.course?.toLowerCase().replace(/\s+/g, '-') || 'aluno'}.pdf`);
         } catch (error) {
             console.error("Error generating schedule PDF:", error);
