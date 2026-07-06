@@ -119,47 +119,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
-      if (authUser) {
-        const userDocRef = db.collection('profiles').doc(authUser.uid);
-        const userDoc = await userDocRef.get();
+      try {
+        if (authUser) {
+          const userDocRef = db.collection('profiles').doc(authUser.uid);
+          const userDoc = await userDocRef.get();
 
-        if (userDoc.exists) {
-          const userData = { uid: userDoc.id, ...(userDoc.data() as object) } as User;
-          setUser(userData);
-          if (userData.theme) {
-            setCurrentThemeById(userData.theme);
-          } else {
-            resetToDefaultTheme();
-          }
-          const sessionLoggedKey = `session_logged_${authUser.uid}`;
-          try {
-            if (!sessionStorage.getItem(sessionLoggedKey)) {
-              sessionStorage.setItem(sessionLoggedKey, 'true');
-              userDocRef.update({
-                lastAccess: new Date().toISOString(),
-                accessCount: firebase.firestore.FieldValue.increment(1)
-              }).catch(err => console.error("Error updating access logs:", err));
+          if (userDoc.exists) {
+            const userData = { uid: userDoc.id, ...(userDoc.data() as object) } as User;
+            setUser(userData);
+            if (userData.theme) {
+              setCurrentThemeById(userData.theme);
+            } else {
+              resetToDefaultTheme();
             }
-          } catch (err) {
-            console.warn("Session storage unavailable or blocked:", err);
+            const sessionLoggedKey = `session_logged_${authUser.uid}`;
+            try {
+              if (!sessionStorage.getItem(sessionLoggedKey)) {
+                sessionStorage.setItem(sessionLoggedKey, 'true');
+                userDocRef.update({
+                  lastAccess: new Date().toISOString(),
+                  accessCount: firebase.firestore.FieldValue.increment(1)
+                }).catch(err => console.error("Error updating access logs:", err));
+              }
+            } catch (err) {
+              console.warn("Session storage unavailable or blocked:", err);
+            }
+          } else {
+            await ensureProfileExists(authUser);
+            const refreshedDoc = await userDocRef.get();
+            if (refreshedDoc.exists) {
+              const userData = { uid: refreshedDoc.id, ...(refreshedDoc.data() as object) } as User;
+              setUser(userData);
+              setCurrentThemeById('saojudas');
+            } else {
+              setUser(null);
+              resetToDefaultTheme();
+            }
           }
         } else {
-          await ensureProfileExists(authUser);
-          const refreshedDoc = await userDocRef.get();
-          if (refreshedDoc.exists) {
-            const userData = { uid: refreshedDoc.id, ...(refreshedDoc.data() as object) } as User;
-            setUser(userData);
-            setCurrentThemeById('saojudas');
-          } else {
-            setUser(null);
-            resetToDefaultTheme();
-          }
+          setUser(null);
+          resetToDefaultTheme();
         }
-      } else {
+      } catch (err) {
+        console.error("Auth state change error:", err);
         setUser(null);
         resetToDefaultTheme();
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();

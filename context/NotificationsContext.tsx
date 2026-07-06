@@ -49,8 +49,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   // 2. For the user-specific `/profiles/{uid}/notificationStatus` subcollection.
   // This robust approach ensures data is fetched correctly and independently, preventing race conditions.
   useEffect(() => {
-    // On logout or if no user, clean up state and listeners.
-    if (!user) {
+    if (!db || !user) {
       setGlobalNotifications([]);
       setUserStatuses({});
       return;
