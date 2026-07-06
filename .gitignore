@@ -46,3 +46,7 @@ scratch/
 supabase.ts
 mcp_config.json
 vercel.json
+
+# Kilo MCP local config
+.kilo/
+.firebaserc
