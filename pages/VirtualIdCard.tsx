@@ -76,9 +76,9 @@ const VirtualIdCard: React.FC = () => {
   const QRCodeGenerator: React.FC = () => {
     if (!user) return null;
     
-    // Encode only the user's UID (decreases data size and improves QR code density/readability)
-    const encodedUid = btoa(user.uid);
+    const encodedUid = btoa(unescape(encodeURIComponent(user.uid)));
     const validationUrl = `${window.location.origin}${window.location.pathname}#/validate-id/${encodedUid}`;
+    console.log('[VirtualIdCard] QR uid:', user.uid, 'encoded:', encodedUid, 'url:', validationUrl);
 
     return (
         <div className="w-full max-w-sm mx-auto p-6 flex flex-col items-center justify-center">

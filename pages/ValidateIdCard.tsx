@@ -6,6 +6,11 @@ import type { User } from '../types';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { db, auth } from '../firebase';
 
+const PUBLIC_FIELDS = [
+  'fullName','email','institutionalLogin','rgm','university','course','campus',
+  'validity','photo','status','isAdmin','theme','themeSource','gender',
+];
+
 const Toast: React.FC<{ message: string; userName: string; show: boolean }> = ({ message, userName, show }) => {
     if (!show) {
         return null;
@@ -74,11 +79,13 @@ const ValidateIdCard: React.FC = () => {
                         try {
                             userObject = JSON.parse(decodedData);
                         } catch (e) {
-                            console.error("Failed to parse JSON:", e);
+                            console.error("[ValidateIdCard] JSON parse failed", e);
                         }
                     } else {
                         uid = decodedData;
                     }
+
+                    console.log("[ValidateIdCard] decoded uid:", uid, "json:", !!userObject);
 
                     if (userObject) {
                         if (isMounted) {
@@ -89,12 +96,10 @@ const ValidateIdCard: React.FC = () => {
                     } else if (uid) {
                         let doc = null;
                         try {
-                            if (auth && !auth.currentUser) {
-                                await auth.signInAnonymously();
-                            }
                             doc = await db.collection('profiles').doc(uid).get();
+                            console.log("[ValidateIdCard] Firestore result exists:", doc.exists, "id:", doc.id);
                         } catch (firestoreError) {
-                            console.error("Validation fetch error:", firestoreError);
+                            console.error("[ValidateIdCard] Firestore error:", firestoreError);
                         }
 
                         if (doc && doc.exists) {
@@ -128,7 +133,7 @@ const ValidateIdCard: React.FC = () => {
                     }
 
                 } catch (e) {
-                    console.error("Validation failed:", e);
+                    console.error("[ValidateIdCard] Validation failed:", e);
                     if (isMounted) {
                         setError("O código QR é inválido ou os dados estão corrompidos.");
                         setIsValidating(false);
