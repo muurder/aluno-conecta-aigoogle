@@ -168,6 +168,7 @@ const ValidateIdCard: React.FC = () => {
                 <XCircleIcon className="w-16 h-16 text-red-400 mb-4" />
                 <h1 className="text-xl font-bold text-red-800">Erro de Validação</h1>
                 <p className="text-red-600 mt-2 text-center">{error}</p>
+                <p className="text-xs text-gray-500 mt-2 break-all">UID buscado: {decodedData || uid}</p>
                  <button onClick={() => navigate('/')} className="mt-8 px-6 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
                      Voltar
                  </button>
