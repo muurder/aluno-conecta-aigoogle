@@ -25,6 +25,7 @@ import ClassSchedule from './pages/ClassSchedule';
 import Notifications from './pages/Notifications';
 import CourseDetail from './pages/CourseDetail';
 import ErrorBoundary from './components/ErrorBoundary';
+import { DebugPanel } from './components/DebugPanel';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -301,6 +302,7 @@ const App: React.FC = () => {
                             <div className="flex flex-col h-[100dvh] bg-[var(--surface)]">
                                 <AppRoutes />
                             </div>
+                            <DebugPanel />
                         </HashRouter>
                     </NotificationsProvider>
                 </AuthProvider>

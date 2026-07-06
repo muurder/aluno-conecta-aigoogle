@@ -46,6 +46,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
+  error: Error | null;
   login: (email: string, pass:string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -69,6 +70,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const isInitialSnapshot = useRef(true);
   const { setCurrentThemeById, resetToDefaultTheme } = useTheme();
 
@@ -118,58 +120,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
-      try {
-        if (authUser) {
-          const userDocRef = db.collection('profiles').doc(authUser.uid);
-          const userDoc = await userDocRef.get();
+    let unsubscribe: (() => void) | null = null;
 
-          if (userDoc.exists) {
-            const userData = { uid: userDoc.id, ...(userDoc.data() as object) } as User;
-            setUser(userData);
-            if (userData.theme) {
-              setCurrentThemeById(userData.theme);
-            } else {
-              resetToDefaultTheme();
-            }
-            const sessionLoggedKey = `session_logged_${authUser.uid}`;
-            try {
-              if (!sessionStorage.getItem(sessionLoggedKey)) {
-                sessionStorage.setItem(sessionLoggedKey, 'true');
-                userDocRef.update({
-                  lastAccess: new Date().toISOString(),
-                  accessCount: firebase.firestore.FieldValue.increment(1)
-                }).catch(err => console.error("Error updating access logs:", err));
+    const handleAuthError = (err: unknown) => {
+      console.error("Auth listener error:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+      setUser(null);
+      resetToDefaultTheme();
+      setLoading(false);
+    };
+
+    try {
+      unsubscribe = auth.onAuthStateChanged(
+        async (authUser) => {
+          try {
+            if (authUser) {
+              const userDocRef = db.collection('profiles').doc(authUser.uid);
+              const userDoc = await userDocRef.get();
+
+              if (userDoc.exists) {
+                setError(null);
+                const userData = { uid: userDoc.id, ...(userDoc.data() as object) } as User;
+                setUser(userData);
+                if (userData.theme) {
+                  setCurrentThemeById(userData.theme);
+                } else {
+                  resetToDefaultTheme();
+                }
+                const sessionLoggedKey = `session_logged_${authUser.uid}`;
+                try {
+                  if (!sessionStorage.getItem(sessionLoggedKey)) {
+                    sessionStorage.setItem(sessionLoggedKey, 'true');
+                    userDocRef.update({
+                      lastAccess: new Date().toISOString(),
+                      accessCount: firebase.firestore.FieldValue.increment(1)
+                    }).catch(err => console.error("Error updating access logs:", err));
+                  }
+                } catch (err) {
+                  console.warn("Session storage unavailable or blocked:", err);
+                }
+              } else {
+                await ensureProfileExists(authUser);
+                const refreshedDoc = await userDocRef.get();
+                if (refreshedDoc.exists) {
+                  setError(null);
+                  const userData = { uid: refreshedDoc.id, ...(refreshedDoc.data() as object) } as User;
+                  setUser(userData);
+                  setCurrentThemeById('saojudas');
+                } else {
+                  setError(null);
+                  setUser(null);
+                  resetToDefaultTheme();
+                }
               }
-            } catch (err) {
-              console.warn("Session storage unavailable or blocked:", err);
-            }
-          } else {
-            await ensureProfileExists(authUser);
-            const refreshedDoc = await userDocRef.get();
-            if (refreshedDoc.exists) {
-              const userData = { uid: refreshedDoc.id, ...(refreshedDoc.data() as object) } as User;
-              setUser(userData);
-              setCurrentThemeById('saojudas');
             } else {
+              setError(null);
               setUser(null);
               resetToDefaultTheme();
             }
+          } catch (err) {
+            console.error("Auth state change error:", err);
+            setError(err instanceof Error ? err : new Error(String(err)));
+            setUser(null);
+            resetToDefaultTheme();
+          } finally {
+            setLoading(false);
           }
-        } else {
-          setUser(null);
-          resetToDefaultTheme();
-        }
-      } catch (err) {
-        console.error("Auth state change error:", err);
-        setUser(null);
-        resetToDefaultTheme();
-      } finally {
-        setLoading(false);
-      }
-    });
+        },
+        handleAuthError
+      );
+    } catch (err) {
+      console.error("Auth listener registration error:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+      setLoading(false);
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [setCurrentThemeById, resetToDefaultTheme]);
 
   useEffect(() => {
@@ -490,6 +518,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     user,
     loading,
+    error,
     login,
     loginWithGoogle,
     logout,
