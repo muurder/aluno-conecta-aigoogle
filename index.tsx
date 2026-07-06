@@ -1,4 +1,4 @@
-console.log("=== INDEX.TSX RUNNING ===");
+console.log("=== INDEX.TSX START ===");
 
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
@@ -9,11 +9,17 @@ if (typeof window !== 'undefined') {
   });
 }
 
+console.log("=== INDEX.TSX IMPORTING STYLES ===");
+
 import './style.css';
+
+console.log("=== INDEX.TSX STYLES LOADED ===");
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+
+console.log("=== INDEX.TSX MOUNTING ===");
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -26,3 +32,5 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+console.log("=== INDEX.TSX MOUNTED ===");
