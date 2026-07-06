@@ -23,6 +23,7 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user, si
   const getSubjects = () => {
     if (!user.course) return COURSE_SUBJECTS['Default'];
     
+    // Case-insensitive lookup
     const courseKey = Object.keys(COURSE_SUBJECTS).find(
       key => key.toLowerCase() === user.course?.toLowerCase()
     );
@@ -48,7 +49,7 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user, si
                     user.university && <p className="font-semibold text-gray-700">{user.university}</p>
                 )}
             </header>
-  
+ 
             <main className="flex-grow flex flex-col items-center justify-center text-center mb-4">
                 <div className="w-20 h-20 rounded-full shadow-md overflow-hidden bg-gray-300 flex items-center justify-center mb-3">
                     {user.photo ? (
@@ -60,7 +61,7 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user, si
                 <h1 className="text-lg font-bold text-slate-800 truncate w-full max-w-[280px]">{user.fullName || 'Nome Completo'}</h1>
                 <p className="text-sm text-slate-600 truncate w-full max-w-[280px]">{user.course || 'Curso'}</p>
             </main>
-  
+ 
             <footer className="space-y-3 text-xs">
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                     <div>
@@ -99,37 +100,29 @@ const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user, si
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
         
         <div className="relative z-10 flex flex-col justify-between h-full flex-grow">
-            <header className="border-b border-white/20 pb-2 mb-3">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-teal-400">Disciplinas Recomendadas</h2>
-            </header>
-            <ul className="space-y-1.5 text-xs text-slate-300">
-                {subjects.map((sub, i) => (
-                    <li key={i} className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0"></span>
-                        <span className="truncate">{sub}</span>
-                    </li>
-                ))}
-            </ul>
+            <div>
+                <header className="border-b border-white/20 pb-2 mb-3">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-teal-400">Disciplinas Recomendadas</h2>
+                </header>
+                <ul className="space-y-1.5 text-xs text-slate-300">
+                    {subjects.map((sub, i) => (
+                        <li key={i} className="truncate flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0"></span>
+                            <span>{sub}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
 
             <div className="mt-4 pt-3 border-t border-white/10">
-                <p className="text-[10px] text-slate-300 leading-relaxed text-center">
+                <p className="text-[9px] text-slate-400 leading-normal text-center">
                     Uso pessoal e intransferível. Esta carteirinha digital é válida em todo território nacional como identificação estudantil.
                 </p>
                 <div className="mt-3 flex flex-col items-center">
-                    <div className="w-full h-10 bg-white rounded-md flex items-center justify-center overflow-hidden">
-                        <div className="flex items-center gap-[2px]">
-                            {Array.from({ length: 64 }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="w-[3px] bg-slate-900"
-                                    style={{ height: `${Math.random() > 0.5 ? '32px' : '16px'}` }}
-                                />
-                            ))}
-                        </div>
+                    <div className="w-full h-8 bg-white/95 rounded flex items-center justify-center tracking-[4px] font-mono text-[10px] text-slate-800 py-1 select-none font-bold">
+                        ||| || ||| || ||| || ||| || ||| || |||
                     </div>
-                    <span className="text-[9px] text-slate-400 font-mono mt-1.5 tracking-widest">
-                        CÓDIGO: {user.uid?.substring(0, 10).toUpperCase() || 'XXXXXXXXXX'}
-                    </span>
+                    <span className="text-[8px] text-slate-400 font-mono mt-0.5">CÓDIGO: {user.uid?.substring(0, 10).toUpperCase() || 'XXXXXXXXXX'}</span>
                 </div>
             </div>
         </div>
