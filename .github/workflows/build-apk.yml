@@ -57,9 +57,9 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk public/portal-do-estudante.apk
 
-      - name: Commit and Push APK
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git add public/portal-do-estudante.apk
-          git diff-index --quiet HEAD || (git commit -m "chore: auto-build and update Android APK [skip ci]" && git push)
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-do-estudante-apk
+          path: public/portal-do-estudante.apk
+          retention-days: 7
