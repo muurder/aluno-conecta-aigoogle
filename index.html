@@ -31,30 +31,53 @@
     <div id="root"></div>
     <script>
       (function() {
-        var errorRoot = document.createElement('div');
-        errorRoot.id = 'global-error-root';
-        errorRoot.style.cssText = 'display:none;position:fixed;left:0;right:0;top:0;bottom:0;z-index:99999;background:#111827;color:#f9fafb;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;line-height:1.5;padding:16px;';
-        document.body.appendChild(errorRoot);
-        function showGlobalError(title, message, detail) {
-          document.getElementById('root').style.display = 'none';
-          errorRoot.style.display = 'block';
-          errorRoot.innerHTML = '<div style="max-width:720px;margin:0 auto;"><div style="color:#ef4444;font-size:16px;font-weight:bold;margin-bottom:8px;">' + title + '</div>' +
-            '<div style="margin-bottom:8px;word-break:break-word;">' + message + '</div>' +
-            (detail ? '<pre style="color:#e5e7eb;background:#00000033;padding:10px;border-radius:8px;overflow:auto;max-height:55vh;white-space:pre-wrap;">' + detail + '</pre>' : '') +
-            '<button id="global-error-reload" style="margin-top:12px;padding:8px 12px;background:#2563eb;color:#fff;border:0;border-radius:8px;font-size:12px;">Recarregar</button>' +
-            '<div id="global-error-ref" style="margin-top:10px;color:#9ca3af;font-size:11px;"></div></div>';
-          document.getElementById('global-error-reload').addEventListener('click', function() { location.reload(); });
+        var root = document.getElementById('root');
+        if (!root) return;
+
+        function esc(str) {
+          if (str == null) return '';
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
         }
+
+        function show(msg, detail, isReject) {
+          var title = isReject ? 'Promise rejeitada' : 'Erro global';
+          var color = '#ef4444';
+          var html = '<div style="position:fixed;inset:0;background:#111827;color:#f9fafb;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-size:12px;line-height:1.5;padding:16px;z-index:999999;overflow:auto;-webkit-overflow-scrolling:touch">' +
+            '<div style="color:' + color + ';font-size:18px;font-weight:bold;margin-bottom:10px;">' + esc(title) + '</div>' +
+            '<div style="color:#fbbf24;font-weight:bold;margin-bottom:6px;word-break:break-word;">' + esc(msg) + '</div>';
+          if (detail) {
+            html += '<pre style="color:#e5e7eb;background:#00000044;padding:12px;border-radius:8px;overflow:auto;max-height:60vh;white-space:pre-wrap;word-break:break-word;font-size:11px;margin-bottom:10px;">' + esc(detail) + '</pre>';
+          }
+          html += '<button id="g-reload" style="padding:10px 16px;background:#2563eb;color:#fff;border:0;border-radius:8px;font-size:14px;-webkit-appearance:none;">Recarregar</button>' +
+            '<div id="g-extra" style="margin-top:12px;color:#9ca3af;font-size:11px;"></div></div>';
+          root.style.display = 'none';
+          document.body.insertAdjacentHTML('afterbegin', html);
+          document.getElementById('g-reload').addEventListener('click', function() { location.reload(); });
+        }
+
         window.addEventListener('error', function(event) {
-          var msg = event.message || 'Erro desconhecido';
-          var detail = event.error && event.error.stack ? event.error.stack : (event.filename ? event.filename + ':' + event.lineno : '');
-          showGlobalError('Erro global', msg, detail);
+          var msg = event.message || '';
+          if (!msg && event.type === 'error') {
+            msg = 'Erro em: ' + (event.filename || '') + ':' + (event.lineno || '') + ':' + (event.colno || '');
+          }
+          var detail = '';
+          if (event.error) {
+            detail = event.error.stack || event.error.message || '';
+          } else if (event.filename) {
+            detail = event.filename + ':' + event.lineno + ':' + event.colno;
+          }
+          show(msg || 'Erro desconhecido', detail, false);
         }, true);
+
         window.addEventListener('unhandledrejection', function(event) {
           var reason = event.reason;
           var msg = (reason && reason.message) ? reason.message : String(reason);
           var detail = (reason && reason.stack) ? reason.stack : '';
-          showGlobalError('Promise rejeitada', msg, detail);
+          show(msg, detail, true);
         }, true);
       })();
     </script>
