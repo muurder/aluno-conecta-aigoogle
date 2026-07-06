@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
-import { db } from '../firebase';
+import { db } from '@/firebase';
 import firebase from 'firebase/compat/app';
 import { useAuth } from './AuthContext';
 import type { Notification } from '../types';

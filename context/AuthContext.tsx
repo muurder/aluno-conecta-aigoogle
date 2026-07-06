@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
-import { auth, db, storage } from '../firebase';
+import { auth, db, storage } from '@/firebase';
 import { useTheme } from './ThemeContext';
 import firebase from 'firebase/compat/app';
 import type { User, Post, Comment, Reaction, NotificationType } from '../types';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { db, storage } from '../firebase';
+import { db, storage } from '@/firebase';
 import firebase from 'firebase/compat/app';
 import { 
   ArrowLeftIcon, 

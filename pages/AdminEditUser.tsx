@@ -9,7 +9,7 @@ import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS } from '../constants';
 import { ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/solid';
 import { ArrowPathIcon, SparklesIcon, CheckCircleIcon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { auth } from '../firebase';
+import { auth } from '@/firebase';
 
 
 // --- Toast Component ---

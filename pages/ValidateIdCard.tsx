@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import StudentIdCard from '../components/StudentIdCard';
 import type { User } from '../types';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
-import { db, auth } from '../firebase';
+import { db, auth } from '@/firebase';
 
 type ToastProps = {
   message: string;

@@ -43,10 +43,6 @@ android/app/src/main/assets/public/
 scratch/
 
 # Firebase / Auth / config sensitive files
-firebase.ts
 supabase.ts
 mcp_config.json
-capacitor.config.ts
-metadata.json
 vercel.json
-vite-env.d.ts
