@@ -42,6 +42,11 @@ android/captures/
 android/app/src/main/assets/public/
 scratch/
 
+# Android packages
+*.apk
+*.aab
+*.apks
+
 # Firebase / Auth / config sensitive files
 supabase.ts
 mcp_config.json
