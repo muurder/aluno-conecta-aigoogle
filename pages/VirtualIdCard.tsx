@@ -17,11 +17,9 @@ const VirtualIdCard: React.FC = () => {
 
   // Helper to fetch and convert image URL to base64
   const getBase64ImageFromUrl = async (url: string): Promise<string> => {
-    // Prefer the Firebase Storage SDK: it authenticates the request and avoids
-    // the CORS failures that make fetch()/canvas approaches silently fall back to initials.
+    // 1. Prefer the Firebase Storage SDK: it authenticates the request and avoids CORS checks when possible.
     try {
       const compatRef = storage.refFromURL(url);
-      // getBlob is only available on the modular StorageReference delegate.
       const blob = await getBlob((compatRef as any)._delegate);
       return await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -33,7 +31,7 @@ const VirtualIdCard: React.FC = () => {
       console.warn("Storage SDK photo fetch failed, trying direct fetch:", err);
     }
 
-    // Fallback for non-Storage URLs (e.g. Google avatar) or SDK failures.
+    // 2. Fallback for non-Storage URLs (e.g. Google avatar) or SDK failures using cache-buster.
     try {
       const cacheBusterUrl = url.includes('?')
         ? `${url}&cb=${Date.now()}`
@@ -47,8 +45,38 @@ const VirtualIdCard: React.FC = () => {
         reader.readAsDataURL(blob);
       });
     } catch (fallbackErr) {
-      console.error("Could not load user photo as base64:", fallbackErr);
-      throw fallbackErr;
+      console.warn("Direct fetch with cache buster failed, trying Google CORS Proxy:", fallbackErr);
+    }
+
+    // 3. Fallback: Google open social proxy (extremely fast and Google-backed, returns Access-Control-Allow-Origin: *)
+    try {
+      const proxyUrl = `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.warn("Google CORS Proxy failed, trying AllOrigins CORS Proxy:", err);
+    }
+
+    // 4. Fallback: AllOrigins CORS proxy
+    try {
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.error("All photo download methods failed:", err);
+      throw err;
     }
   };
 

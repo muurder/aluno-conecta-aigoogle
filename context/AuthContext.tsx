@@ -261,7 +261,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
 
     if (isCapacitor) {
-      await auth.signInWithRedirect(provider);
+      const err = new Error("Google Login requires native plugins in the APK. Please sign in using your institutional email and password.");
+      (err as any).code = 'auth/capacitor-not-supported';
+      throw err;
     } else {
       try {
         await auth.signInWithPopup(provider);
