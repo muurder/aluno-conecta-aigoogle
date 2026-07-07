@@ -219,7 +219,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      const hasNotificationSupport = typeof window !== 'undefined' && 'Notification' in window;
+
+      if (hasNotificationSupport && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
         Notification.requestPermission();
       }
 
@@ -234,7 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (change.type === "added") {
             const newUser = change.doc.data() as User;
             
-            if (Notification.permission === 'granted') {
+            if (hasNotificationSupport && Notification.permission === 'granted') {
               new Notification("Nova solicitação de cadastro", {
                 body: `${newUser.fullName} acabou de se cadastrar e aguarda aprovação.`,
                 icon: newUser.photo || '/vite.svg',
