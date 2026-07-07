@@ -1,10 +1,8 @@
-
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { schedulesData, Schedule } from '../schedules';
 import { ArrowLeftIcon, ClockIcon, UserIcon, MapPinIcon, InformationCircleIcon, ArrowDownTrayIcon } from '@heroicons/react/24/solid';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 const ClassSchedule: React.FC = () => {
@@ -15,7 +13,6 @@ const ClassSchedule: React.FC = () => {
 
     const userSchedule = useMemo(() => {
         if (!user) return [];
-        // The provided data maps the course name to the 'disciplina' field.
         return schedulesData.filter(item => item.disciplina === user.course);
     }, [user]);
 
@@ -28,7 +25,6 @@ const ClassSchedule: React.FC = () => {
                 groups[item.dia_semana].push(item);
             }
         });
-        // Sort classes within each day by start time
         for (const day in groups) {
             groups[day].sort((a, b) => a.inicio.localeCompare(b.inicio));
         }
@@ -38,45 +34,135 @@ const ClassSchedule: React.FC = () => {
     const dayOrder: (keyof typeof groupedSchedule)[] = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
     const handleDownloadSchedulePDF = async () => {
-        if (!scheduleRef.current) return;
+        if (!user) return;
         setDownloading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const element = scheduleRef.current;
-            const canvas = await html2canvas(element, {
-                useCORS: true,
-                allowTaint: false,
-                scale: 4,
-                backgroundColor: '#ffffff'
-            });
-            const img = canvas.toDataURL('image/png');
-
-            const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
             const pdf = new jsPDF({
-                orientation,
+                orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
 
             const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 15;
-            const safeWidth = pageWidth - margin * 2;
-            const safeHeight = pageHeight - margin * 2;
+            
+            // Header Banner
+            pdf.setFillColor(12, 45, 91); // Primary dark blue color
+            pdf.rect(0, 0, pageWidth, 40, 'F');
 
-            const imageRatio = canvas.width / canvas.height;
-            let renderWidth = safeWidth;
-            let renderHeight = safeWidth / imageRatio;
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(16);
+            pdf.text("PORTAL DO ESTUDANTE", 15, 18);
 
-            if (renderHeight > safeHeight) {
-                renderHeight = safeHeight;
-                renderWidth = safeHeight * imageRatio;
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(10);
+            pdf.setTextColor(180, 200, 230);
+            pdf.text("Grade de Horário de Aulas Oficial", 15, 25);
+
+            const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            pdf.setFontSize(8);
+            pdf.text(`Emitido em: ${todayStr}`, pageWidth - 65, 25);
+
+            // Student Meta Box
+            pdf.setFillColor(245, 247, 250);
+            pdf.rect(15, 48, pageWidth - 30, 24, 'F');
+            pdf.setDrawColor(220, 225, 230);
+            pdf.rect(15, 48, pageWidth - 30, 24, 'S');
+
+            pdf.setTextColor(50, 60, 80);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(11);
+            pdf.text(`Estudante: ${user.fullName?.toUpperCase()}`, 20, 55);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9.5);
+            pdf.text(`Curso: ${user.course}`, 20, 61);
+            pdf.text(`Campus: ${user.campus} | RGM: ${user.rgm}`, 20, 66);
+
+            let currentY = 82;
+
+            if (userSchedule.length === 0) {
+                pdf.setTextColor(120, 120, 120);
+                pdf.setFont('helvetica', 'italic');
+                pdf.setFontSize(11);
+                pdf.text("Nenhum horário de aulas cadastrado.", pageWidth / 2, currentY + 10, { align: 'center' });
+            } else {
+                dayOrder.forEach(day => {
+                    const dayClasses = groupedSchedule[day] || [];
+                    if (dayClasses.length === 0) return;
+
+                    if (currentY > 245) {
+                        pdf.addPage();
+                        currentY = 20;
+                    }
+
+                    // Render Day Header
+                    pdf.setFillColor(235, 242, 250);
+                    pdf.rect(15, currentY, pageWidth - 30, 8, 'F');
+                    pdf.setTextColor(12, 45, 91);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.text(`${day.toUpperCase()}-FEIRA`, 18, currentY + 5.5);
+
+                    currentY += 8;
+
+                    // Table Columns Headers
+                    pdf.setTextColor(100, 110, 120);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(8);
+                    pdf.text("HORÁRIO", 18, currentY + 5);
+                    pdf.text("DISCIPLINA", 50, currentY + 5);
+                    pdf.text("PROFESSOR", 125, currentY + 5);
+                    pdf.text("SALA / BLOCO", 175, currentY + 5);
+                    
+                    pdf.setDrawColor(200, 205, 210);
+                    pdf.line(15, currentY + 7, pageWidth - 15, currentY + 7);
+
+                    currentY += 7;
+
+                    dayClasses.forEach(item => {
+                        if (currentY > 260) {
+                            pdf.addPage();
+                            currentY = 20;
+                            
+                            pdf.setFillColor(235, 242, 250);
+                            pdf.rect(15, currentY, pageWidth - 30, 8, 'F');
+                            pdf.setTextColor(12, 45, 91);
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setFontSize(10);
+                            pdf.text(`${day.toUpperCase()}-FEIRA (Cont.)`, 18, currentY + 5.5);
+                            currentY += 12;
+                        }
+
+                        pdf.setTextColor(60, 60, 60);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(8.5);
+                        
+                        pdf.text(`${item.inicio} - ${item.fim}`, 18, currentY + 6);
+                        
+                        const subjectText = pdf.splitTextToSize(item.observacoes || '', 70);
+                        pdf.text(subjectText, 50, currentY + 6);
+                        
+                        const professorText = pdf.splitTextToSize(item.professor || '', 45);
+                        pdf.text(professorText, 125, currentY + 6);
+                        
+                        pdf.text(`Sala ${item.sala}, Bloco ${item.bloco}`, 175, currentY + 6);
+
+                        const subjectHeight = subjectText.length * 4;
+                        const rowHeight = Math.max(8, subjectHeight + 2);
+
+                        pdf.setDrawColor(235, 240, 245);
+                        pdf.line(15, currentY + rowHeight, pageWidth - 15, currentY + rowHeight);
+                        currentY += rowHeight;
+                    });
+
+                    currentY += 6;
+                });
             }
 
-            const x = margin + (safeWidth - renderWidth) / 2;
-            const y = margin + (safeHeight - renderHeight) / 2;
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(160, 160, 160);
+            pdf.text("Portal do Estudante Conecta © Documento gerado de forma oficial.", pageWidth / 2, 285, { align: 'center' });
 
-            pdf.addImage(img, 'PNG', x, y, renderWidth, renderHeight);
             pdf.save(`horario-${user?.course?.toLowerCase().replace(/\s+/g, '-') || 'aluno'}.pdf`);
         } catch (error) {
             console.error("Error generating schedule PDF:", error);
@@ -153,7 +239,7 @@ const ClassSchedule: React.FC = () => {
              <span>{downloading ? 'Gerando PDF...' : 'Baixar Horário'}</span>
          </button>
      </div>
- );
+  );
 };
 
 export default ClassSchedule;

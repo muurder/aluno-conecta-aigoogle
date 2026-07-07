@@ -59,7 +59,7 @@ const MessageBubble: React.FC<{ msg: ChatMsg }> = ({ msg }) => {
         <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
             {!isUser && <AIAvatar />}
             <div
-                className={`group relative max-w-[85%] px-4 py-2 rounded-2xl shadow-sm border border-black/5 ${
+                className={`group relative max-w-[85%] px-4 py-2 rounded-2xl shadow-sm border border-slate-200/30 ${
                     isUser
                         ? 'bg-[var(--primary)] text-[var(--on-primary)] rounded-br-none'
                         : 'bg-[var(--surface)] text-[var(--text)] rounded-bl-none'
@@ -260,7 +260,7 @@ export default function SupportAI() {
                     {partialResponse && (
                          <div className="flex items-end gap-2 justify-start" aria-live="polite">
                             <AIAvatar />
-                            <div className="max-w-[85%] px-4 py-2 rounded-2xl bg-[var(--surface)] text-[var(--text)] rounded-bl-none border border-black/5 shadow-sm">
+                            <div className="max-w-[85%] px-4 py-2 rounded-2xl bg-[var(--surface)] text-[var(--text)] rounded-bl-none border border-slate-200/30 shadow-sm">
                                 <p className="text-sm whitespace-pre-wrap" style={{ wordBreak: 'break-word' }}>{partialResponse.trim()}<span className="inline-block w-1 h-4 bg-[var(--text)] animate-pulse ml-1"></span></p>
                             </div>
                         </div>
@@ -268,7 +268,7 @@ export default function SupportAI() {
                      {loading && !partialResponse && (
                         <div className="flex items-end gap-2 justify-start">
                             <AIAvatar />
-                            <div className="px-4 py-3 rounded-2xl bg-[var(--surface)] text-[var(--text)] rounded-bl-none border border-black/5 shadow-sm">
+                            <div className="px-4 py-3 rounded-2xl bg-[var(--surface)] text-[var(--text)] rounded-bl-none border border-slate-200/30 shadow-sm">
                                 <div className="flex items-center space-x-1" role="status" aria-label="Assistente digitando">
                                     <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                                     <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>

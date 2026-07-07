@@ -571,7 +571,7 @@ const MyCourse: React.FC = () => {
 
                     {/* Message Image */}
                     {msg.imageUrl && (
-                      <div className="my-2 rounded-xl overflow-hidden max-w-full border border-black/5 shadow-sm">
+                      <div className="my-2 rounded-xl overflow-hidden max-w-full border border-slate-100 shadow-sm">
                         <img 
                           src={msg.imageUrl} 
                           alt="Foto compartilhada" 
