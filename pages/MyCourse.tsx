@@ -510,7 +510,7 @@ const MyCourse: React.FC = () => {
       </header>
 
       {/* Message List */}
-      <main className="flex-grow p-4 overflow-y-auto space-y-4">
+      <main className="flex-grow p-4 overflow-y-auto overflow-x-hidden space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-3">
@@ -593,6 +593,14 @@ const MyCourse: React.FC = () => {
                       {/* Hover/Touch actions */}
                       <div className="flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-opacity">
                         <button 
+                          onClick={() => setActiveReactionMsgId(msg.id)}
+                          className={`hover:scale-110 active:scale-95 transition ${isOwnMessage ? 'text-blue-200 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                          title="Reagir"
+                        >
+                          <FaceSmileIcon className="w-3.5 h-3.5" />
+                        </button>
+                        
+                        <button 
                           onClick={() => setReplyingTo({ messageId: msg.id, userName: msg.userName, text: msg.text || (msg.imageUrl ? "Foto" : "") })}
                           className={`hover:scale-110 active:scale-95 transition ${isOwnMessage ? 'text-blue-200 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
                           title="Responder"
@@ -614,95 +622,40 @@ const MyCourse: React.FC = () => {
                   </div>
 
                   {/* Message Reactions display */}
-                  <div className={`flex flex-wrap items-center gap-1 mt-1.5 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                    {/* Render the 5 default reactions */}
-                    {DEFAULT_5_REACTIONS.map((emoji) => {
-                      const uids = msg.reactions[emoji] || [];
-                      const count = uids.length;
-                      const hasReacted = uids.includes(user?.uid || '');
+                  {Object.entries(msg.reactions).some(([_, uids]) => uids.length > 0) && (
+                    <div className={`flex flex-wrap items-center gap-1 mt-1.5 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                      {Object.entries(msg.reactions).map(([emoji, uids]) => {
+                        const count = uids.length;
+                        if (count === 0) return null;
+                        const hasReacted = uids.includes(user?.uid || '');
 
-                      return (
-                        <button
-                          key={emoji}
-                          onClick={() => handleToggleReaction(msg.id, emoji)}
-                          className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border shadow-sm transition-all duration-200 ${
-                            count > 0
-                              ? hasReacted 
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => handleToggleReaction(msg.id, emoji)}
+                            className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border shadow-sm transition-all duration-200 ${
+                              hasReacted 
                                 ? 'bg-blue-50 text-blue-600 border-blue-200 font-bold scale-100' 
                                 : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                              : 'bg-white/40 text-gray-400 border-gray-100 hover:bg-white hover:text-gray-600 hover:border-gray-200 opacity-40 hover:opacity-100'
-                          }`}
-                          title={count > 0 ? `${count} reações` : 'Reagir'}
-                        >
-                          <span>{emoji}</span>
-                          {count > 0 && <span className="font-mono font-semibold">{count}</span>}
-                        </button>
-                      );
-                    })}
-
-                    {/* Render other active reactions not in defaults */}
-                    {Object.entries(msg.reactions).map(([emoji, uids]) => {
-                      if (DEFAULT_5_REACTIONS.includes(emoji)) return null;
-                      if (uids.length === 0) return null;
-                      const hasReacted = uids.includes(user?.uid || '');
-
-                      return (
-                        <button
-                          key={emoji}
-                          onClick={() => handleToggleReaction(msg.id, emoji)}
-                          className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border shadow-sm transition-all duration-200 ${
-                            hasReacted 
-                              ? 'bg-blue-50 text-blue-600 border-blue-200 font-bold' 
-                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          <span>{emoji}</span>
-                          <span className="font-mono font-semibold">{uids.length}</span>
-                        </button>
-                      );
-                    })}
-
-                    {/* "+" button for other emojis */}
-                    <div className="relative inline-block">
+                            }`}
+                            title={`${count} reações`}
+                          >
+                            <span>{emoji}</span>
+                            <span className="font-mono font-semibold">{count}</span>
+                          </button>
+                        );
+                      })}
+                      
+                      {/* Plus button to add more reactions to this message */}
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveReactionMsgId(activeReactionMsgId === msg.id ? null : msg.id);
-                        }}
-                        className={`flex items-center justify-center w-5 h-5 text-xs text-gray-400 hover:text-gray-700 bg-white rounded-full border shadow-sm transition-all hover:scale-110 active:scale-90 ${
-                          activeReactionMsgId === msg.id ? 'ring-2 ring-blue-400 border-transparent text-blue-600 font-bold' : ''
-                        }`}
-                        title="Outras reações"
+                        onClick={() => setActiveReactionMsgId(msg.id)}
+                        className="flex items-center justify-center w-5 h-5 text-xs text-gray-400 hover:text-gray-700 bg-white rounded-full border shadow-sm transition-all hover:scale-110 active:scale-90"
+                        title="Adicionar reação"
                       >
                         <span>+</span>
                       </button>
-                      
-                      {/* React State-based Reaction Menu */}
-                      {activeReactionMsgId === msg.id && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setActiveReactionMsgId(null)} />
-                          <div className="absolute bottom-6 left-0 flex flex-wrap bg-white rounded-2xl shadow-xl border p-2 gap-2 z-50 animate-scale-up min-w-[200px] max-w-[240px]">
-                            {EMOJI_LIBRARY.map((emoji) => {
-                              const uids = msg.reactions[emoji] || [];
-                              const hasReacted = uids.includes(user?.uid || '');
-
-                              return (
-                                <button
-                                  key={emoji}
-                                  onClick={() => handleToggleReaction(msg.id, emoji)}
-                                  className={`hover:scale-125 transition p-1 text-base rounded-full ${
-                                    hasReacted ? 'bg-blue-50 scale-110' : 'hover:bg-gray-100'
-                                  }`}
-                                >
-                                  {emoji}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             );
@@ -847,6 +800,109 @@ const MyCourse: React.FC = () => {
         </div>
       )}
 
+      {/* Premium Full-Screen Reaction Bottom-Sheet / Modal overlay */}
+      {activeReactionMsgId && (() => {
+        const msg = messages.find(m => m.id === activeReactionMsgId);
+        if (!msg) return null;
+        const isOwn = msg.userId === user?.uid;
+        return (
+          <div 
+            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-[2px] p-0 sm:p-4 animate-fade-in"
+            onClick={() => setActiveReactionMsgId(null)}
+          >
+            <div 
+              className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[75vh] sm:max-h-[500px] animate-slide-up-reaction"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <FaceSmileIcon className="w-5 h-5 text-blue-600" />
+                  <span className="font-bold text-sm text-slate-800">Reagir à mensagem</span>
+                </div>
+                <button 
+                  onClick={() => setActiveReactionMsgId(null)}
+                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition"
+                  type="button"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Message Snippet preview */}
+              <div className="p-4 bg-slate-100/50 border-b text-xs text-slate-600 flex items-center gap-3">
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-200 flex-shrink-0">
+                  {msg.photoURL ? (
+                    <img src={msg.photoURL} alt={msg.userName} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserCircleIcon className="w-full h-full text-slate-400" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-grow">
+                  <span className="font-semibold text-slate-700 block mb-0.5">{msg.userName}</span>
+                  <p className="truncate italic">"{msg.text || (msg.imageUrl ? "Foto" : "")}"</p>
+                </div>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="p-4 overflow-y-auto space-y-5">
+                {/* Quick Reactions Row */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Reações Rápidas</h3>
+                  <div className="grid grid-cols-5 gap-3">
+                    {DEFAULT_5_REACTIONS.map((emoji) => {
+                      const uids = msg.reactions[emoji] || [];
+                      const hasReacted = uids.includes(user?.uid || '');
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            handleToggleReaction(msg.id, emoji);
+                            setActiveReactionMsgId(null);
+                          }}
+                          className={`text-2xl p-2 rounded-xl transition hover:scale-125 active:scale-95 text-center ${
+                            hasReacted ? 'bg-blue-50 border border-blue-200 scale-105 shadow-xs' : 'hover:bg-slate-50 border border-transparent'
+                          }`}
+                          type="button"
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* More Emojis Grid */}
+                <div>
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Biblioteca de Emojis</h3>
+                  <div className="grid grid-cols-6 gap-2">
+                    {EMOJI_LIBRARY.map((emoji) => {
+                      const uids = msg.reactions[emoji] || [];
+                      const hasReacted = uids.includes(user?.uid || '');
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            handleToggleReaction(msg.id, emoji);
+                            setActiveReactionMsgId(null);
+                          }}
+                          className={`text-2xl p-1.5 rounded-xl transition hover:scale-125 active:scale-95 text-center ${
+                            hasReacted ? 'bg-blue-50 border border-blue-200 scale-105 shadow-xs font-bold' : 'hover:bg-slate-50 border border-transparent'
+                          }`}
+                          type="button"
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Extra Animations Styling */}
       <style>{`
         @keyframes modal {
@@ -857,11 +913,25 @@ const MyCourse: React.FC = () => {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slide-up-reaction {
+          from { opacity: 0; transform: translateY(100%); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         .animate-modal {
           animation: modal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .animate-slide-up {
           animation: slide-up 0.2s ease-out forwards;
+        }
+        .animate-slide-up-reaction {
+          animation: slide-up-reaction 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out forwards;
         }
       `}</style>
     </div>
