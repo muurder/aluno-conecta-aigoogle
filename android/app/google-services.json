@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "925298000723",
+    "project_id": "alunoconecta-a3767",
+    "storage_bucket": "alunoconecta-a3767.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:925298000723:android:5d661e195b3c870437d7a6",
+        "android_client_info": {
+          "package_name": "com.alunoconecta.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "925298000723-3m0nsvj62034q9agde33ak7mov8ujr1l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTLWsizlV6tJ2VN6b4B8OxM_v2pbYpfkg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "925298000723-3m0nsvj62034q9agde33ak7mov8ujr1l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
