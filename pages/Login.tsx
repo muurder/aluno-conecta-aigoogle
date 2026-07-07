@@ -79,6 +79,8 @@ const Login: React.FC = () => {
       let errorMessage = 'Ocorreu um erro ao fazer login com o Google. Tente novamente.';
       if (err.code === 'auth/popup-closed-by-user') {
         errorMessage = 'A janela de login com o Google foi fechada antes de completar a autenticação.';
+      } else if (err.code === 'auth/capacitor-config-pending') {
+        errorMessage = 'Erro de Configuração Nativa: O SHA-1 deste aplicativo de produção não está cadastrado no Firebase Console ou o arquivo google-services.json está ausente no projeto Android.';
       } else if (err.code === 'auth/capacitor-not-supported') {
         errorMessage = 'O login com o Google no aplicativo Android requer integração nativa (SHA-1 / Google Play Services). Por favor, use seu E-mail e Senha no app, ou acesse pelo navegador em alunoconecta.vercel.app para usar o Google.';
       }

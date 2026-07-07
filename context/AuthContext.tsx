@@ -261,9 +261,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
 
     if (isCapacitor) {
-      const err = new Error("Google Login requires native plugins in the APK. Please sign in using your institutional email and password.");
-      (err as any).code = 'auth/capacitor-not-supported';
-      throw err;
+      try {
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        if (result.credential?.idToken) {
+          const credential = firebase.auth.GoogleAuthProvider.credential(result.credential.idToken);
+          await auth.signInWithCredential(credential);
+        } else {
+          throw new Error("Não foi retornado o ID Token da autenticação nativa.");
+        }
+      } catch (err: any) {
+        console.error("Erro no login nativo do Google:", err);
+        let friendlyErr = err;
+        const errMsg = String(err.message || err);
+        
+        // Handle native developer signature mismatch errors (code 10 or 12500)
+        if (errMsg.includes('10') || errMsg.includes('12500') || errMsg.toLowerCase().includes('developer_error') || errMsg.toLowerCase().includes('developer error')) {
+          friendlyErr = new Error("Configuração pendente no Firebase (SHA-1 / Google Play). Certifique-se de cadastrar a chave SHA-1 de produção no console do Firebase e colocar o arquivo google-services.json na pasta do projeto.");
+          (friendlyErr as any).code = 'auth/capacitor-config-pending';
+        } else if (errMsg.toLowerCase().includes('user canceled') || errMsg.toLowerCase().includes('cancelled') || errMsg.toLowerCase().includes('canceled') || errMsg.includes('12501')) {
+          friendlyErr = new Error("A janela de login com o Google foi fechada.");
+          (friendlyErr as any).code = 'auth/popup-closed-by-user';
+        }
+        throw friendlyErr;
+      }
     } else {
       try {
         await auth.signInWithPopup(provider);
