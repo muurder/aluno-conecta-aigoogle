@@ -76,7 +76,7 @@ const Login: React.FC = () => {
       await loginWithGoogle();
     } catch (err: any) {
       console.error("Google Login Error:", err);
-      let errorMessage = 'Ocorreu um erro ao fazer login com o Google. Tente novamente.';
+      let errorMessage = `Ocorreu um erro ao fazer login com o Google: ${err.message || err}`;
       if (err.code === 'auth/popup-closed-by-user') {
         errorMessage = 'A janela de login com o Google foi fechada antes de completar a autenticação.';
       } else if (err.code === 'auth/capacitor-config-pending') {
@@ -88,6 +88,7 @@ const Login: React.FC = () => {
     } finally {
       setGoogleLoading(false);
     }
+
   };
 
   useEffect(() => {

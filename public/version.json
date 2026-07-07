@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "url": "https://alunoconecta.vercel.app/portal-do-estudante.apk",
-  "releaseNotes": "Integração nativa de login com conta Google e correções de fotos no PDF da carteirinha."
+  "releaseNotes": "Melhoria na exibição de mensagens de erro detalhadas no login com o Google no APK."
 }

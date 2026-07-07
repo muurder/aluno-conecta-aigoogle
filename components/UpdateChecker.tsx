@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // A versão atual do aplicativo empacotado neste APK.
 // Quando você for gerar um novo APK, você pode subir esse número.
-const CURRENT_VERSION = '1.0.0';
+const CURRENT_VERSION = '1.0.1';
 
 interface UpdateInfo {
   version: string;
