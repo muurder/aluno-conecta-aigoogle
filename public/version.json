@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
-  "url": "https://alunoconecta.vercel.app/portal-do-estudante.apk",
-  "releaseNotes": "Habilitado o provedor do Google (google.com) nas configurações do plugin Firebase do Capacitor."
+  "version": "1.0.3",
+  "url": "https://github.com/muurder/aluno-conecta-aigoogle/releases/download/latest/portal-do-estudante.apk",
+  "releaseNotes": "Correção do link de download de atualizações para apontar para o GitHub Releases e correção de configuração do Google Sign-In."
 }
