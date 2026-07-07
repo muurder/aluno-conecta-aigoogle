@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
-import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { COURSE_SUBJECTS } from '../constants';
 
 const VirtualIdCard: React.FC = () => {
   const { user } = useAuth();
@@ -13,37 +13,64 @@ const VirtualIdCard: React.FC = () => {
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Helper to fetch and convert image URL to base64
+  const getBase64ImageFromUrl = async (url: string): Promise<string> => {
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      const blob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.error("CORS fetch failed, trying standard fetch:", err);
+      // Fallback: direct fetch without mode restriction
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  };
+
+  const formatBirthDate = (dateStr?: string) => {
+    if (!dateStr) return 'DD/MM/AAAA';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  const getSubjects = () => {
+    if (!user?.course) return COURSE_SUBJECTS['Default'];
+    const courseKey = Object.keys(COURSE_SUBJECTS).find(
+      key => key.toLowerCase() === user.course?.toLowerCase()
+    );
+    return courseKey ? COURSE_SUBJECTS[courseKey] : COURSE_SUBJECTS['Default'];
+  };
+
   const handleDownloadPDF = async () => {
-    if (!cardRef.current || !user) return;
+    if (!user) return;
     
     setDownloading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const frontElement = cardRef.current.querySelector('#card-front') as HTMLElement;
-      const backElement = cardRef.current.querySelector('#card-back') as HTMLElement;
-      
-      if (!frontElement || !backElement) {
-        throw new Error("Could not find front or back card elements.");
+      // 1. Fetch student photo base64 in background
+      let photoBase64 = '';
+      if (user.photo) {
+        try {
+          photoBase64 = await getBase64ImageFromUrl(user.photo);
+        } catch (err) {
+          console.error("Could not load user photo as base64:", err);
+        }
       }
-      
-      const canvasFront = await html2canvas(frontElement, {
-        useCORS: true,
-        allowTaint: false,
-        scale: 4,
-        backgroundColor: '#0c1325'
-      });
-      
-      const canvasBack = await html2canvas(backElement, {
-        useCORS: true,
-        allowTaint: false,
-        scale: 4,
-        backgroundColor: '#0c1325'
-      });
-      
-      const imgFront = canvasFront.toDataURL('image/png');
-      const imgBack = canvasBack.toDataURL('image/png');
-      
+
+      // 2. Initialize Portrait A4 PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -51,9 +78,10 @@ const VirtualIdCard: React.FC = () => {
       });
       
       const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
+      const isNewStyle = user.cardStyle === 'new';
       
-      // 1. Draw elegant document background and header
-      pdf.setFillColor(12, 21, 41); // Deep slate banner
+      // 3. Draw Document Header Banner
+      pdf.setFillColor(12, 45, 91); // Primary deep navy blue
       pdf.rect(0, 0, pageWidth, 40, 'F');
       
       pdf.setTextColor(255, 255, 255);
@@ -63,18 +91,18 @@ const VirtualIdCard: React.FC = () => {
       
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
-      pdf.setTextColor(150, 180, 200);
+      pdf.setTextColor(180, 200, 230);
       pdf.text("Carteirinha de Estudante Digital Oficial", 15, 25);
       
-      // Draw date/time of export
-      const todayStr = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const todayStr = new Date().toLocaleDateString('pt-BR', { 
+        day: '2-digit', month: '2-digit', year: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
       pdf.setFontSize(8);
       pdf.text(`Exportado em: ${todayStr}`, pageWidth - 65, 25);
       
-      // Reset color
-      pdf.setTextColor(50, 50, 50);
-      
-      // 2. Center student metadata
+      // 4. Student Metadata Block
+      pdf.setTextColor(50, 60, 80);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(12);
       pdf.text(`Estudante: ${user.fullName?.toUpperCase()}`, 15, 52);
@@ -86,43 +114,256 @@ const VirtualIdCard: React.FC = () => {
       pdf.setDrawColor(220, 225, 230);
       pdf.line(15, 62, pageWidth - 15, 62);
       
-      // CR-80 dimensions: 85.6mm x 54.0mm
+      // CR-80 Card Size: 85.6mm x 54.0mm
       const cardWidth = 85.6;
       const cardHeight = 54.0;
-      const x = (pageWidth - cardWidth) / 2; // Centered
+      const x = (pageWidth - cardWidth) / 2; // Centered Card X
       
+      // ==========================================
       // --- FRONT CARD (Y = 70) ---
+      // ==========================================
       const yFront = 70;
-      // Draw cutting guidelines
+      
+      // Dotted cutting line around card
       pdf.setDrawColor(180, 180, 180);
       pdf.setLineDashPattern([1, 1], 0);
       pdf.rect(x - 0.5, yFront - 0.5, cardWidth + 1, cardHeight + 1, 'S');
+      pdf.setLineDashPattern([], 0); // Reset dash
+
+      if (isNewStyle) {
+        // --- NEW STYLE FRONT (LIGHT METALLIC) ---
+        // Background rounded rectangle
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(x, yFront, cardWidth, cardHeight, 3, 3, 'F');
+        pdf.setDrawColor(226, 232, 240);
+        pdf.roundedRect(x, yFront, cardWidth, cardHeight, 3, 3, 'S');
+
+        // Gold chip mockup
+        pdf.setFillColor(250, 204, 21);
+        pdf.roundedRect(x + 6, yFront + 15, 8, 6.5, 1, 1, 'F');
+        pdf.setDrawColor(202, 138, 4);
+        pdf.roundedRect(x + 6, yFront + 15, 8, 6.5, 1, 1, 'S');
+        pdf.setDrawColor(180, 100, 10);
+        pdf.line(x + 8.6, yFront + 15, x + 8.6, yFront + 21.5);
+        pdf.line(x + 11.3, yFront + 15, x + 11.3, yFront + 21.5);
+        pdf.line(x + 6, yFront + 17.2, x + 14, yFront + 17.2);
+        pdf.line(x + 6, yFront + 19.3, x + 14, yFront + 19.3);
+
+        // Header text
+        pdf.setTextColor(71, 85, 105);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6.5);
+        pdf.text("PORTAL DO ESTUDANTE", x + 6, yFront + 8);
+        pdf.setTextColor(148, 163, 184);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(5.5);
+        pdf.text("DOCUMENTO DIGITAL", x + 6, yFront + 11);
+
+        // Active status badge
+        pdf.setFillColor(209, 250, 229);
+        pdf.roundedRect(x + cardWidth - 16, yFront + 5, 10, 3.5, 1, 1, 'F');
+        pdf.setTextColor(5, 150, 105);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(5);
+        pdf.text("ATIVO", x + cardWidth - 11, yFront + 7.5, { align: 'center' });
+
+        // University Name
+        pdf.setTextColor(51, 65, 85);
+        pdf.setFontSize(7.5);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(user.university || "UNIVERSIDADE", x + cardWidth - 6, yFront + 19, { align: 'right' });
+      } else {
+        // --- CLASSIC STYLE FRONT (LIGHT TEAL GRADIENT) ---
+        pdf.setFillColor(240, 253, 250); // Teal-50
+        pdf.roundedRect(x, yFront, cardWidth, cardHeight, 3, 3, 'F');
+        pdf.setDrawColor(204, 251, 241); // Teal-100
+        pdf.roundedRect(x, yFront, cardWidth, cardHeight, 3, 3, 'S');
+
+        // Header university name
+        pdf.setTextColor(51, 65, 85);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9);
+        pdf.text(user.university || "UNIVERSIDADE", x + 6, yFront + 11);
+      }
+
+      // --- Student Photo Container (Both styles) ---
+      const photoX = x + 6;
+      const photoY = isNewStyle ? yFront + 24 : yFront + 16;
+      const photoW = 14;
+      const photoH = 17;
       
-      // Add front image
-      pdf.addImage(imgFront, 'PNG', x, yFront, cardWidth, cardHeight);
+      pdf.setFillColor(226, 232, 240);
+      pdf.roundedRect(photoX, photoY, photoW, photoH, 1, 1, 'F');
       
-      // Label
+      if (photoBase64) {
+        try {
+          pdf.addImage(photoBase64, 'JPEG', photoX, photoY, photoW, photoH);
+        } catch (err) {
+          console.error("Error inserting image in PDF:", err);
+          // Fallback user initials
+          pdf.setFontSize(10);
+          pdf.setTextColor(148, 163, 184);
+          const initials = user.fullName ? user.fullName.split(' ').map(n => n[0]).slice(0, 2).join('') : 'ST';
+          pdf.text(initials, photoX + photoW / 2, photoY + photoH / 2 + 3, { align: 'center' });
+        }
+      } else {
+        // Fallback user initials
+        pdf.setFontSize(10);
+        pdf.setTextColor(148, 163, 184);
+        const initials = user.fullName ? user.fullName.split(' ').map(n => n[0]).slice(0, 2).join('') : 'ST';
+        pdf.text(initials, photoX + photoW / 2, photoY + photoH / 2 + 3, { align: 'center' });
+      }
+
+      // --- Student Name and Course (Both styles) ---
+      pdf.setTextColor(15, 23, 42); // slate-900
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.text(user.fullName || "NOME COMPLETO", x + 23, photoY + 6);
+      
+      pdf.setTextColor(13, 148, 136); // teal-600
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.text(user.course || "Curso", x + 23, photoY + 11);
+
+      // Dividing line
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(x + 6, yFront + 43, x + cardWidth - 6, yFront + 43);
+
+      // Bottom Row Credentials
+      pdf.setTextColor(100, 116, 139); // slate-500
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(5);
+      pdf.text("RGM", x + 6, yFront + 46);
+      pdf.text("NASCIMENTO", x + 26, yFront + 46);
+      pdf.text("CAMPUS", x + 50, yFront + 46);
+      pdf.text("VALIDADE", x + 70, yFront + 46);
+
+      pdf.setTextColor(15, 23, 42); // slate-900
+      pdf.setFontSize(6.5);
+      pdf.text(user.rgm || "#####", x + 6, yFront + 50);
+      pdf.text(formatBirthDate(user.birthDate), x + 26, yFront + 50);
+      pdf.text(user.campus?.toUpperCase() || "CAMPUS", x + 50, yFront + 50);
+      pdf.text(user.validity || "MM/YYYY", x + 70, yFront + 50);
+
+      // Label below card
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(8);
       pdf.setTextColor(120, 120, 120);
       pdf.text("FRENTE DA CARTEIRINHA", pageWidth / 2, yFront + cardHeight + 5, { align: 'center' });
-      
+
+      // ==========================================
       // --- BACK CARD (Y = 150) ---
+      // ==========================================
       const yBack = 150;
-      // Draw cutting guidelines
+      
+      // Dotted cutting line around card
       pdf.setDrawColor(180, 180, 180);
       pdf.setLineDashPattern([1, 1], 0);
       pdf.rect(x - 0.5, yBack - 0.5, cardWidth + 1, cardHeight + 1, 'S');
-      
-      // Add back image
-      pdf.addImage(imgBack, 'PNG', x, yBack, cardWidth, cardHeight);
-      
-      // Label
-      pdf.text("VERSO DA CARTEIRINHA", pageWidth / 2, yBack + cardHeight + 5, { align: 'center' });
-      
-      // 3. Instructions footer
-      pdf.setDrawColor(220, 225, 230);
       pdf.setLineDashPattern([], 0); // Reset dash
+
+      if (isNewStyle) {
+        // --- NEW STYLE BACK (LIGHT METALLIC) ---
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(x, yBack, cardWidth, cardHeight, 3, 3, 'F');
+        pdf.setDrawColor(226, 232, 240);
+        pdf.roundedRect(x, yBack, cardWidth, cardHeight, 3, 3, 'S');
+
+        // Magnetic stripe mockup
+        pdf.setFillColor(30, 41, 59);
+        pdf.rect(x, yBack + 3, cardWidth, 6, 'F');
+
+        // Disciplinas box
+        pdf.setFillColor(241, 245, 249);
+        pdf.roundedRect(x + 6, yBack + 15, cardWidth - 12, 17, 2, 2, 'F');
+      } else {
+        // --- CLASSIC STYLE BACK (DARK SLATE) ---
+        pdf.setFillColor(30, 41, 59); // slate-800
+        pdf.roundedRect(x, yBack, cardWidth, cardHeight, 3, 3, 'F');
+        pdf.setDrawColor(71, 85, 105);
+        pdf.roundedRect(x, yBack, cardWidth, cardHeight, 3, 3, 'S');
+
+        // Disciplinas box
+        pdf.setFillColor(15, 23, 42, 0.4);
+        pdf.roundedRect(x + 6, yBack + 15, cardWidth - 12, 17, 2, 2, 'F');
+      }
+
+      // Title header
+      pdf.setTextColor(20, 184, 166); // teal-500
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7);
+      pdf.text("DISCIPLINAS RECOMENDADAS", x + 6, yBack + 13);
+
+      // Render recommended subjects in 2 columns inside the box
+      const subjects = getSubjects();
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(5);
+      pdf.setTextColor(isNewStyle ? 50 : 220, isNewStyle ? 60 : 230, isNewStyle ? 70 : 240);
+      
+      const col1X = x + 9;
+      const col2X = x + 44;
+      const rowYBase = yBack + 19;
+      
+      subjects.slice(0, 6).forEach((sub, i) => {
+        const colX = i % 2 === 0 ? col1X : col2X;
+        const rowMultiplier = Math.floor(i / 2);
+        const rowY = rowYBase + rowMultiplier * 4.2;
+        
+        // Bullet
+        pdf.setFillColor(20, 184, 166);
+        pdf.circle(colX - 2, rowY - 1.2, 0.5, 'F');
+        // Text
+        const textLimit = pdf.splitTextToSize(sub, 30);
+        pdf.text(textLimit[0], colX, rowY);
+      });
+
+      // Warning text
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(4.5);
+      pdf.setTextColor(isNewStyle ? 100 : 160, isNewStyle ? 110 : 170, isNewStyle ? 120 : 180);
+      pdf.text("Uso pessoal e intransferível. Esta carteirinha digital é válida em todo", x + cardWidth / 2, yBack + 35, { align: 'center' });
+      pdf.text("território nacional como identificação estudantil nos termos da lei.", x + cardWidth / 2, yBack + 37.5, { align: 'center' });
+
+      // Barcode Area
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(x + 15, yBack + 40, cardWidth - 30, 8, 'F');
+      
+      // Draw realistic vector barcode inside the rect
+      const barcodeVal = user.uid || 'ALUNOCONECTA';
+      const hash = barcodeVal.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      let startX = x + 17;
+      const totalBarWidth = cardWidth - 34;
+      const barWidthUnit = totalBarWidth / 35; // 35 slots
+      
+      pdf.setFillColor(0, 0, 0);
+      for (let i = 0; i < 35; i++) {
+        const isBar = i % 2 === 0;
+        const seed = Math.sin(hash + i) * 10000;
+        const widthMultiplier = Math.floor((seed - Math.floor(seed)) * 2) + 1; // 1 or 2 units wide
+        const barW = barWidthUnit * widthMultiplier;
+        
+        if (isBar && startX + barW < x + cardWidth - 17) {
+          pdf.rect(startX, yBack + 41, barW, 6, 'F');
+        }
+        startX += barW + barWidthUnit * 0.5;
+      }
+
+      // Code text below barcode
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(5.5);
+      pdf.setTextColor(isNewStyle ? 80 : 180, isNewStyle ? 90 : 190, isNewStyle ? 100 : 200);
+      pdf.text(`CÓDIGO: ${user.uid?.substring(0, 10).toUpperCase() || 'XXXXXXXXXX'}`, x + cardWidth / 2, yBack + 50, { align: 'center' });
+
+      // Label below card
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text("VERSO DA CARTEIRINHA", pageWidth / 2, yBack + cardHeight + 5, { align: 'center' });
+
+      // ==========================================
+      // --- INSTRUCTIONS FOOTER ---
+      // ==========================================
+      pdf.setDrawColor(220, 225, 230);
       pdf.line(15, 235, pageWidth - 15, 235);
       
       pdf.setFont('helvetica', 'bold');
@@ -162,38 +403,38 @@ const VirtualIdCard: React.FC = () => {
             <div className="bg-white p-4 rounded-3xl shadow-2xl">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(validationUrl)}`} alt="QR Code" className="rounded-xl" />
             </div>
-            <p className="mt-5 text-slate-400 text-center text-sm font-medium">Apresente este código QR para validação digital da carteirinha.</p>
+            <p className="mt-5 text-gray-500 text-center text-sm font-medium">Apresente este código QR para validação digital da carteirinha.</p>
         </div>
     );
   };
   
   return (
-    <div className="flex-grow flex flex-col bg-slate-950 text-white min-h-[100dvh] relative overflow-hidden">
+    <div className="flex-grow flex flex-col bg-gray-100 text-gray-800 min-h-[100dvh] relative overflow-hidden">
       {/* Dynamic Ambient Blur Background Orbs */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-80 h-80 bg-blue-400/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-teal-400/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
-      <header className="p-4 flex items-center justify-between text-slate-200 relative z-20 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
-          <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-slate-900 transition">
-              <ArrowLeftIcon className="w-6 h-6 text-white" />
+      <header className="p-4 flex items-center justify-between text-gray-700 relative z-20 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
+          <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-200 transition">
+              <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
           </button>
-          <h1 className="font-bold text-lg absolute left-1/2 -translate-x-1/2 text-white">Carteirinha Virtual</h1>
-          <button className="text-slate-400 p-2 rounded-full hover:bg-slate-900 transition">
-              <ArrowPathIcon className="w-6 h-6 text-slate-300" />
+          <h1 className="font-bold text-lg absolute left-1/2 -translate-x-1/2 text-gray-800">Carteirinha Virtual</h1>
+          <button className="text-gray-500 p-2 rounded-full hover:bg-gray-200 transition">
+              <ArrowPathIcon className="w-6 h-6 text-gray-600" />
           </button>
       </header>
 
       <div className="p-4 relative z-10">
-          <div className="flex justify-center bg-slate-900/60 border border-slate-800/80 rounded-full p-1.5 max-w-sm mx-auto backdrop-blur">
+          <div className="flex justify-center bg-gray-200/80 border border-gray-300/50 rounded-full p-1.5 max-w-sm mx-auto backdrop-blur">
               <button
                   onClick={() => setActiveTab('card')}
-                  className={`w-1/2 py-2 rounded-full font-bold transition text-xs uppercase tracking-wider ${activeTab === 'card' ? 'bg-slate-800 shadow text-white border border-slate-700/40' : 'text-slate-400 hover:text-slate-300'}`}
+                  className={`w-1/2 py-2 rounded-full font-bold transition text-xs uppercase tracking-wider ${activeTab === 'card' ? 'bg-white shadow text-blue-800 border border-gray-200' : 'text-gray-600 hover:text-gray-805'}`}
               >
                   Carteirinha
               </button>
               <button
                   onClick={() => setActiveTab('qr')}
-                  className={`w-1/2 py-2 rounded-full font-bold transition text-xs uppercase tracking-wider ${activeTab === 'qr' ? 'bg-slate-800 shadow text-white border border-slate-700/40' : 'text-slate-400 hover:text-slate-300'}`}
+                  className={`w-1/2 py-2 rounded-full font-bold transition text-xs uppercase tracking-wider ${activeTab === 'qr' ? 'bg-white shadow text-blue-800 border border-gray-200' : 'text-gray-600 hover:text-gray-805'}`}
               >
                   Código QR
               </button>
@@ -226,11 +467,11 @@ const VirtualIdCard: React.FC = () => {
       
       <footer className="p-6 h-24 flex items-center justify-center relative z-10">
           {activeTab === 'card' ? (
-               <div className="text-center text-sm text-slate-400 font-medium">
+               <div className="text-center text-sm text-gray-500 font-medium">
                   Apresente esta carteirinha para identificação.
                </div>
           ) : (
-               <button className="w-full max-w-sm bg-slate-900 border border-slate-800 text-white font-bold p-4 rounded-2xl hover:bg-slate-850 shadow-lg transition">
+               <button className="w-full max-w-sm bg-gray-200 border border-gray-300 text-gray-800 font-bold p-4 rounded-2xl hover:bg-gray-300 shadow-md transition">
                   Solicitar carteirinha física
               </button>
           )}
