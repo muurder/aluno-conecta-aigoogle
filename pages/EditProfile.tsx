@@ -242,6 +242,7 @@ const EditProfile: React.FC = () => {
                 gender: formData.gender || 'outro',
                 theme: formData.theme,
                 themeSource: formData.themeSource,
+                cardStyle: formData.cardStyle || 'old',
             };
             await updateUser(formData.uid, dataToUpdate, photoFile ?? undefined);
             setToast({ show: true, message: 'Perfil atualizado com sucesso!', type: 'success' });
@@ -391,6 +392,18 @@ const EditProfile: React.FC = () => {
                      <div>
                         <label className={labelClasses}>Validade da Carteirinha</label>
                         <input name="validity" value={formData.validity} onChange={handleInputChange} className={inputClasses} required />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>Estilo da Carteirinha Virtual</label>
+                        <div className="relative">
+                            <select name="cardStyle" value={formData.cardStyle || 'old'} onChange={handleInputChange} className={selectClasses}>
+                                <option value="old">Modelo Clássico (Padrão)</option>
+                                <option value="new">Modelo Premium (Claro)</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
+                        </div>
                     </div>
                     
                     <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Tema do Aplicativo</h2>

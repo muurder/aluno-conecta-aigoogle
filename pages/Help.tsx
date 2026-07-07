@@ -225,8 +225,8 @@ export default function SupportAI() {
     }, [input]);
 
     return (
-        <div className="flex flex-col bg-[var(--background)]">
-            <header className="p-2 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-20 border-b">
+        <div className="flex flex-col bg-[var(--background)] h-full overflow-hidden">
+            <header className="p-2 flex items-center text-[var(--text)] bg-[var(--surface)] shadow-sm sticky top-0 z-20 border-b pt-[calc(env(safe-area-inset-top,0px)+0.5rem)]">
                 <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-gray-100" style={{minHeight: 44, minWidth: 44}}>
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>

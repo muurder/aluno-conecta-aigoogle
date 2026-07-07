@@ -494,9 +494,9 @@ const MyCourse: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 relative">
+    <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
       {/* Header */}
-      <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm border-b sticky top-0 z-10">
+      <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm border-b sticky top-0 z-10 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
         <button onClick={() => navigate(-1)} className="mr-4 p-2 rounded-full hover:bg-gray-100 transition">
           <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
         </button>
@@ -510,7 +510,7 @@ const MyCourse: React.FC = () => {
       </header>
 
       {/* Message List */}
-      <main className="flex-grow p-4 overflow-y-auto space-y-4 pb-20">
+      <main className="flex-grow p-4 overflow-y-auto space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-3">
@@ -712,7 +712,7 @@ const MyCourse: React.FC = () => {
       </main>
 
       {/* Composer Area */}
-      <footer className="fixed bottom-16 inset-x-0 bg-white border-t p-3 z-30 max-w-sm mx-auto md:max-w-md lg:max-w-lg">
+      <footer className="bg-white border-t p-3 z-30 w-full max-w-sm mx-auto md:max-w-md lg:max-w-lg">
         {/* Selected Image Preview Bar */}
         {imagePreview && (
           <div className="bg-slate-100 p-2 rounded-xl flex items-center justify-between border mb-2 animate-slide-up">

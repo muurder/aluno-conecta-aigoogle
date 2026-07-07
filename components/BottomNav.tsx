@@ -33,7 +33,7 @@ const BottomNav: React.FC = () => {
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 
-                 bg-[var(--surface)]/95 backdrop-blur supports-[backdrop-filter]:bg-white/60"
+                 bg-[var(--surface)] backdrop-blur-md"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="mx-auto max-w-sm">

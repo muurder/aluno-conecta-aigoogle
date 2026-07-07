@@ -33,6 +33,7 @@ export interface User {
   isAdmin?: boolean;
   theme?: string; // e.g., 'default', 'unicsul', etc.
   themeSource?: 'auto' | 'user' | 'admin' | 'system';
+  cardStyle?: 'old' | 'new';
 }
 
 export interface Comment {

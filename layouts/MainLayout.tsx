@@ -59,7 +59,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
          </header>
        )}
 
-       <main className="flex-grow overflow-y-auto pb-4">
+       <main className={`flex-grow ${['/my-course', '/assistant'].includes(location.pathname) ? 'overflow-hidden flex flex-col' : 'overflow-y-auto pb-4'}`}>
          {children}
        </main>
 
