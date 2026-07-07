@@ -145,10 +145,7 @@ const Home: React.FC = () => {
                     textColor="#ffffff"
                     icon={<ArrowDownTrayIcon className="w-7 h-7" />}
                     onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = '/portal-do-estudante.apk';
-                        link.download = 'portal-do-estudante.apk';
-                        link.click();
+                        window.open('https://github.com/muurder/aluno-conecta-aigoogle/releases/download/latest/portal-do-estudante.apk', '_blank');
                     }}
                 />
             </div>
