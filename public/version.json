@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "url": "https://alunoconecta.vercel.app/portal-do-estudante.apk",
-  "releaseNotes": "Melhoria na exibição de mensagens de erro detalhadas no login com o Google no APK."
+  "releaseNotes": "Habilitado o provedor do Google (google.com) nas configurações do plugin Firebase do Capacitor."
 }
