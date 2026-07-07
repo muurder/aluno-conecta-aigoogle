@@ -27,10 +27,10 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
     const bgColor = isSuccess ? 'bg-green-600' : 'bg-red-600';
     const Icon = isSuccess ? CheckCircleIcon : ExclamationCircleIcon;
 
-    // Responsive classes for positioning
+    // Bulletproof top-centered toast styling on mobile (uses margins/left/right, no translate-x centering needed to prevent clipping)
     const positionClasses = `
-        fixed z-[100] w-11/12 max-w-sm top-4 left-1/2 -translate-x-1/2
-        md:w-auto md:max-w-none md:top-auto md:left-auto md:bottom-5 md:right-5 md:translate-x-0
+        fixed z-[100] left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] mx-auto max-w-md
+        md:left-auto md:right-5 md:bottom-5 md:top-auto md:w-auto md:max-w-sm
     `;
 
     return (
@@ -39,21 +39,21 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
             role="alert"
         >
             <Icon className="w-6 h-6 flex-shrink-0" />
-            <p className="text-sm font-semibold">{message}</p>
+            <p className="text-sm font-semibold flex-1 min-w-0 break-words">{message}</p>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20">
                 <XMarkIcon className="w-5 h-5" />
             </button>
             <style>{`
                 @keyframes slide-in-top {
-                    from { opacity: 0; transform: translate(-50%, -100%); }
-                    to { opacity: 1; transform: translate(-50%, 0); }
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes slide-in-right {
                     from { opacity: 0; transform: translateX(100%); }
                     to { opacity: 1; transform: translateX(0); }
                 }
                 .animate-toast {
-                    animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                    animation: slide-in-top 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 }
                 @media (min-width: 768px) {
                     .animate-toast {
@@ -135,6 +135,7 @@ const EditProfile: React.FC = () => {
         return null;
     }
     
+    const [activeSubTab, setActiveSubTab] = useState<'profile' | 'password'>('profile');
     const [formData, setFormData] = useState<User>(user);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
     const [newPassword, setNewPassword] = useState('');
@@ -298,157 +299,179 @@ const EditProfile: React.FC = () => {
         <div className="flex-grow flex flex-col bg-gray-100 min-h-[100dvh]">
             <Toast {...toast} onClose={() => setToast(prev => ({ ...prev, show: false }))} />
             <header className="p-4 flex items-center text-gray-800 bg-white shadow-sm sticky top-0 z-10 border-b">
-                {/* FIX: Use navigate(-1) for back navigation. */}
-                <button onClick={() => navigate(-1)} className="mr-4">
+                <button onClick={() => navigate(-1)} className="mr-4 p-1 rounded-full hover:bg-gray-100 transition" style={{ minWidth: 36, minHeight: 36 }}>
                     <ArrowLeftIcon className="w-6 h-6" />
                 </button>
                 <h1 className="font-bold text-lg">Editar Informações</h1>
             </header>
 
-            <main className="flex-grow overflow-y-auto p-4 space-y-6">
-                {/* Profile Info Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white rounded-lg shadow-md">
-                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Dados Pessoais</h2>
-                    
-                    <div className="flex justify-center -mt-2 mb-6">
-                        <div className="relative w-32 h-32">
-                            <img 
-                                src={formData.photo || 'https://i.imgur.com/V4RclNb.png'} 
-                                alt="Profile" 
-                                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" 
-                            />
-                            <label 
-                                htmlFor="photo-upload" 
-                                className="absolute bottom-1 right-1 bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-2 shadow-md cursor-pointer hover:opacity-90 transition"
-                            >
-                                {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CameraIcon className="w-5 h-5" />}
-                            </label>
-                            <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label className={labelClasses}>Login Institucional</label>
-                        <input name="institutionalLogin" value={formData.institutionalLogin} onChange={handleInputChange} className={inputClasses} required />
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Nome Completo</label>
-                        <input name="fullName" value={formData.fullName} onChange={handleInputChange} className={inputClasses} required />
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Data de Nascimento</label>
-                        <input type="date" name="birthDate" value={formData.birthDate || ''} onChange={handleInputChange} className={inputClasses} />
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Gênero</label>
-                        <select name="gender" value={formData.gender || 'outro'} onChange={handleInputChange} className={inputClasses}>
-                            <option value="masculino">Masculino</option>
-                            <option value="feminino">Feminino</option>
-                            <option value="outro">Outro / Não informado</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className={labelClasses}>RGM</label>
-                        <input name="rgm" value={formData.rgm} onChange={handleInputChange} className={`${inputClasses}`} required />
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Seu Email (para login)</label>
-                        <input name="email" value={formData.email} readOnly className={`${inputClasses} bg-gray-100`} />
-                    </div>
-                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Dados Acadêmicos</h2>
-                     <div>
-                        <label className={labelClasses}>Faculdade</label>
-                        <div className="relative">
-                            <select name="university" value={formData.university} onChange={handleInputChange} className={selectClasses} required>
-                                {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Curso</label>
-                        <div className="relative">
-                            <select name="course" value={formData.course} onChange={handleInputChange} className={selectClasses} required>
-                                {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                     <div>
-                        <label className={labelClasses}>Campus</label>
-                        <div className="relative">
-                            <select name="campus" value={formData.campus} onChange={handleInputChange} className={selectClasses} required>
-                                {UNIVERSITY_DETAILS[formData.university]?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                     <div>
-                        <label className={labelClasses}>Validade da Carteirinha</label>
-                        <input name="validity" value={formData.validity} onChange={handleInputChange} className={inputClasses} required />
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Estilo da Carteirinha Virtual</label>
-                        <div className="relative">
-                            <select name="cardStyle" value={formData.cardStyle || 'old'} onChange={handleInputChange} className={selectClasses}>
-                                <option value="old">Modelo Clássico (Padrão)</option>
-                                <option value="new">Modelo Premium (Claro)</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Tema do Aplicativo</h2>
-                    <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {themeOptions.map(theme => (
-                            <div key={theme.id} onClick={() => handleThemeSelect(theme.id)} className="cursor-pointer">
-                                <div className={`w-full h-16 rounded-lg border-2 flex items-center justify-center transition-all ${formData.theme === theme.id ? 'border-[var(--primary)] ring-2 ring-[var(--primary)] ring-offset-2' : 'border-gray-300'}`} style={{ backgroundColor: theme.tokens.surface }}>
-                                    <div className="flex items-center gap-1">
-                                        <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.primary }}></div>
-                                        <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.accent }}></div>
-                                        <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.secondary }}></div>
-                                    </div>
-                                </div>
-                                <p className={`text-center text-xs mt-1 font-medium ${formData.theme === theme.id ? 'text-[var(--primary)]' : 'text-gray-600'}`}>
-                                    {theme.name.replace('Universidade ', '').replace(' (Default)','')}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                     <button type="button" onClick={handleRestoreDefaultTheme} className="w-full text-sm text-center text-gray-600 hover:text-blue-600 p-2">Restaurar Padrão</button>
-                    
-                    <button type="submit" disabled={loading || imageProcessing} className="w-full mt-4 bg-[var(--primary)] text-[var(--on-primary)] font-bold p-3 rounded-lg hover:opacity-90 disabled:opacity-70">
-                        {loading ? 'Salvando...' : 'Salvar Alterações'}
-                    </button>
-                </form>
+            {/* Sub-tabs selector for separating Profile Edit and Password Reset */}
+            <div className="flex bg-white border-b px-4 gap-6 sticky top-[57px] z-10">
+                <button 
+                    onClick={() => setActiveSubTab('profile')} 
+                    className={`pb-3 pt-3 font-bold text-sm transition relative ${activeSubTab === 'profile' ? 'text-[var(--primary)] border-b-2 border-[var(--primary)]' : 'text-gray-400 hover:text-gray-600'}`}
+                    style={{ minHeight: 44 }}
+                    type="button"
+                >
+                    Dados e Preferências
+                </button>
+                <button 
+                    onClick={() => setActiveSubTab('password')} 
+                    className={`pb-3 pt-3 font-bold text-sm transition relative ${activeSubTab === 'password' ? 'text-[var(--primary)] border-b-2 border-[var(--primary)]' : 'text-gray-400 hover:text-gray-600'}`}
+                    style={{ minHeight: 44 }}
+                    type="button"
+                >
+                    Segurança e Senha
+                </button>
+            </div>
 
-                {/* Password Change Form */}
-                <form onSubmit={handlePasswordChange} className="p-6 space-y-4 bg-white rounded-lg shadow-md">
-                    <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Alterar Senha</h2>
-                    {passwordError && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{passwordError}</p>}
-                    {passwordSuccess && <p className="text-green-600 text-sm text-center bg-green-100 p-3 rounded-lg">{passwordSuccess}</p>}
-                    
-                    <div>
-                        <label className={labelClasses}>Nova Senha</label>
-                        <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClasses} required />
-                    </div>
-                    <div>
-                        <label className={labelClasses}>Confirmar Nova Senha</label>
-                        <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClasses} required />
-                    </div>
-                    <button type="submit" disabled={passwordLoading} className="w-full mt-2 bg-gray-700 text-white font-bold p-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 flex items-center justify-center gap-2">
-                         {passwordLoading && <ArrowPathIcon className="w-5 h-5 animate-spin"/>}
-                        {passwordLoading ? 'Alterando...' : 'Alterar Senha'}
-                    </button>
-                </form>
+            <main className="flex-grow overflow-y-auto p-4 max-w-lg mx-auto w-full space-y-6">
+                {activeSubTab === 'profile' ? (
+                    /* Profile Info Form */
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white rounded-2xl shadow-md">
+                        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Dados Pessoais</h2>
+                        
+                        <div className="flex justify-center -mt-2 mb-6">
+                            <div className="relative w-32 h-32">
+                                <img 
+                                    src={formData.photo || 'https://i.imgur.com/V4RclNb.png'} 
+                                    alt="Profile" 
+                                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg" 
+                                />
+                                <label 
+                                    htmlFor="photo-upload" 
+                                    className="absolute bottom-1 right-1 bg-[var(--primary)] text-[var(--on-primary)] rounded-full p-2 shadow-md cursor-pointer hover:opacity-90 transition"
+                                >
+                                    {imageProcessing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <CameraIcon className="w-5 h-5" />}
+                                </label>
+                                <input id="photo-upload" name="photo" type="file" className="sr-only" onChange={handlePhotoUpload} accept="image/*"/>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className={labelClasses}>Login Institucional</label>
+                            <input name="institutionalLogin" value={formData.institutionalLogin} onChange={handleInputChange} className={inputClasses} required />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Nome Completo</label>
+                            <input name="fullName" value={formData.fullName} onChange={handleInputChange} className={inputClasses} required />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Data de Nascimento</label>
+                            <input type="date" name="birthDate" value={formData.birthDate || ''} onChange={handleInputChange} className={inputClasses} />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Gênero</label>
+                            <select name="gender" value={formData.gender || 'outro'} onChange={handleInputChange} className={inputClasses}>
+                                <option value="masculino">Masculino</option>
+                                <option value="feminino">Feminino</option>
+                                <option value="outro">Outro / Não informado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className={labelClasses}>RGM</label>
+                            <input name="rgm" value={formData.rgm} onChange={handleInputChange} className={`${inputClasses}`} required />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Seu Email (para login)</label>
+                            <input name="email" value={formData.email} readOnly className={`${inputClasses} bg-gray-100`} />
+                        </div>
+                        <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Dados Acadêmicos</h2>
+                         <div>
+                            <label className={labelClasses}>Faculdade</label>
+                            <div className="relative">
+                                <select name="university" value={formData.university} onChange={handleInputChange} className={selectClasses} required>
+                                    {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Curso</label>
+                            <div className="relative">
+                                <select name="course" value={formData.course} onChange={handleInputChange} className={selectClasses} required>
+                                    {COURSE_LIST.map(course => <option key={course} value={course}>{course}</option>)}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                         <div>
+                            <label className={labelClasses}>Campus</label>
+                            <div className="relative">
+                                <select name="campus" value={formData.campus} onChange={handleInputChange} className={selectClasses} required>
+                                    {UNIVERSITY_DETAILS[formData.university]?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                         <div>
+                            <label className={labelClasses}>Validade da Carteirinha</label>
+                            <input name="validity" value={formData.validity} onChange={handleInputChange} className={inputClasses} required />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Estilo da Carteirinha Virtual</label>
+                            <div className="relative">
+                                <select name="cardStyle" value={formData.cardStyle || 'old'} onChange={handleInputChange} className={selectClasses}>
+                                    <option value="old">Modelo Clássico (Padrão)</option>
+                                    <option value="new">Modelo Premium (Claro)</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h2 className="text-lg font-bold text-gray-800 border-b pb-2 pt-4">Tema do Aplicativo</h2>
+                        <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                            {themeOptions.map(theme => (
+                                <div key={theme.id} onClick={() => handleThemeSelect(theme.id)} className="cursor-pointer">
+                                    <div className={`w-full h-16 rounded-lg border-2 flex items-center justify-center transition-all ${formData.theme === theme.id ? 'border-[var(--primary)] ring-2 ring-[var(--primary)] ring-offset-2' : 'border-gray-300'}`} style={{ backgroundColor: theme.tokens.surface }}>
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.primary }}></div>
+                                            <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.accent }}></div>
+                                            <div className="w-4 h-8 rounded" style={{ backgroundColor: theme.tokens.secondary }}></div>
+                                        </div>
+                                    </div>
+                                    <p className={`text-center text-xs mt-1 font-medium ${formData.theme === theme.id ? 'text-[var(--primary)]' : 'text-gray-600'}`}>
+                                        {theme.name.replace('Universidade ', '').replace(' (Default)','')}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                         <button type="button" onClick={handleRestoreDefaultTheme} className="w-full text-sm text-center text-gray-600 hover:text-blue-600 p-2">Restaurar Padrão</button>
+                        
+                        <button type="submit" disabled={loading || imageProcessing} className="w-full mt-4 bg-[var(--primary)] text-[var(--on-primary)] font-bold p-3 rounded-lg hover:opacity-90 disabled:opacity-70">
+                            {loading ? 'Salvando...' : 'Salvar Alterações do Perfil'}
+                        </button>
+                    </form>
+                ) : (
+                    /* Password Change Form */
+                    <form onSubmit={handlePasswordChange} className="p-6 space-y-4 bg-white rounded-2xl shadow-md">
+                        <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Alterar Senha</h2>
+                        <p className="text-xs text-gray-500 -mt-1">A senha é alterada separadamente dos dados do perfil e entra em vigor imediatamente.</p>
+                        {passwordError && <p className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-lg">{passwordError}</p>}
+                        {passwordSuccess && <p className="text-green-600 text-sm text-center bg-green-100 p-3 rounded-lg">{passwordSuccess}</p>}
+                        
+                        <div>
+                            <label className={labelClasses}>Nova Senha</label>
+                            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputClasses} required />
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Confirmar Nova Senha</label>
+                            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputClasses} required />
+                        </div>
+                        <button type="submit" disabled={passwordLoading} className="w-full mt-2 bg-gray-700 text-white font-bold p-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 flex items-center justify-center gap-2">
+                             {passwordLoading && <ArrowPathIcon className="w-5 h-5 animate-spin"/>}
+                            {passwordLoading ? 'Alterando...' : 'Confirmar Nova Senha'}
+                        </button>
+                    </form>
+                )}
             </main>
         </div>
     );

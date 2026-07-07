@@ -19,10 +19,10 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
     const bgColor = isSuccess ? 'bg-green-600' : 'bg-red-600';
     const Icon = isSuccess ? CheckCircleIcon : ExclamationCircleIcon;
 
-    // Responsive classes for positioning
+    // Bulletproof top-centered toast styling on mobile (uses margins/left/right, no translate-x centering needed to prevent clipping)
     const positionClasses = `
-        fixed z-[100] w-11/12 max-w-sm top-4 left-1/2 -translate-x-1/2
-        md:w-auto md:max-w-none md:top-auto md:left-auto md:bottom-5 md:right-5 md:translate-x-0
+        fixed z-[100] left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] mx-auto max-w-md
+        md:left-auto md:right-5 md:bottom-5 md:top-auto md:w-auto md:max-w-sm
     `;
 
     return (
@@ -31,21 +31,21 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
             role="alert"
         >
             <Icon className="w-6 h-6 flex-shrink-0" />
-            <p className="text-sm font-semibold">{message}</p>
+            <p className="text-sm font-semibold flex-1 min-w-0 break-words">{message}</p>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20">
                 <XMarkIcon className="w-5 h-5" />
             </button>
             <style>{`
                 @keyframes slide-in-top {
-                    from { opacity: 0; transform: translate(-50%, -100%); }
-                    to { opacity: 1; transform: translate(-50%, 0); }
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes slide-in-right {
                     from { opacity: 0; transform: translateX(100%); }
                     to { opacity: 1; transform: translateX(0); }
                 }
                 .animate-toast {
-                    animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                    animation: slide-in-top 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
                 }
                 @media (min-width: 768px) {
                     .animate-toast {

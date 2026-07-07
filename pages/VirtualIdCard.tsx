@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { storage } from '../firebase';
+import { getBlob } from 'firebase/storage';
 import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import { jsPDF } from 'jspdf';
@@ -15,26 +17,38 @@ const VirtualIdCard: React.FC = () => {
 
   // Helper to fetch and convert image URL to base64
   const getBase64ImageFromUrl = async (url: string): Promise<string> => {
+    // Prefer the Firebase Storage SDK: it authenticates the request and avoids
+    // the CORS failures that make fetch()/canvas approaches silently fall back to initials.
     try {
-      const res = await fetch(url, { mode: 'cors' });
-      const blob = await res.blob();
-      return new Promise((resolve, reject) => {
+      const compatRef = storage.refFromURL(url);
+      // getBlob is only available on the modular StorageReference delegate.
+      const blob = await getBlob((compatRef as any)._delegate);
+      return await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
     } catch (err) {
-      console.error("CORS fetch failed, trying standard fetch:", err);
-      // Fallback: direct fetch without mode restriction
-      const res = await fetch(url);
+      console.warn("Storage SDK photo fetch failed, trying direct fetch:", err);
+    }
+
+    // Fallback for non-Storage URLs (e.g. Google avatar) or SDK failures.
+    try {
+      const cacheBusterUrl = url.includes('?')
+        ? `${url}&cb=${Date.now()}`
+        : `${url}?cb=${Date.now()}`;
+      const res = await fetch(cacheBusterUrl, { mode: 'cors' });
       const blob = await res.blob();
-      return new Promise((resolve, reject) => {
+      return await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
+    } catch (fallbackErr) {
+      console.error("Could not load user photo as base64:", fallbackErr);
+      throw fallbackErr;
     }
   };
 
@@ -188,16 +202,17 @@ const VirtualIdCard: React.FC = () => {
 
       // --- Student Photo Container (Both styles) ---
       const photoX = x + 6;
-      const photoY = isNewStyle ? yFront + 24 : yFront + 16;
+      const photoY = isNewStyle ? yFront + 23 : yFront + 14;
       const photoW = 14;
-      const photoH = 17;
+      const photoH = 15;
       
       pdf.setFillColor(226, 232, 240);
       pdf.roundedRect(photoX, photoY, photoW, photoH, 1, 1, 'F');
       
       if (photoBase64) {
         try {
-          pdf.addImage(photoBase64, 'JPEG', photoX, photoY, photoW, photoH);
+          const imageFormat = photoBase64.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+          pdf.addImage(photoBase64, imageFormat, photoX, photoY, photoW, photoH);
         } catch (err) {
           console.error("Error inserting image in PDF:", err);
           // Fallback user initials
@@ -227,23 +242,29 @@ const VirtualIdCard: React.FC = () => {
 
       // Dividing line
       pdf.setDrawColor(226, 232, 240);
-      pdf.line(x + 6, yFront + 43, x + cardWidth - 6, yFront + 43);
+      pdf.line(x + 6, yFront + 42, x + cardWidth - 6, yFront + 42);
 
       // Bottom Row Credentials
       pdf.setTextColor(100, 116, 139); // slate-500
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(5);
       pdf.text("RGM", x + 6, yFront + 46);
-      pdf.text("NASCIMENTO", x + 26, yFront + 46);
-      pdf.text("CAMPUS", x + 50, yFront + 46);
-      pdf.text("VALIDADE", x + 70, yFront + 46);
+      pdf.text("NASCIMENTO", x + 28, yFront + 46);
+      pdf.text("CAMPUS", x + 49, yFront + 46);
+      pdf.text("VALIDADE", x + 72, yFront + 46);
 
       pdf.setTextColor(15, 23, 42); // slate-900
-      pdf.setFontSize(6.5);
+      pdf.setFontSize(6);
       pdf.text(user.rgm || "#####", x + 6, yFront + 50);
-      pdf.text(formatBirthDate(user.birthDate), x + 26, yFront + 50);
-      pdf.text(user.campus?.toUpperCase() || "CAMPUS", x + 50, yFront + 50);
-      pdf.text(user.validity || "MM/YYYY", x + 70, yFront + 50);
+      pdf.text(formatBirthDate(user.birthDate), x + 28, yFront + 50);
+      
+      const campusText = user.campus?.toUpperCase() || "CAMPUS";
+      const displayCampus = campusText.length > 12 ? campusText.substring(0, 10) + "..." : campusText;
+      pdf.text(displayCampus, x + 49, yFront + 50);
+      
+      const validityText = user.validity?.toUpperCase() || "MM/YYYY";
+      const displayValidity = validityText.length > 9 ? validityText.substring(0, 7) + "..." : validityText;
+      pdf.text(displayValidity, x + 72, yFront + 50);
 
       // Label below card
       pdf.setFont('helvetica', 'bold');
