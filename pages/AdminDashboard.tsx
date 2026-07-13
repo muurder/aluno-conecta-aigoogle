@@ -483,7 +483,7 @@ const AdminDashboard: React.FC = () => {
             setShowUniModal(false);
         } catch (err: any) {
             console.error(err);
-            setUniError('Falha ao salvar faculdade. Tente novamente.');
+            setUniError(`Falha ao salvar: ${err.message || err.code || err}`);
         } finally {
             setSavingUni(false);
         }
@@ -494,9 +494,9 @@ const AdminDashboard: React.FC = () => {
             try {
                 await deleteUniversity(name);
                 setToast({ show: true, message: 'Faculdade excluída com sucesso!', type: 'success' });
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
-                setToast({ show: true, message: 'Falha ao excluir faculdade.', type: 'error' });
+                setToast({ show: true, message: `Falha ao excluir: ${err.message || err.code || err}`, type: 'error' });
             }
         }
     };
