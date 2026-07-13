@@ -34,6 +34,7 @@ export interface User {
   theme?: string; // e.g., 'default', 'unicsul', etc.
   themeSource?: 'auto' | 'user' | 'admin' | 'system';
   cardStyle?: 'old' | 'new';
+  username?: string;
 }
 
 export interface Comment {

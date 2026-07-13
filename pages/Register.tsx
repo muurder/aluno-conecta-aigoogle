@@ -9,6 +9,7 @@ import type { User, UniversityName } from '../types';
 import { universityNames } from '../types';
 import { COURSE_LIST, UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
 import { CameraIcon, ArrowPathIcon, SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { db } from '../firebase';
 
 type FormData = Omit<User, 'uid' | 'email' | 'isAdmin' | 'theme' | 'themeSource'>;
 
@@ -30,6 +31,7 @@ const Register: React.FC = () => {
         photo: null as string | null,
     });
     const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -218,17 +220,34 @@ const Register: React.FC = () => {
         if (!email || !formData.fullName || !formData.university || !formData.course || !formData.campus) {
              return setError('Por favor, preencha todos os campos obrigatórios.');
         }
+        if (!username) return setError('Por favor, defina um nome de usuário.');
+        const cleanedUsername = username.trim().toLowerCase();
+        if (cleanedUsername.length < 3) {
+            return setError('O nome de usuário deve ter pelo menos 3 caracteres.');
+        }
         
         setLoading(true);
         setError('');
         try {
-            const userData: Omit<User, 'uid' | 'email'> = {
+            // Check if username is already in use
+            const usernameQuery = await db.collection('profiles')
+                .where('username', '==', cleanedUsername)
+                .limit(1)
+                .get();
+
+            if (!usernameQuery.empty) {
+                setLoading(false);
+                return setError('Este nome de usuário já está em uso. Por favor, escolha outro.');
+            }
+
+            const userData: Omit<User, 'uid' | 'email'> & { username: string } = {
                 ...formData,
                 university: formData.university as UniversityName,
                 theme: selectedThemeId,
                 themeSource: themeSource,
+                username: cleanedUsername,
             };
-            await auth.register(userData, email, password, photoFile ?? undefined);
+            await auth.register(userData as any, email, password, photoFile ?? undefined);
             setRegistrationSuccess(true);
         } catch (err: any) {
             console.error("Registration Error:", err.code);
@@ -280,6 +299,21 @@ const Register: React.FC = () => {
                         <div>
                             <label className="text-sm font-medium text-gray-700">Email Pessoal (para login)</label>
                             <input name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="seu.email@provedor.com" required />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Nome de Usuário (ex: joao.silva)</label>
+                            <div className="relative mt-1">
+                                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-semibold">@</span>
+                                <input 
+                                    name="username" 
+                                    type="text" 
+                                    value={username} 
+                                    onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))} 
+                                    className="pl-8 w-full p-2 border border-gray-300 rounded-lg" 
+                                    placeholder="nome.sobrenome" 
+                                    required 
+                                />
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                             <div>

@@ -126,7 +126,7 @@ const Profile: React.FC = () => {
   );
 
   return (
-    <div className="flex-grow flex flex-col bg-[var(--background)] min-h-[100dvh]">
+    <div className="flex-grow flex flex-col bg-[var(--background)]">
       {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} />}
       <ProfileHeader />
       <main className="flex-grow p-4 space-y-3 pb-4">

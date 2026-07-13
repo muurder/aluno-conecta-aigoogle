@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationsContext';
 import { User, NotificationType, Notification } from '../types';
+import { db } from '../firebase';
 import { 
     ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOutline, 
     MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon, UsersIcon, ClockIcon, BellIcon,
@@ -440,6 +441,37 @@ const AdminDashboard: React.FC = () => {
     const [isSendingNotification, setIsSendingNotification] = useState(false);
     
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
+    const [apkVisibility, setApkVisibility] = useState<'all' | 'android' | 'ios' | 'none'>('all');
+
+    useEffect(() => {
+        const unsub = db.collection('configs').doc('app').onSnapshot(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data && typeof data.apkVisibility === 'string') {
+                    setApkVisibility(data.apkVisibility as any);
+                }
+            }
+        }, err => {
+            console.error("Error loading app config:", err);
+        });
+        return () => unsub();
+    }, []);
+
+    const handleUpdateApkVisibility = async (newValue: 'all' | 'android' | 'ios' | 'none') => {
+        try {
+            await db.collection('configs').doc('app').set({ apkVisibility: newValue }, { merge: true });
+            const labels = {
+                all: 'ativado para todos os usuários',
+                android: 'visível apenas no Android',
+                ios: 'visível apenas no iOS',
+                none: 'ocultado para todos'
+            };
+            setToast({ show: true, message: `Download do APK ${labels[newValue]}!`, type: 'success' });
+        } catch (error) {
+            console.error("Error updating APK download visibility:", error);
+            setToast({ show: true, message: 'Falha ao atualizar visibilidade do APK.', type: 'error' });
+        }
+    };
     
     // State for new features
     const [collapsedSections, setCollapsedSections] = useState({
@@ -607,10 +639,12 @@ const AdminDashboard: React.FC = () => {
                         </CollapsibleSection>
 
                         <CollapsibleSection title="Funções de Admin" isOpen={collapsedSections.adminFunctions} onToggle={() => toggleSection('adminFunctions')}>
-                            <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
-                                <BellAlertIcon className="w-5 h-5" />
-                                <span>Enviar Notificação Push</span>
-                            </button>
+                            <div className="space-y-4">
+                                <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                                    <BellAlertIcon className="w-5 h-5" />
+                                    <span>Enviar Notificação Push</span>
+                                </button>
+                            </div>
                         </CollapsibleSection>
                         
                         <CollapsibleSection title="Histórico de Notificações" isOpen={collapsedSections.history} onToggle={() => toggleSection('history')}>
@@ -658,6 +692,44 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             )}
                         </CollapsibleSection>
+                    </div>
+                </div>
+
+                {/* Configuration Panel */}
+                <div className="mt-6 bg-white p-5 rounded-2xl shadow-md border border-gray-100">
+                    <h2 className="text-lg font-bold text-gray-800 mb-1">Configurações do Aplicativo</h2>
+                    <p className="text-xs text-gray-500 mb-4">Gerencie as opções de visibilidade dos recursos do aplicativo em tempo real.</p>
+                    
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="flex flex-col text-left">
+                            <span className="font-semibold text-gray-800 text-sm">Visibilidade do Botão de Download (APK)</span>
+                            <span className="text-xs text-gray-500 mt-1">Selecione para qual público o botão de download do APK será exibido na tela inicial.</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {(['all', 'android', 'ios', 'none'] as const).map((opt) => {
+                                const labels = {
+                                    all: '📱 Mostrar para Todos',
+                                    android: '🤖 Apenas Android',
+                                    ios: '🍏 Apenas iOS',
+                                    none: '🚫 Ocultar para Todos'
+                                };
+                                const isActive = apkVisibility === opt;
+                                return (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => handleUpdateApkVisibility(opt)}
+                                        className={`px-4 py-2 text-xs font-semibold rounded-lg border transition-all ${
+                                            isActive 
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
+                                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {labels[opt]}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </main>

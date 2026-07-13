@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { EyeIcon, EyeSlashIcon, ArrowRightOnRectangleIcon, CheckCircleIcon, ExclamationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { db } from '../firebase';
 
 // --- Toast Component ---
 const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolean; onClose: () => void }> = ({ message, type, show, onClose }) => {
@@ -59,13 +60,13 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; show: boolea
 
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'error' as 'error' });
+  const [toast, setToast] = useState({ show: false, message: '', type: 'error' as 'error' | 'success' });
   
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
@@ -76,7 +77,19 @@ const Login: React.FC = () => {
       await loginWithGoogle();
     } catch (err: any) {
       console.error("Google Login Error:", err);
-      let errorMessage = `Ocorreu um erro ao fazer login com o Google: ${err.message || err}`;
+      
+      // Build a detailed error message for easier debugging
+      let errorMessage = `Erro ao fazer login com o Google: ${err.message || err}`;
+      
+      // Append specific properties if available
+      const details: string[] = [];
+      if (err.code) details.push(`code: ${err.code}`);
+      if (err.nativeErrorCode) details.push(`nativeErrorCode: ${err.nativeErrorCode}`);
+      if (err.nativeMessage) details.push(`nativeMessage: ${err.nativeMessage}`);
+      if (details.length > 0) {
+        errorMessage += ` (${details.join(', ')})`;
+      }
+
       if (err.code === 'auth/popup-closed-by-user') {
         errorMessage = 'A janela de login com o Google foi fechada antes de completar a autenticação.';
       } else if (err.code === 'auth/capacitor-config-pending') {
@@ -84,18 +97,18 @@ const Login: React.FC = () => {
       } else if (err.code === 'auth/capacitor-not-supported') {
         errorMessage = 'O login com o Google no aplicativo Android requer integração nativa (SHA-1 / Google Play Services). Por favor, use seu E-mail e Senha no app, ou acesse pelo navegador em alunoconecta.vercel.app para usar o Google.';
       }
+      
       setToast({ show: true, message: errorMessage, type: 'error' });
     } finally {
       setGoogleLoading(false);
     }
-
   };
 
   useEffect(() => {
     try {
       const rememberedEmail = localStorage.getItem('rememberedEmail');
       if (rememberedEmail) {
-        setEmail(rememberedEmail);
+        setIdentifier(rememberedEmail);
         setRememberMe(true);
       }
     } catch (err) {
@@ -107,17 +120,44 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
+      let emailToLogin = identifier.trim();
+
+      // If the login identifier does not contain '@', query Firestore to find the email of that username
+      if (!emailToLogin.includes('@')) {
+        const cleanedUsername = emailToLogin.replace(/^@/, '').toLowerCase().trim();
+        const usernameQuery = await db.collection('profiles')
+          .where('username', '==', cleanedUsername)
+          .limit(1)
+          .get();
+
+        if (usernameQuery.empty) {
+          throw { code: 'auth/username-not-found' };
+        }
+
+        const userData = usernameQuery.docs[0].data();
+        if (userData && userData.email) {
+          emailToLogin = userData.email;
+        } else {
+          throw { code: 'auth/username-has-no-email' };
+        }
+      }
+
+      await login(emailToLogin, password);
+
       if (rememberMe) {
-        try { localStorage.setItem('rememberedEmail', email); } catch {}
+        try { localStorage.setItem('rememberedEmail', identifier); } catch {}
       } else {
         try { localStorage.removeItem('rememberedEmail'); } catch {}
       }
     } catch (err: any) {
       console.error("Login Error:", err.code);
       let errorMessage = 'Ocorreu um erro ao tentar fazer login. Tente novamente mais tarde.';
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        errorMessage = 'E-mail ou senha inválidos. Por favor, verifique seus dados.';
+      if (err.code === 'auth/username-not-found') {
+        errorMessage = 'Nome de usuário não encontrado. Verifique a grafia ou use seu e-mail.';
+      } else if (err.code === 'auth/username-has-no-email') {
+        errorMessage = 'Este usuário não possui e-mail cadastrado.';
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        errorMessage = 'E-mail, usuário ou senha inválidos. Por favor, verifique seus dados.';
       }
       setToast({ show: true, message: errorMessage, type: 'error' });
     } finally {
@@ -125,7 +165,7 @@ const Login: React.FC = () => {
     }
   };
 
-  const isFormValid = email.trim() !== '' && password.trim() !== '';
+  const isFormValid = identifier.trim() !== '' && password.trim() !== '';
 
   const inputClasses = `mt-1 w-full p-3 border rounded-lg transition focus:ring-2 border-gray-300 focus:ring-[var(--accent)] focus:border-[var(--accent)]`;
 
@@ -140,12 +180,12 @@ const Login: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-[var(--muted)]">Seu E-mail Pessoal</label>
+            <label className="text-sm font-medium text-[var(--muted)]">E-mail ou Usuário</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu.email@provedor.com"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="ex: seu.email@provedor.com ou @usuario"
               className={inputClasses}
               required
               autoFocus

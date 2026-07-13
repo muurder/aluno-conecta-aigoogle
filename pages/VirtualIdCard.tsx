@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { storage } from '../firebase';
-import { getBlob } from 'firebase/storage';
+import { getStorage, ref as storageRef, getBlob } from 'firebase/storage';
 import StudentIdCard from '../components/StudentIdCard';
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import { jsPDF } from 'jspdf';
@@ -15,69 +15,51 @@ const VirtualIdCard: React.FC = () => {
   const [downloading, setDownloading] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Helper to fetch and convert image URL to base64
+  // Helper to fetch and convert image URL to base64 with a 2.5s timeout
   const getBase64ImageFromUrl = async (url: string): Promise<string> => {
-    // 1. Prefer the Firebase Storage SDK: it authenticates the request and avoids CORS checks when possible.
-    try {
-      const compatRef = storage.refFromURL(url);
-      const blob = await getBlob((compatRef as any)._delegate);
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (err) {
-      console.warn("Storage SDK photo fetch failed, trying direct fetch:", err);
-    }
+    const fetchPromise = async (): Promise<string> => {
+      // 1. If it's a Firebase Storage URL (most common case), use the modular Firebase Storage SDK getBlob
+      if (url.startsWith('gs://') || url.includes('firebasestorage.googleapis.com')) {
+        try {
+          const storageInstance = getStorage();
+          const imageRef = storageRef(storageInstance, url);
+          const blob = await getBlob(imageRef);
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (err) {
+          console.warn("Storage SDK photo fetch failed, trying direct fetch:", err);
+        }
+      }
 
-    // 2. Fallback for non-Storage URLs (e.g. Google avatar) or SDK failures using cache-buster.
-    try {
-      const cacheBusterUrl = url.includes('?')
-        ? `${url}&cb=${Date.now()}`
-        : `${url}?cb=${Date.now()}`;
-      const res = await fetch(cacheBusterUrl, { mode: 'cors' });
-      const blob = await res.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (fallbackErr) {
-      console.warn("Direct fetch with cache buster failed, trying Google CORS Proxy:", fallbackErr);
-    }
+      // 2. Direct fetch for non-Storage URLs (e.g. Google avatar) or if SDK fails
+      try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const blob = await res.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (fallbackErr) {
+        console.warn("Direct fetch failed:", fallbackErr);
+      }
 
-    // 3. Fallback: Google open social proxy (extremely fast and Google-backed, returns Access-Control-Allow-Origin: *)
-    try {
-      const proxyUrl = `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxyUrl);
-      const blob = await res.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (err) {
-      console.warn("Google CORS Proxy failed, trying AllOrigins CORS Proxy:", err);
-    }
+      throw new Error("All photo download methods failed.");
+    };
 
-    // 4. Fallback: AllOrigins CORS proxy
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxyUrl);
-      const blob = await res.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (err) {
-      console.error("All photo download methods failed:", err);
-      throw err;
-    }
+    // Race the fetch operation against a 2.5 second timeout
+    return Promise.race([
+      fetchPromise(),
+      new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout de 2.5s excedido ao carregar a foto.")), 2500)
+      )
+    ]);
   };
 
   const formatBirthDate = (dateStr?: string) => {
@@ -244,17 +226,23 @@ const VirtualIdCard: React.FC = () => {
         } catch (err) {
           console.error("Error inserting image in PDF:", err);
           // Fallback user initials
-          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
           pdf.setTextColor(148, 163, 184);
-          const initials = user.fullName ? user.fullName.split(' ').map(n => n[0]).slice(0, 2).join('') : 'ST';
-          pdf.text(initials, photoX + photoW / 2, photoY + photoH / 2 + 3, { align: 'center' });
+          const initials = user.fullName 
+            ? user.fullName.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() 
+            : 'ST';
+          pdf.text(initials, photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
         }
       } else {
         // Fallback user initials
-        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8);
         pdf.setTextColor(148, 163, 184);
-        const initials = user.fullName ? user.fullName.split(' ').map(n => n[0]).slice(0, 2).join('') : 'ST';
-        pdf.text(initials, photoX + photoW / 2, photoY + photoH / 2 + 3, { align: 'center' });
+        const initials = user.fullName 
+          ? user.fullName.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() 
+          : 'ST';
+        pdf.text(initials, photoX + photoW / 2, photoY + photoH / 2 + 2, { align: 'center' });
       }
 
       // --- Student Name and Course (Both styles) ---
