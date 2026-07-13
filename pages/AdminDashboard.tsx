@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationsContext';
 import { User, NotificationType, Notification } from '../types';
 import { db } from '../firebase';
+import firebase from 'firebase/compat/app';
 import { 
     ArrowLeftIcon, PencilIcon, TrashIcon, CheckCircleIcon as CheckCircleOutline, 
     MagnifyingGlassIcon, ArrowPathIcon, BellAlertIcon, XMarkIcon, UsersIcon, ClockIcon, BellIcon,
@@ -125,7 +126,7 @@ const StatusBadge: React.FC<{ status: User['status'] }> = ({ status }) => (
     </span>
 );
 
-const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void; onDelete: () => void; }> = ({ user, onApprove, onEdit, onDelete }) => {
+const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void; onDelete: () => void; onManagePermissions: () => void; }> = ({ user, onApprove, onEdit, onDelete, onManagePermissions }) => {
     const formatDateTime = (dateStr?: string) => {
         if (!dateStr) return 'Nunca acessou';
         return new Date(dateStr).toLocaleString('pt-BR', {
@@ -164,6 +165,11 @@ const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void
                     <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-gray-800 text-base truncate">{user.fullName}</h3>
                         <StatusBadge status={user.status} />
+                        {user.isAdmin && (
+                            <span className="px-2.5 py-0.5 text-[10px] font-bold border rounded-full bg-purple-50 text-purple-700 border-purple-100 uppercase tracking-wider">
+                                Admin
+                            </span>
+                        )}
                         {user.gender && (
                             <span className={`px-2.5 py-0.5 text-[10px] font-semibold border rounded-full ${genderColors[user.gender] || genderColors.outro}`}>
                                 {genderLabels[user.gender] || 'Outro'}
@@ -172,6 +178,18 @@ const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void
                     </div>
                     <p className="text-sm text-gray-500 truncate mt-0.5">{user.email}</p>
                     <p className="text-xs text-gray-400 mt-1">RGM: <span className="font-semibold text-gray-600">{user.rgm || 'Sem RGM'}</span> | Curso: <span className="font-semibold text-gray-600">{user.course || 'Não informado'}</span></p>
+                    
+                    {user.isAdmin && user.adminPermissions && (
+                        <div className="text-[10px] text-gray-400 mt-1 text-left bg-purple-50/30 px-2 py-1 rounded-md inline-block">
+                            <span className="font-bold text-purple-700">Privilégios:</span>{' '}
+                            {[
+                                user.adminPermissions.approveUsers !== false && 'Aprovar Usuários',
+                                user.adminPermissions.manageUniversities !== false && 'Gerenciar Faculdades',
+                                user.adminPermissions.sendNotifications !== false && 'Notificações',
+                                user.adminPermissions.deleteUsers !== false && 'Excluir Usuários',
+                            ].filter(Boolean).join(', ') || 'Nenhum'}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -197,13 +215,19 @@ const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void
                 </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-gray-100 flex-wrap gap-y-2">
                 {user.status === 'pending' && (
                     <button onClick={onApprove} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-150 border border-green-200 rounded-lg transition-colors" title="Aprovar usuário">
                         <CheckCircleOutline className="w-4 h-4" />
                         <span>Aprovar</span>
                     </button>
                 )}
+                <button onClick={onManagePermissions} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-105 border border-purple-200 rounded-lg transition-colors" title="Gerenciar Permissões">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    <span>Permissões</span>
+                </button>
                 <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-105 border border-blue-200 rounded-lg transition-colors" title="Editar perfil">
                     <PencilIcon className="w-4 h-4" />
                     <span>Editar</span>
@@ -221,9 +245,10 @@ const UserCard: React.FC<{ user: User; onApprove: () => void; onEdit: () => void
 interface UserListModalProps {
     isOpen: boolean; onClose: () => void; title: string; users: User[];
     onApprove: (user: User) => void; onEdit: (uid: string) => void; onDelete: (user: User) => void;
+    onManagePermissions: (user: User) => void;
 }
 
-const UserListModal: React.FC<UserListModalProps> = ({ isOpen, onClose, title, users, onApprove, onEdit, onDelete }) => {
+const UserListModal: React.FC<UserListModalProps> = ({ isOpen, onClose, title, users, onApprove, onEdit, onDelete, onManagePermissions }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState<string>('newest');
     const [genderFilter, setGenderFilter] = useState<string>('all');
@@ -356,6 +381,7 @@ const UserListModal: React.FC<UserListModalProps> = ({ isOpen, onClose, title, u
                                     onApprove={() => onApprove(user)}
                                     onEdit={() => onEdit(user.uid)}
                                     onDelete={() => onDelete(user)}
+                                    onManagePermissions={() => onManagePermissions(user)}
                                 />
                             ))}
                         </div>
@@ -412,19 +438,19 @@ const NotificationHistoryItem: React.FC<{ notification: Notification; onDelete: 
 };
 
 // --- CollapsibleSection Component ---
-const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode; isOpen: boolean; onToggle: () => void; }> = ({ title, children, isOpen, onToggle }) => (
-    <div className="bg-white rounded-lg shadow-md border">
-        <button onClick={onToggle} className="w-full flex justify-between items-center p-4">
-            <h2 className="text-lg font-bold text-gray-700">{title}</h2>
-            {isOpen ? <ChevronUpIcon className="w-6 h-6 text-gray-500"/> : <ChevronDownIcon className="w-6 h-6 text-gray-500"/>}
+const CollapsibleSection: React.FC<{ title: string | React.ReactNode; children: React.ReactNode; isOpen: boolean; onToggle: () => void; }> = ({ title, children, isOpen, onToggle }) => (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+        <button onClick={onToggle} className="w-full flex justify-between items-center p-4 hover:bg-slate-50/50 transition-colors">
+            {typeof title === 'string' ? <h2 className="text-lg font-bold text-gray-700 text-left">{title}</h2> : title}
+            {isOpen ? <ChevronUpIcon className="w-5 h-5 text-gray-550 shrink-0"/> : <ChevronDownIcon className="w-5 h-5 text-gray-550 shrink-0"/>}
         </button>
-        {isOpen && <div className="p-4 border-t">{children}</div>}
+        {isOpen && <div className="p-4 border-t border-slate-200/60 bg-white">{children}</div>}
     </div>
 );
 
 
 type FilterStatus = 'all' | 'pending' | 'approved';
-type SectionName = 'overview' | 'adminFunctions' | 'history' | 'userManagement' | 'universityManagement';
+type SectionName = 'overview' | 'adminFunctions' | 'history' | 'userManagement' | 'universityManagement' | 'support';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -443,7 +469,14 @@ const AdminDashboard: React.FC = () => {
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
     const [apkVisibility, setApkVisibility] = useState<'all' | 'android' | 'ios' | 'none'>('all');
 
-    // University Management States
+    // Current Admin Capabilities
+    const { user: currentAdmin } = useAuth();
+    const canApproveUsers = currentAdmin?.isAdmin && (currentAdmin?.adminPermissions?.approveUsers !== false);
+    const canManageUniversities = currentAdmin?.isAdmin && (currentAdmin?.adminPermissions?.manageUniversities !== false);
+    const canSendNotifications = currentAdmin?.isAdmin && (currentAdmin?.adminPermissions?.sendNotifications !== false);
+    const canDeleteUsers = currentAdmin?.isAdmin && (currentAdmin?.adminPermissions?.deleteUsers !== false);
+
+    // University Management States with localStorage
     const [showUniModal, setShowUniModal] = useState(false);
     const [uniModalMode, setUniModalMode] = useState<'add' | 'edit'>('add');
     const [editingUniName, setEditingUniName] = useState('');
@@ -456,6 +489,182 @@ const AdminDashboard: React.FC = () => {
     const [uniLogoUrl, setUniLogoUrl] = useState('');
     const [savingUni, setSavingUni] = useState(false);
     const [uniError, setUniError] = useState('');
+
+    const [uniSearch, setUniSearch] = useState(() => localStorage.getItem('uni_mgmt_search') || '');
+    const [uniSort, setUniSort] = useState<'asc' | 'desc'>(() => (localStorage.getItem('uni_mgmt_sort') as 'asc' | 'desc') || 'asc');
+    const [uniView, setUniView] = useState<'list' | 'cards'>(() => (localStorage.getItem('uni_mgmt_view') as 'list' | 'cards') || 'cards');
+
+    useEffect(() => {
+        localStorage.setItem('uni_mgmt_search', uniSearch);
+    }, [uniSearch]);
+
+    useEffect(() => {
+        localStorage.setItem('uni_mgmt_sort', uniSort);
+    }, [uniSort]);
+
+    useEffect(() => {
+        localStorage.setItem('uni_mgmt_view', uniView);
+    }, [uniView]);
+
+    const filteredAndSortedUnis = useMemo(() => {
+        let result = [...universities];
+        if (uniSearch.trim()) {
+            const query = uniSearch.toLowerCase();
+            result = result.filter(u =>
+                u.name.toLowerCase().includes(query) ||
+                (u.domain && u.domain.toLowerCase().includes(query)) ||
+                (u.city && u.city.toLowerCase().includes(query)) ||
+                (u.state && u.state.toLowerCase().includes(query))
+            );
+        }
+        result.sort((a, b) => {
+            const nameA = a.name.toLowerCase();
+            const nameB = b.name.toLowerCase();
+            if (uniSort === 'asc') return nameA.localeCompare(nameB);
+            return nameB.localeCompare(nameA);
+        });
+        return result;
+    }, [universities, uniSearch, uniSort]);
+
+    // Permissions Wizard States
+    const [showPermModal, setShowPermModal] = useState(false);
+    const [permUserId, setPermUserId] = useState('');
+    const [permUserName, setPermUserName] = useState('');
+    const [permStep, setPermStep] = useState(1);
+    const [permIsAdmin, setPermIsAdmin] = useState(false);
+    const [permApproveUsers, setPermApproveUsers] = useState(false);
+    const [permManageUnis, setPermManageUnis] = useState(false);
+    const [permSendNotifications, setPermSendNotifications] = useState(false);
+    const [permDeleteUsers, setPermDeleteUsers] = useState(false);
+    const [savingPerm, setSavingPerm] = useState(false);
+
+    const handleManagePermissions = (u: User) => {
+        setPermUserId(u.uid);
+        setPermUserName(u.fullName);
+        setPermIsAdmin(u.isAdmin || false);
+        setPermApproveUsers(u.adminPermissions?.approveUsers !== false);
+        setPermManageUnis(u.adminPermissions?.manageUniversities !== false);
+        setPermSendNotifications(u.adminPermissions?.sendNotifications !== false);
+        setPermDeleteUsers(u.adminPermissions?.deleteUsers !== false);
+        setPermStep(1);
+        setShowPermModal(true);
+    };
+
+    const handleSavePermissions = async () => {
+        setSavingPerm(true);
+        try {
+            await db.collection('profiles').doc(permUserId).update({
+                isAdmin: permIsAdmin,
+                adminPermissions: {
+                    approveUsers: permIsAdmin ? permApproveUsers : false,
+                    manageUniversities: permIsAdmin ? permManageUnis : false,
+                    sendNotifications: permIsAdmin ? permSendNotifications : false,
+                    deleteUsers: permIsAdmin ? permDeleteUsers : false
+                }
+            });
+            setToast({ show: true, message: 'Permissões atualizadas com sucesso!', type: 'success' });
+            setShowPermModal(false);
+            fetchUsers();
+        } catch (err: any) {
+            console.error(err);
+            setToast({ show: true, message: `Erro ao salvar permissões: ${err.message || err}`, type: 'error' });
+        } finally {
+            setSavingPerm(false);
+        }
+    };
+
+    // Support Chat Panel States
+    const [supportChats, setSupportChats] = useState<any[]>([]);
+    const [showChatModal, setShowChatModal] = useState(false);
+    const [activeChatUserId, setActiveChatUserId] = useState('');
+    const [activeChatUserName, setActiveChatUserName] = useState('');
+    const [chatMessages, setChatMessages] = useState<any[]>([]);
+    const [adminChatInput, setAdminChatInput] = useState('');
+    const [sendingChatMessage, setSendingChatMessage] = useState(false);
+    const chatEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const unsub = db.collection('support_chats')
+            .orderBy('lastMessageTime', 'desc')
+            .onSnapshot((snapshot) => {
+                const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setSupportChats(list);
+            }, (error) => {
+                console.error("Error fetching support chats:", error);
+            });
+        return () => unsub();
+    }, []);
+
+    useEffect(() => {
+        if (!activeChatUserId || !showChatModal) return;
+
+        db.collection('support_chats').doc(activeChatUserId).update({
+            unreadCountForAdmin: 0
+        }).catch(err => console.error("Error resetting unread count:", err));
+
+        const unsub = db.collection('support_chats').doc(activeChatUserId).collection('messages')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot((snapshot) => {
+                const list = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        role: data.role,
+                        text: data.text,
+                        timestamp: data.timestamp ? data.timestamp.toMillis() : Date.now()
+                    };
+                });
+                setChatMessages(list);
+            });
+        return () => unsub();
+    }, [activeChatUserId, showChatModal]);
+
+    useEffect(() => {
+        if (showChatModal) {
+            chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [chatMessages, showChatModal]);
+
+    const handleSendAdminChatMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!adminChatInput.trim() || !activeChatUserId) return;
+
+        const messageText = adminChatInput;
+        setAdminChatInput('');
+        setSendingChatMessage(true);
+
+        try {
+            const chatDocRef = db.collection('support_chats').doc(activeChatUserId);
+            
+            await chatDocRef.collection('messages').add({
+                role: 'admin',
+                text: messageText,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            await chatDocRef.set({
+                lastMessage: messageText,
+                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+                unreadCountForAdmin: 0
+            }, { merge: true });
+
+        } catch (err) {
+            console.error("Error sending admin chat message:", err);
+            setToast({ show: true, message: 'Erro ao enviar mensagem.', type: 'error' });
+        } finally {
+            setSendingChatMessage(false);
+        }
+    };
+
+    const handleOpenChat = (chat: any) => {
+        setActiveChatUserId(chat.userId);
+        setActiveChatUserName(chat.userName);
+        setShowChatModal(true);
+    };
+
+    const unreadChatsCount = useMemo(() => {
+        return supportChats.filter(chat => chat.unreadCountForAdmin > 0).length;
+    }, [supportChats]);
 
     const handleSaveUniversity = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -568,6 +777,9 @@ const AdminDashboard: React.FC = () => {
                 if (parsed && parsed.universityManagement === undefined) {
                     parsed.universityManagement = true;
                 }
+                if (parsed && parsed.support === undefined) {
+                    parsed.support = true;
+                }
                 return parsed;
             }
         } catch (e) {
@@ -578,7 +790,8 @@ const AdminDashboard: React.FC = () => {
             adminFunctions: true,
             history: true,
             userManagement: true,
-            universityManagement: true
+            universityManagement: true,
+            support: true
         };
     });
     const [modalData, setModalData] = useState<{ isOpen: boolean; title: string; filterType: FilterStatus | 'total' }>({
@@ -723,6 +936,7 @@ const AdminDashboard: React.FC = () => {
                 onApprove={handleApprove}
                 onEdit={handleEditUser}
                 onDelete={handleReprove}
+                onManagePermissions={handleManagePermissions}
             />
             <header className="p-4 bg-white shadow-sm sticky top-0 z-10 border-b">
                  <div className="flex items-center justify-between">
@@ -752,10 +966,14 @@ const AdminDashboard: React.FC = () => {
 
                         <CollapsibleSection title="Funções de Admin" isOpen={collapsedSections.adminFunctions} onToggle={() => toggleSection('adminFunctions')}>
                             <div className="space-y-4">
-                                <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
-                                    <BellAlertIcon className="w-5 h-5" />
-                                    <span>Enviar Notificação Push</span>
-                                </button>
+                                {canSendNotifications ? (
+                                    <button onClick={() => setShowNotificationModal(true)} className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                                        <BellAlertIcon className="w-5 h-5" />
+                                        <span>Enviar Notificação Push</span>
+                                    </button>
+                                ) : (
+                                    <p className="text-xs text-gray-500 text-center py-4 font-semibold uppercase tracking-wider">Permissão Necessária: Enviar Notificações</p>
+                                )}
                             </div>
                         </CollapsibleSection>
                         
@@ -799,6 +1017,7 @@ const AdminDashboard: React.FC = () => {
                                             onApprove={() => handleApprove(user)}
                                             onEdit={() => handleEditUser(user.uid)}
                                             onDelete={() => handleReprove(user)}
+                                            onManagePermissions={() => handleManagePermissions(user)}
                                         />
                                     ))}
                                 </div>
@@ -806,59 +1025,222 @@ const AdminDashboard: React.FC = () => {
                         </CollapsibleSection>
 
                         <CollapsibleSection title="Gerenciamento de Universidades" isOpen={collapsedSections.universityManagement} onToggle={() => toggleSection('universityManagement')}>
-                            <div className="flex justify-between items-center mb-4 text-left">
-                                <span className="text-xs text-gray-500 font-semibold">Total: {universities.length} cadastradas</span>
-                                <button 
-                                    onClick={handleAddUniversityClick}
-                                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition uppercase tracking-wider"
-                                >
-                                    + Nova Faculdade
-                                </button>
+                            <div className="flex flex-col gap-3 mb-4">
+                                <div className="flex justify-between items-center text-left">
+                                    <span className="text-xs text-gray-500 font-semibold">Total: {filteredAndSortedUnis.length} cadastradas</span>
+                                    {canManageUniversities && (
+                                        <button 
+                                            onClick={handleAddUniversityClick}
+                                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition uppercase tracking-wider"
+                                        >
+                                            + Nova Faculdade
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {/* Search, Sort and View Controls */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-gray-100">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar faculdade..."
+                                            value={uniSearch}
+                                            onChange={(e) => setUniSearch(e.target.value)}
+                                            className="w-full p-2 pl-8 border border-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={uniSort}
+                                            onChange={(e) => setUniSort(e.target.value as 'asc' | 'desc')}
+                                            className="w-full p-2 border border-gray-300 rounded-xl text-xs outline-none bg-white text-gray-700 font-medium"
+                                        >
+                                            <option value="asc">Ordem: A - Z</option>
+                                            <option value="desc">Ordem: Z - A</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex bg-gray-100 p-1 rounded-xl gap-1 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => setUniView('cards')}
+                                            className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition ${uniView === 'cards' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            🎴 Cards
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setUniView('list')}
+                                            className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition ${uniView === 'list' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            📋 Lista
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
-                                {universities.map((uni) => (
-                                    <div key={uni.id} className="flex flex-col p-4 bg-gray-50 rounded-2xl border border-gray-200 gap-3 relative hover:shadow-sm transition-all duration-200">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl p-1 flex items-center justify-center shrink-0">
-                                                <img src={uni.logo || '/logos/default.svg'} alt={uni.name} className="max-h-full max-w-full object-contain" />
+                                {filteredAndSortedUnis.length === 0 ? (
+                                    <p className="text-sm text-gray-500 text-center py-6">Nenhuma faculdade encontrada.</p>
+                                ) : uniView === 'cards' ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {filteredAndSortedUnis.map((uni) => (
+                                            <div key={uni.id} className="flex flex-col p-4 bg-gray-50 rounded-2xl border border-gray-250/70 gap-3 relative hover:shadow-sm transition-all duration-200">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl p-1 flex items-center justify-center shrink-0">
+                                                        <img src={uni.logo || '/logos/default.svg'} alt={uni.name} className="max-h-full max-w-full object-contain" />
+                                                    </div>
+                                                    <div className="flex-1 text-left min-w-0">
+                                                        <h4 className="font-bold text-sm text-gray-800 truncate">{uni.name}</h4>
+                                                        <div className="text-xs text-gray-500 truncate flex items-center gap-1.5 mt-0.5">
+                                                            <span>📧 {uni.domain}</span>
+                                                        </div>
+                                                    </div>
+                                                    {canManageUniversities && (
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <button 
+                                                                onClick={() => handleEditUniversity(uni)}
+                                                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                                title="Editar dados"
+                                                            >
+                                                                <PencilIcon className="w-4 h-4" />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDeleteUniversity(uni.name)}
+                                                                className="p-1.5 text-red-650 hover:bg-red-50 rounded-lg transition"
+                                                                title="Excluir faculdade"
+                                                            >
+                                                                <TrashIcon className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {uni.city && (
+                                                    <div className="text-left text-[11px] text-gray-500 -mt-1 font-medium">
+                                                        📍 {uni.city} - {uni.state}
+                                                    </div>
+                                                )}
+                                                {uni.campuses && uni.campuses.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 pt-2 border-t border-gray-200 text-left">
+                                                        {uni.campuses.map((campus: string, cIdx: number) => (
+                                                            <span key={cIdx} className="bg-white border border-gray-200 text-gray-600 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                                                                {campus}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex-1 text-left min-w-0">
-                                                <h4 className="font-bold text-sm text-gray-800 truncate">{uni.name}</h4>
-                                                <div className="text-xs text-gray-500 truncate flex items-center gap-1.5 mt-0.5">
-                                                    <span>📧 {uni.domain}</span>
-                                                    {uni.city && <span>• 📍 {uni.city} - {uni.state}</span>}
+                                        ))}
+                                    </div>
+                                ) : (
+                                    /* List layout (compact tabular rows) */
+                                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                        <table className="w-full text-left border-collapse text-xs">
+                                            <thead>
+                                                <tr className="bg-gray-50 border-b border-gray-250 text-gray-500 font-bold uppercase tracking-wider text-[10px]">
+                                                    <th className="p-3">Nome</th>
+                                                    <th className="p-3">Domínio</th>
+                                                    <th className="p-3">Localização</th>
+                                                    <th className="p-3">Campuses</th>
+                                                    {canManageUniversities && <th className="p-3 text-right">Ações</th>}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredAndSortedUnis.map((uni) => (
+                                                    <tr key={uni.id} className="hover:bg-slate-50/40 transition">
+                                                        <td className="p-3 font-semibold text-gray-800">
+                                                            <div className="flex items-center gap-2">
+                                                                <img src={uni.logo || '/logos/default.svg'} alt={uni.name} className="w-6 h-6 object-contain shrink-0" />
+                                                                <span className="truncate max-w-[120px]">{uni.name}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 text-gray-550 truncate font-mono">{uni.domain}</td>
+                                                        <td className="p-3 text-gray-550">{uni.city ? `${uni.city} - ${uni.state}` : 'N/A'}</td>
+                                                        <td className="p-3 text-gray-550 font-semibold">{uni.campuses ? uni.campuses.length : 0}</td>
+                                                        {canManageUniversities && (
+                                                            <td className="p-3 text-right">
+                                                                <div className="flex justify-end gap-1">
+                                                                    <button 
+                                                                        onClick={() => handleEditUniversity(uni)} 
+                                                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                                                    >
+                                                                        <PencilIcon className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => handleDeleteUniversity(uni.name)} 
+                                                                        className="p-1 text-red-650 hover:bg-red-50 rounded"
+                                                                    >
+                                                                        <TrashIcon className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </CollapsibleSection>
+
+                        <CollapsibleSection 
+                            title={
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-gray-700">Suporte e Mensagens</h2>
+                                    {unreadChatsCount > 0 && (
+                                        <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                            {unreadChatsCount} novas
+                                        </span>
+                                    )}
+                                </div>
+                            } 
+                            isOpen={collapsedSections.support} 
+                            onToggle={() => toggleSection('support')}
+                        >
+                            <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
+                                {supportChats.length === 0 ? (
+                                    <p className="text-sm text-gray-500 text-center py-6">Nenhuma conversa de suporte iniciada.</p>
+                                ) : (
+                                    supportChats.map((chat) => {
+                                        const unread = chat.unreadCountForAdmin > 0;
+                                        const dateStr = chat.lastMessageTime
+                                            ? new Date(chat.lastMessageTime.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                                            : '';
+                                        return (
+                                            <div 
+                                                key={chat.id} 
+                                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${unread ? 'bg-blue-50/40 border-blue-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100/50'}`}
+                                            >
+                                                <img 
+                                                    src={chat.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.userName)}&background=random`} 
+                                                    alt={chat.userName} 
+                                                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200 shadow-sm"
+                                                />
+                                                <div className="flex-1 text-left min-w-0">
+                                                    <div className="flex justify-between items-baseline gap-1">
+                                                        <h4 className="font-bold text-sm text-gray-800 truncate">{chat.userName}</h4>
+                                                        <span className="text-[10px] text-gray-400 font-medium shrink-0">{dateStr}</span>
+                                                    </div>
+                                                    <p className={`text-xs truncate mt-0.5 ${unread ? 'text-blue-850 font-semibold' : 'text-gray-500'}`}>
+                                                        {chat.lastMessage}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {unread && (
+                                                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => handleOpenChat(chat)}
+                                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition"
+                                                    >
+                                                        Conversar
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-1">
-                                                <button 
-                                                    onClick={() => handleEditUniversity(uni)}
-                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Editar dados"
-                                                >
-                                                    <PencilIcon className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDeleteUniversity(uni.name)}
-                                                    className="p-1.5 text-red-650 hover:bg-red-50 rounded-lg transition"
-                                                    title="Excluir faculdade"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {uni.campuses && uni.campuses.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-200 text-left">
-                                                {uni.campuses.map((campus: string, cIdx: number) => (
-                                                    <span key={cIdx} className="bg-white border border-gray-300 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                                                        {campus}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                        );
+                                    })
+                                )}
                             </div>
                         </CollapsibleSection>
                     </div>
@@ -1035,6 +1417,229 @@ const AdminDashboard: React.FC = () => {
                             </button>
                         </div>
                     </form>
+                </div>
+            )}
+
+            {/* Permissions Wizard Modal */}
+            {showPermModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+                    <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-md relative text-left animate-[scaleUp_0.2s_ease-out] flex flex-col gap-4">
+                        <div className="flex justify-between items-center pb-2 border-b">
+                            <div className="flex flex-col">
+                                <h3 className="text-base font-bold text-gray-800">Gerenciar Permissões</h3>
+                                <span className="text-xs text-gray-500 mt-0.5">{permUserName}</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setShowPermModal(false)}
+                                className="p-1.5 hover:bg-gray-150 rounded-full text-gray-400 hover:text-gray-600 transition"
+                            >
+                                <XMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Steps indicator */}
+                        <div className="flex items-center justify-center gap-1.5 py-1">
+                            <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${permStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>1</span>
+                            <span className="w-8 h-0.5 bg-gray-200"></span>
+                            <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${permStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>2</span>
+                            <span className="w-8 h-0.5 bg-gray-200"></span>
+                            <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${permStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>3</span>
+                        </div>
+
+                        {/* Step 1: Admin Status */}
+                        {permStep === 1 && (
+                            <div className="space-y-4 py-2">
+                                <h4 className="text-sm font-bold text-gray-700">Etapa 1: Definir Status do Usuário</h4>
+                                <p className="text-xs text-gray-500">Defina se este usuário deve possuir nível de acesso de Administrador.</p>
+                                
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                                    <div>
+                                        <span className="text-sm font-bold text-gray-800">Perfil Administrador</span>
+                                        <p className="text-xs text-gray-400 mt-0.5">Permite o acesso ao painel de controle e funções especiais.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPermIsAdmin(!permIsAdmin)}
+                                        className={`w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 ${permIsAdmin ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                    >
+                                        <span className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${permIsAdmin ? 'translate-x-6' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 2: Admin Privileges */}
+                        {permStep === 2 && (
+                            <div className="space-y-3 py-1">
+                                <h4 className="text-sm font-bold text-gray-700">Etapa 2: Distribuir Funcionalidades</h4>
+                                <p className="text-xs text-gray-500">Selecione quais operações administrativas este administrador poderá realizar.</p>
+                                
+                                {!permIsAdmin ? (
+                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-2xl text-xs text-yellow-800">
+                                        ⚠️ O usuário não está configurado como Administrador. Ative o perfil administrador no passo anterior para definir suas permissões.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                        {[
+                                            { label: 'Aprovar Usuários', desc: 'Permite aprovar novas contas pendentes', state: permApproveUsers, setter: setPermApproveUsers },
+                                            { label: 'Gerenciar Faculdades', desc: 'Permite cadastrar/editar/excluir faculdades', state: permManageUnis, setter: setPermManageUnis },
+                                            { label: 'Enviar Notificações', desc: 'Permite disparar notificações em massa', state: permSendNotifications, setter: setPermSendNotifications },
+                                            { label: 'Excluir Usuários', desc: 'Permite deletar estudantes cadastrados', state: permDeleteUsers, setter: setPermDeleteUsers }
+                                        ].map((p, idx) => (
+                                            <div key={idx} className="flex items-start justify-between p-3 bg-gray-50 rounded-xl border border-gray-200 gap-3">
+                                                <div className="min-w-0">
+                                                    <span className="text-xs font-bold text-gray-800">{p.label}</span>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">{p.desc}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => p.setter(!p.state)}
+                                                    className={`w-10 h-5 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 mt-0.5 ${p.state ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span className={`w-4 h-4 rounded-full bg-white shadow transform transition-transform ${p.state ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Step 3: Review & Save */}
+                        {permStep === 3 && (
+                            <div className="space-y-4 py-2 text-left">
+                                <h4 className="text-sm font-bold text-gray-700">Etapa 3: Revisar Permissões</h4>
+                                <p className="text-xs text-gray-500">Confirme a nova configuração de privilégios para este usuário.</p>
+                                
+                                <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-2.5">
+                                    <div className="text-xs">
+                                        <span className="text-gray-400 font-medium">Status de Acesso:</span>
+                                        <span className={`font-bold ml-1.5 ${permIsAdmin ? 'text-purple-600' : 'text-gray-600'}`}>
+                                            {permIsAdmin ? 'ADMINISTRADOR' : 'ESTUDANTE COMUM'}
+                                        </span>
+                                    </div>
+
+                                    {permIsAdmin && (
+                                        <div className="text-xs">
+                                            <span className="text-gray-400 font-medium">Capacidades Ativas:</span>
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {[
+                                                    permApproveUsers && 'Aprovar Contas',
+                                                    permManageUnis && 'Gerenciar Faculdades',
+                                                    permSendNotifications && 'Enviar Notificações',
+                                                    permDeleteUsers && 'Excluir Contas'
+                                                ].filter(Boolean).map((cap: any, cIdx) => (
+                                                    <span key={cIdx} className="bg-purple-100/50 text-purple-700 font-bold px-2 py-0.5 rounded-md text-[10px]">
+                                                        {cap}
+                                                    </span>
+                                                ))}
+                                                {![permApproveUsers, permManageUnis, permSendNotifications, permDeleteUsers].some(Boolean) && (
+                                                    <span className="text-gray-450 italic">Nenhuma funcionalidade atribuída</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Footer buttons */}
+                        <div className="flex gap-3 pt-3 border-t mt-2">
+                            <button
+                                type="button"
+                                onClick={() => permStep > 1 ? setPermStep(permStep - 1) : setShowPermModal(false)}
+                                className="w-1/2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs uppercase tracking-wider transition"
+                                disabled={savingPerm}
+                            >
+                                {permStep > 1 ? 'Voltar' : 'Cancelar'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => permStep < 3 ? setPermStep(permStep + 1) : handleSavePermissions()}
+                                className="w-1/2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
+                                disabled={savingPerm}
+                            >
+                                {savingPerm ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                ) : permStep < 3 ? (
+                                    'Avançar'
+                                ) : (
+                                    'Confirmar'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Admin Support Chat Modal */}
+            {showChatModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md h-[80vh] relative text-left animate-[scaleUp_0.2s_ease-out] flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-4 border-b shrink-0 bg-white">
+                            <div className="flex flex-col text-left">
+                                <h3 className="text-base font-bold text-gray-800">Suporte Oficial</h3>
+                                <span className="text-xs text-gray-500 mt-0.5">Conversando com {activeChatUserName}</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setShowChatModal(false)}
+                                className="p-1.5 hover:bg-gray-150 rounded-full text-gray-400 hover:text-gray-600 transition"
+                            >
+                                <XMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Message Log */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50">
+                            {chatMessages.length === 0 ? (
+                                <p className="text-center text-xs text-gray-400 py-12">Nenhuma mensagem nesta conversa.</p>
+                            ) : (
+                                chatMessages.map((msg) => {
+                                    const isAdminMsg = msg.role === 'admin';
+                                    const timeStr = msg.timestamp
+                                        ? new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                                        : '';
+                                    return (
+                                        <div key={msg.id} className={`flex ${isAdminMsg ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[80%] rounded-2xl p-3 shadow-sm text-sm text-left relative flex flex-col gap-1 ${isAdminMsg ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border border-gray-200 rounded-tl-none'}`}>
+                                                <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                                                <span className={`text-[9px] self-end mt-0.5 ${isAdminMsg ? 'text-blue-200' : 'text-gray-400'}`}>{timeStr}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                            <div ref={chatEndRef} />
+                        </div>
+
+                        {/* Input form */}
+                        <form 
+                            onSubmit={handleSendAdminChatMessage} 
+                            className="p-3 border-t bg-white shrink-0 flex gap-2 items-center"
+                        >
+                            <input
+                                type="text"
+                                placeholder="Digite sua resposta..."
+                                value={adminChatInput}
+                                onChange={(e) => setAdminChatInput(e.target.value)}
+                                className="flex-1 p-3 border border-gray-300 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={sendingChatMessage}
+                                required
+                            />
+                            <button
+                                type="submit"
+                                className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center shadow-md shrink-0 w-11 h-11"
+                                disabled={sendingChatMessage || !adminChatInput.trim()}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             )}
             <style>{`
