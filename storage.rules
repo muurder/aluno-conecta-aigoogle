@@ -1,8 +1,31 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+
+    // Fotos de perfil (Mantido original)
+    match /profile-photos/{userId}/{allPaths=**} {
+      allow read: if true; // qualquer um pode ver
+      allow write: if request.auth != null && request.auth.uid == userId; // só o dono pode subir
+    }
+
+    // Imagens de posts (Mantido original)
+    match /posts/{imageName} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+                      exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+                      get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Imagens do Bate-papo (Qualquer usuário logado pode enviar, qualquer um pode ver)
+    match /chat-photos/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Logotipos das Universidades (Qualquer usuário logado pode enviar, qualquer um pode ver)
+    match /university-logos/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }
