@@ -124,7 +124,7 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
 
 
 const EditProfile: React.FC = () => {
-    const { user, updateUser, changePassword } = useAuth();
+    const { user, updateUser, changePassword, universities, universityDetails } = useAuth();
     const { themesRegistry, setCurrentThemeById, resetToDefaultTheme } = useTheme();
     // FIX: Use useNavigate() for navigation in react-router-dom v6.
     const navigate = useNavigate();
@@ -162,9 +162,9 @@ const EditProfile: React.FC = () => {
             const newFormData = { ...prevData, [name]: value };
 
             if (name === 'university') {
-                const university = value as UniversityName;
-                const details = UNIVERSITY_DETAILS[university];
-                newFormData.campus = details.campuses[0]; 
+                const university = value;
+                const details = universityDetails[university] || UNIVERSITY_DETAILS[university as any];
+                newFormData.campus = details?.campuses[0] || ''; 
 
                  // Auto-update theme if source is 'auto' or 'system'
                  if (prevData.themeSource === 'auto' || prevData.themeSource === 'system') {
@@ -381,7 +381,7 @@ const EditProfile: React.FC = () => {
                             <label className={labelClasses}>Faculdade</label>
                             <div className="relative">
                                 <select name="university" value={formData.university} onChange={handleInputChange} className={selectClasses} required>
-                                    {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
+                                    {universities.map(uni => <option key={uni.name} value={uni.name}>{uni.name}</option>)}
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                     <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -403,7 +403,7 @@ const EditProfile: React.FC = () => {
                             <label className={labelClasses}>Campus</label>
                             <div className="relative">
                                 <select name="campus" value={formData.campus} onChange={handleInputChange} className={selectClasses} required>
-                                    {UNIVERSITY_DETAILS[formData.university]?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
+                                    {(universityDetails[formData.university] || UNIVERSITY_DETAILS[formData.university as any])?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
                                     <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>

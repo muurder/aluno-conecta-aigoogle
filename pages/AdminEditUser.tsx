@@ -104,7 +104,7 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
 
 const AdminEditUser: React.FC = () => {
     const { uid } = useParams<{ uid: string }>();
-    const { getAllUsers, updateUser } = useAuth();
+    const { getAllUsers, updateUser, universities, universityDetails } = useAuth();
     const { themesRegistry } = useTheme();
     const navigate = useNavigate();
     
@@ -167,9 +167,9 @@ const AdminEditUser: React.FC = () => {
         let newFormData = { ...formData, [name]: value };
 
         if (name === 'university') {
-            const university = value as UniversityName;
-            const details = UNIVERSITY_DETAILS[university];
-            newFormData.campus = details.campuses[0];
+            const university = value;
+            const details = universityDetails[university] || UNIVERSITY_DETAILS[university as any];
+            newFormData.campus = details?.campuses[0] || '';
         }
         
         setFormData(newFormData);
@@ -333,7 +333,7 @@ const AdminEditUser: React.FC = () => {
                 <div>
                     <label className="text-sm font-medium text-gray-700">Faculdade</label>
                     <select name="university" value={formData.university} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                        {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
+                        {universities.map(uni => <option key={uni.name} value={uni.name}>{uni.name}</option>)}
                     </select>
                 </div>
                 <div>
@@ -345,7 +345,7 @@ const AdminEditUser: React.FC = () => {
                 <div>
                     <label className="text-sm font-medium text-gray-700">Campus</label>
                     <select name="campus" value={formData.campus} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
-                        {UNIVERSITY_DETAILS[formData.university]?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
+                        {(universityDetails[formData.university] || UNIVERSITY_DETAILS[formData.university as any])?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
                     </select>
                 </div>
                 <div>

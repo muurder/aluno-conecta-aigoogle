@@ -13,7 +13,36 @@ const ClassSchedule: React.FC = () => {
 
     const userSchedule = useMemo(() => {
         if (!user) return [];
-        return schedulesData.filter(item => item.disciplina === user.course);
+        const baseSchedule = schedulesData.filter(item => item.disciplina === user.course);
+        
+        // Adjust the schedule dynamically based on the university name to randomize it
+        const universitySeed = user.university ? user.university.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+        
+        return baseSchedule.map((item, idx) => {
+            const seed = universitySeed + idx;
+            const random = (s: number) => {
+                let x = Math.sin(s) * 10000;
+                return x - Math.floor(x);
+            };
+            
+            // Randomize professor, room, and block based on the seed
+            const professors = ["Ana Souza", "Bruno Lima", "Carla Ribeiro", "Daniela Alves", "Eduardo Martins", "Fernanda Costa", "Gustavo Pereira", "Helena Rocha", "Igor Santos", "Juliana Freitas", "Newton Carvalho", "Carolina Dias", "Beatriz Almeida", "Lucas Martins"];
+            const prof = professors[Math.floor(random(seed) * professors.length)];
+            
+            const blocks = ["Bloco A", "Bloco B", "Bloco C", "Bloco D", "Bloco Tec", "Bloco Saúde", "Bloco Design"];
+            const block = blocks[Math.floor(random(seed + 1) * blocks.length)];
+            
+            const roomNum = Math.floor(100 + random(seed + 2) * 400);
+            const room = `${block.split(' ')[1] || 'A'}-${roomNum}`;
+            
+            return {
+                ...item,
+                professor: prof,
+                sala: room,
+                bloco: block,
+                campus: user.campus || item.campus,
+            };
+        });
     }, [user]);
 
     const groupedSchedule = useMemo(() => {

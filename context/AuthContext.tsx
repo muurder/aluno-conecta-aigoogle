@@ -3,6 +3,7 @@ import { auth, db, storage } from '@/firebase';
 import { useTheme } from './ThemeContext';
 import firebase from 'firebase/compat/app';
 import type { User, Post, Comment, Reaction, NotificationType } from '../types';
+import { UNIVERSITY_DETAILS, UNIVERSITY_LOGOS } from '../constants';
 
 type QuerySnapshot = firebase.firestore.QuerySnapshot;
 type Timestamp = firebase.firestore.Timestamp;
@@ -63,6 +64,12 @@ interface AuthContextType {
   toggleReaction: (postId: string, emoji: string) => Promise<void>;
   createNotification: (message: string, type: NotificationType) => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
+  universities: any[];
+  universityDetails: Record<string, { domain: string; campuses: string[] }>;
+  universityLogos: Record<string, string>;
+  addUniversity: (name: string, domain: string, campuses: string[], logoFile?: File, city?: string, state?: string) => Promise<void>;
+  updateUniversity: (oldName: string, name: string, domain: string, campuses: string[], logoFile?: File, logoUrl?: string, city?: string, state?: string) => Promise<void>;
+  deleteUniversity: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,6 +80,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<Error | null>(null);
   const isInitialSnapshot = useRef(true);
   const { setCurrentThemeById, resetToDefaultTheme } = useTheme();
+
+  const [universities, setUniversities] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsub = db.collection('universities').onSnapshot(async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed initial universities from constants
+        const seedPromises = Object.entries(UNIVERSITY_DETAILS).map(async ([name, details]) => {
+          const logo = UNIVERSITY_LOGOS[name as any] || '/logos/default.svg';
+          await db.collection('universities').doc(name).set({
+            name,
+            domain: details.domain,
+            campuses: details.campuses,
+            logo,
+            city: 'São Paulo',
+            state: 'SP',
+          });
+        });
+        await Promise.all(seedPromises);
+      } else {
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setUniversities(list);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const universityDetails = React.useMemo(() => {
+    const details: Record<string, { domain: string; campuses: string[] }> = {};
+    universities.forEach(u => {
+      details[u.name] = {
+        domain: u.domain || 'university.edu.br',
+        campuses: u.campuses || []
+      };
+    });
+    return details;
+  }, [universities]);
+
+  const universityLogos = React.useMemo(() => {
+    const logos: Record<string, string> = {};
+    universities.forEach(u => {
+      logos[u.name] = u.logo || '/logos/default.svg';
+    });
+    return logos;
+  }, [universities]);
+
+  const addUniversity = async (name: string, domain: string, campuses: string[], logoFile?: File, city?: string, state?: string) => {
+    let logoUrl = '/logos/default.svg';
+    if (logoFile) {
+      const compressed = await compressImage(logoFile, { maxWidth: 500, maxHeight: 500, quality: 0.8 });
+      const ref = storage.ref(`university-logos/${name.replace(/\s+/g, '-').toLowerCase()}/logo`);
+      await ref.put(compressed);
+      logoUrl = await ref.getDownloadURL();
+    }
+    await db.collection('universities').doc(name).set({
+      name,
+      domain,
+      campuses,
+      logo: logoUrl,
+      city: city || '',
+      state: state || '',
+    });
+  };
+
+  const updateUniversity = async (oldName: string, name: string, domain: string, campuses: string[], logoFile?: File, logoUrl?: string, city?: string, state?: string) => {
+    let finalLogoUrl = logoUrl || '/logos/default.svg';
+    if (logoFile) {
+      const compressed = await compressImage(logoFile, { maxWidth: 500, maxHeight: 500, quality: 0.8 });
+      const ref = storage.ref(`university-logos/${name.replace(/\s+/g, '-').toLowerCase()}/logo`);
+      await ref.put(compressed);
+      finalLogoUrl = await ref.getDownloadURL();
+    }
+    
+    // If the name changed, we must delete the old document in Firestore and create the new one
+    if (oldName !== name) {
+      await db.collection('universities').doc(oldName).delete();
+    }
+    
+    await db.collection('universities').doc(name).set({
+      name,
+      domain,
+      campuses,
+      logo: finalLogoUrl,
+      city: city || '',
+      state: state || '',
+    });
+  };
+
+  const deleteUniversity = async (name: string) => {
+    await db.collection('universities').doc(name).delete();
+  };
 
   const ensureProfileExists = async (authUser: AuthUser) => {
     if (!authUser) return;
@@ -560,6 +658,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toggleReaction,
     createNotification,
     deleteNotification,
+    universities,
+    universityDetails,
+    universityLogos,
+    addUniversity,
+    updateUniversity,
+    deleteUniversity,
   };
   
   return (

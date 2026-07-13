@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import type { User } from '../types';
 import { UNIVERSITY_LOGOS, COURSE_SUBJECTS } from '../constants';
 import { UserCircleIcon, ShieldCheckIcon, AcademicCapIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
+import { useAuth } from '../context/AuthContext';
 
 interface StudentIdCardProps {
   user: Partial<User>;
@@ -49,7 +50,8 @@ const Barcode: React.FC<{ value: string; color?: string }> = ({ value, color = '
 };
 
 const StudentIdCard = forwardRef<HTMLDivElement, StudentIdCardProps>(({ user, side = 'both' }, ref) => {
-  const logo = user.university ? UNIVERSITY_LOGOS[user.university] : "";
+  const { universityLogos } = useAuth();
+  const logo = user.university ? (universityLogos[user.university] || UNIVERSITY_LOGOS[user.university as any]) : "";
   const isNewStyle = user.cardStyle === 'new';
 
   const formatBirthDate = (dateStr?: string) => {

@@ -424,11 +424,11 @@ const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode; i
 
 
 type FilterStatus = 'all' | 'pending' | 'approved';
-type SectionName = 'overview' | 'adminFunctions' | 'history' | 'userManagement';
+type SectionName = 'overview' | 'adminFunctions' | 'history' | 'userManagement' | 'universityManagement';
 
 const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { getAllUsers, deleteUser, updateUser, createNotification, deleteNotification } = useAuth();
+    const { getAllUsers, deleteUser, updateUser, createNotification, deleteNotification, universities, addUniversity, updateUniversity, deleteUniversity } = useAuth();
     const { notifications: allNotifications } = useNotifications();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -442,6 +442,92 @@ const AdminDashboard: React.FC = () => {
     
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
     const [apkVisibility, setApkVisibility] = useState<'all' | 'android' | 'ios' | 'none'>('all');
+
+    // University Management States
+    const [showUniModal, setShowUniModal] = useState(false);
+    const [uniModalMode, setUniModalMode] = useState<'add' | 'edit'>('add');
+    const [editingUniName, setEditingUniName] = useState('');
+    const [uniName, setUniName] = useState('');
+    const [uniDomain, setUniDomain] = useState('');
+    const [uniCity, setUniCity] = useState('');
+    const [uniState, setUniState] = useState('');
+    const [uniCampuses, setUniCampuses] = useState('');
+    const [uniLogoFile, setUniLogoFile] = useState<File | null>(null);
+    const [uniLogoUrl, setUniLogoUrl] = useState('');
+    const [savingUni, setSavingUni] = useState(false);
+    const [uniError, setUniError] = useState('');
+
+    const handleSaveUniversity = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!uniName.trim() || !uniDomain.trim()) {
+            setUniError('Nome e Domínio de e-mail são obrigatórios.');
+            return;
+        }
+
+        const campusList = uniCampuses.split(',').map(c => c.trim()).filter(c => c.length > 0);
+        if (campusList.length === 0) {
+            setUniError('A universidade precisa ter pelo menos um campus cadastrado.');
+            return;
+        }
+
+        setSavingUni(true);
+        setUniError('');
+        try {
+            if (uniModalMode === 'add') {
+                await addUniversity(uniName.trim(), uniDomain.trim(), campusList, uniLogoFile || undefined, uniCity.trim(), uniState.trim());
+                setToast({ show: true, message: 'Faculdade cadastrada com sucesso!', type: 'success' });
+            } else {
+                await updateUniversity(editingUniName, uniName.trim(), uniDomain.trim(), campusList, uniLogoFile || undefined, uniLogoUrl, uniCity.trim(), uniState.trim());
+                setToast({ show: true, message: 'Faculdade atualizada com sucesso!', type: 'success' });
+            }
+            setShowUniModal(false);
+        } catch (err: any) {
+            console.error(err);
+            setUniError('Falha ao salvar faculdade. Tente novamente.');
+        } finally {
+            setSavingUni(false);
+        }
+    };
+
+    const handleDeleteUniversity = async (name: string) => {
+        if (window.confirm(`Tem certeza que deseja excluir a faculdade "${name}"?`)) {
+            try {
+                await deleteUniversity(name);
+                setToast({ show: true, message: 'Faculdade excluída com sucesso!', type: 'success' });
+            } catch (err) {
+                console.error(err);
+                setToast({ show: true, message: 'Falha ao excluir faculdade.', type: 'error' });
+            }
+        }
+    };
+
+    const handleEditUniversity = (uni: any) => {
+        setUniModalMode('edit');
+        setEditingUniName(uni.name);
+        setUniName(uni.name);
+        setUniDomain(uni.domain || '');
+        setUniCity(uni.city || '');
+        setUniState(uni.state || '');
+        setUniCampuses(uni.campuses ? uni.campuses.join(', ') : '');
+        setUniLogoUrl(uni.logo || '');
+        setUniLogoFile(null);
+        setUniError('');
+        setShowUniModal(true);
+    };
+
+    const handleAddUniversityClick = () => {
+        setUniModalMode('add');
+        setEditingUniName('');
+        setUniName('');
+        setUniDomain('');
+        setUniCity('');
+        setUniState('');
+        setUniCampuses('');
+        setUniLogoUrl('');
+        setUniLogoFile(null);
+        setUniError('');
+        setShowUniModal(true);
+    };
 
     useEffect(() => {
         const unsub = db.collection('configs').doc('app').onSnapshot(doc => {
@@ -478,7 +564,11 @@ const AdminDashboard: React.FC = () => {
         try {
             const saved = localStorage.getItem('admin_dashboard_collapsed');
             if (saved) {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.universityManagement === undefined) {
+                    parsed.universityManagement = true;
+                }
+                return parsed;
             }
         } catch (e) {
             console.warn("Could not load collapsed sections state from localStorage", e);
@@ -487,7 +577,8 @@ const AdminDashboard: React.FC = () => {
             overview: true,
             adminFunctions: true,
             history: true,
-            userManagement: true
+            userManagement: true,
+            universityManagement: true
         };
     });
     const [modalData, setModalData] = useState<{ isOpen: boolean; title: string; filterType: FilterStatus | 'total' }>({
@@ -713,6 +804,63 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             )}
                         </CollapsibleSection>
+
+                        <CollapsibleSection title="Gerenciamento de Universidades" isOpen={collapsedSections.universityManagement} onToggle={() => toggleSection('universityManagement')}>
+                            <div className="flex justify-between items-center mb-4 text-left">
+                                <span className="text-xs text-gray-500 font-semibold">Total: {universities.length} cadastradas</span>
+                                <button 
+                                    onClick={handleAddUniversityClick}
+                                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition uppercase tracking-wider"
+                                >
+                                    + Nova Faculdade
+                                </button>
+                            </div>
+
+                            <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
+                                {universities.map((uni) => (
+                                    <div key={uni.id} className="flex flex-col p-4 bg-gray-50 rounded-2xl border border-gray-200 gap-3 relative hover:shadow-sm transition-all duration-200">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl p-1 flex items-center justify-center shrink-0">
+                                                <img src={uni.logo || '/logos/default.svg'} alt={uni.name} className="max-h-full max-w-full object-contain" />
+                                            </div>
+                                            <div className="flex-1 text-left min-w-0">
+                                                <h4 className="font-bold text-sm text-gray-800 truncate">{uni.name}</h4>
+                                                <div className="text-xs text-gray-500 truncate flex items-center gap-1.5 mt-0.5">
+                                                    <span>📧 {uni.domain}</span>
+                                                    {uni.city && <span>• 📍 {uni.city} - {uni.state}</span>}
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button 
+                                                    onClick={() => handleEditUniversity(uni)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                                    title="Editar dados"
+                                                >
+                                                    <PencilIcon className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteUniversity(uni.name)}
+                                                    className="p-1.5 text-red-650 hover:bg-red-50 rounded-lg transition"
+                                                    title="Excluir faculdade"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {uni.campuses && uni.campuses.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-200 text-left">
+                                                {uni.campuses.map((campus: string, cIdx: number) => (
+                                                    <span key={cIdx} className="bg-white border border-gray-300 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                                                        {campus}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </CollapsibleSection>
                     </div>
                 </div>
 
@@ -755,6 +903,150 @@ const AdminDashboard: React.FC = () => {
                 </div>
             </main>
             <BottomNav />
+
+            {/* Add / Edit University Modal */}
+            {showUniModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+                    <form 
+                        onSubmit={handleSaveUniversity}
+                        className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-md relative text-left animate-[scaleUp_0.2s_ease-out] flex flex-col gap-4 max-h-[90vh] overflow-y-auto"
+                    >
+                        <div className="flex justify-between items-center pb-2 border-b">
+                            <h3 className="text-lg font-bold text-gray-800">
+                                {uniModalMode === 'add' ? 'Cadastrar Faculdade' : 'Editar Faculdade'}
+                            </h3>
+                            <button 
+                                type="button" 
+                                onClick={() => setShowUniModal(false)}
+                                className="p-1.5 hover:bg-gray-150 rounded-full text-gray-400 hover:text-gray-600 transition"
+                            >
+                                <XMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {uniError && (
+                            <div className="text-xs font-semibold text-red-650 bg-red-50 p-3 rounded-lg border border-red-100">
+                                {uniError}
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nome da Faculdade</label>
+                                <input
+                                    type="text"
+                                    value={uniName}
+                                    onChange={(e) => setUniName(e.target.value)}
+                                    placeholder="Ex: Universidade de São Paulo"
+                                    className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-800"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Domínio de E-mail Institucional</label>
+                                <input
+                                    type="text"
+                                    value={uniDomain}
+                                    onChange={(e) => setUniDomain(e.target.value)}
+                                    placeholder="Ex: mail.usp.br"
+                                    className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-800"
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Cidade (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={uniCity}
+                                        onChange={(e) => setUniCity(e.target.value)}
+                                        placeholder="Ex: São Paulo"
+                                        className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-800"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Estado (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={uniState}
+                                        onChange={(e) => setUniState(e.target.value)}
+                                        placeholder="Ex: SP"
+                                        maxLength={2}
+                                        className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-800"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Campuses (separados por vírgula)</label>
+                                <textarea
+                                    value={uniCampuses}
+                                    onChange={(e) => setUniCampuses(e.target.value)}
+                                    placeholder="Ex: Mooca, Paulista, Butantã"
+                                    rows={2}
+                                    className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-800 resize-none"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Logotipo da Faculdade</label>
+                                <div className="flex items-center gap-4 mt-1">
+                                    {(uniLogoFile || uniLogoUrl) ? (
+                                        <img 
+                                            src={uniLogoFile ? URL.createObjectURL(uniLogoFile) : uniLogoUrl} 
+                                            alt="Preview" 
+                                            className="w-14 h-14 object-contain bg-gray-50 border p-1 rounded-lg shrink-0" 
+                                        />
+                                    ) : (
+                                        <div className="w-14 h-14 bg-gray-100 border border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 font-bold shrink-0">Logo</div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => e.target.files?.[0] && setUniLogoFile(e.target.files[0])}
+                                        className="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-3 border-t mt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowUniModal(false)}
+                                className="w-1/2 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs uppercase tracking-wider transition"
+                                disabled={savingUni}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                className="w-1/2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-2"
+                                disabled={savingUni}
+                            >
+                                {savingUni ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                ) : (
+                                    'Salvar'
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleUp {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `}</style>
         </div>
     );
 };

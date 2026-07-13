@@ -18,6 +18,7 @@ const Register: React.FC = () => {
     const navigate = useNavigate();
     const auth = useAuth();
     const { themesRegistry, setCurrentThemeById } = useTheme();
+    const { universities, universityDetails, universityLogos } = auth;
 
     const [formData, setFormData] = useState<FormData>({
         status: 'pending' as const,
@@ -111,11 +112,11 @@ const Register: React.FC = () => {
             }
 
             if (name === 'university') {
-                const university = value as UniversityName | '';
+                const university = value;
                 if (university) {
-                    setSelectedLogo(UNIVERSITY_LOGOS[university]);
-                    const details = UNIVERSITY_DETAILS[university];
-                    newFormData.campus = details.campuses[0];
+                    setSelectedLogo(universityLogos[university] || UNIVERSITY_LOGOS[university as any]);
+                    const details = universityDetails[university] || UNIVERSITY_DETAILS[university as any];
+                    newFormData.campus = details?.campuses[0] || '';
                 } else {
                     setSelectedLogo(null);
                     newFormData.campus = '';
@@ -128,9 +129,9 @@ const Register: React.FC = () => {
     
     let institutionalEmail = '';
     if (formData.institutionalLogin && formData.university) {
-        const university = formData.university as UniversityName;
-        const details = UNIVERSITY_DETAILS[university];
-        if (formData.institutionalLogin) {
+        const university = formData.university;
+        const details = universityDetails[university] || UNIVERSITY_DETAILS[university as any];
+        if (formData.institutionalLogin && details) {
             institutionalEmail = `${formData.institutionalLogin}@${details.domain}`;
         }
     }
@@ -330,7 +331,7 @@ const Register: React.FC = () => {
                                 <label className="text-sm font-medium text-gray-700">Faculdade</label>
                                 <select name="university" value={formData.university} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required>
                                     <option value="">Selecione</option>
-                                    {universityNames.map(uni => <option key={uni} value={uni}>{uni}</option>)}
+                                    {universities.map(uni => <option key={uni.name} value={uni.name}>{uni.name}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -351,7 +352,7 @@ const Register: React.FC = () => {
                         <div>
                             <label className="text-sm font-medium text-gray-700">Campus</label>
                             <select name="campus" value={formData.campus || ''} onChange={handleInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-lg" required disabled={!formData.university}>
-                                {formData.university && UNIVERSITY_DETAILS[formData.university as UniversityName].campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
+                                {formData.university && (universityDetails[formData.university] || UNIVERSITY_DETAILS[formData.university as any])?.campuses.map(campus => <option key={campus} value={campus}>{campus}</option>)}
                             </select>
                         </div>
                         

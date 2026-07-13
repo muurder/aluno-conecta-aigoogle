@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, CheckCircleIcon, ClockIcon, ExclamationCircleIcon, DocumentDuplicateIcon } from '@heroicons/react/24/solid';
+import { useAuth } from '../context/AuthContext';
 
 // --- Data Generation ---
 // This section simulates fetching financial data.
@@ -25,9 +26,11 @@ const seededRandom = (seed: number) => {
 };
 
 // Generate financial data based on the current date
-const generateFinancialData = (): Boleto[] => {
+const generateFinancialData = (user: any): Boleto[] => {
   const today = new Date();
-  const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const universitySeed = user?.university ? user.university.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) : 123;
+  const userSeed = user?.rgm ? user.rgm.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) : 456;
+  const daySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate() + universitySeed + userSeed;
   const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const data: Boleto[] = [];
 
@@ -46,7 +49,8 @@ const generateFinancialData = (): Boleto[] => {
       status = 'Pago';
     }
 
-    const amount = (750 + randomFactor * 100).toFixed(2).replace('.', ',');
+    // Vary dynamic tuition based on university/user seed (between 600 and 1200)
+    const amount = (600 + randomFactor * 600).toFixed(2).replace('.', ',');
 
     data.push({
       id: `boleto-${year}-${month}`,
@@ -59,9 +63,6 @@ const generateFinancialData = (): Boleto[] => {
   }
   return data.reverse(); // Show oldest first
 };
-
-const financialData = generateFinancialData();
-const currentBoleto = financialData.find(b => b.year === new Date().getFullYear() && b.month === new Date().toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase())) || financialData[financialData.length - 1];
 
 // --- Components ---
 
@@ -117,6 +118,19 @@ const HistoryItem: React.FC<{ boleto: Boleto }> = ({ boleto }) => (
 
 const Financial: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const financialData = React.useMemo(() => {
+        return generateFinancialData(user);
+    }, [user]);
+
+    const currentBoleto = React.useMemo(() => {
+        const today = new Date();
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const curMonth = months[today.getMonth()];
+        const curYear = today.getFullYear();
+        return financialData.find(b => b.year === curYear && b.month === curMonth) || financialData[financialData.length - 1];
+    }, [financialData]);
 
     return (
         <div className="flex flex-col bg-[var(--background)] min-h-[100dvh]">
