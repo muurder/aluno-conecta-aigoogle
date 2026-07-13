@@ -473,9 +473,22 @@ const AdminDashboard: React.FC = () => {
         }
     };
     
-    // State for new features
-    const [collapsedSections, setCollapsedSections] = useState({
-        overview: true, adminFunctions: true, history: true, userManagement: true
+    // State for collapsed sections, initialized from localStorage if available
+    const [collapsedSections, setCollapsedSections] = useState(() => {
+        try {
+            const saved = localStorage.getItem('admin_dashboard_collapsed');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch (e) {
+            console.warn("Could not load collapsed sections state from localStorage", e);
+        }
+        return {
+            overview: true,
+            adminFunctions: true,
+            history: true,
+            userManagement: true
+        };
     });
     const [modalData, setModalData] = useState<{ isOpen: boolean; title: string; filterType: FilterStatus | 'total' }>({
         isOpen: false, title: '', filterType: 'total'
@@ -579,7 +592,15 @@ const AdminDashboard: React.FC = () => {
     };
     
     const toggleSection = (section: SectionName) => {
-        setCollapsedSections(prev => ({...prev, [section]: !prev[section]}));
+        setCollapsedSections(prev => {
+            const updated = { ...prev, [section]: !prev[section] };
+            try {
+                localStorage.setItem('admin_dashboard_collapsed', JSON.stringify(updated));
+            } catch (e) {
+                console.warn("Could not save collapsed sections state to localStorage", e);
+            }
+            return updated;
+        });
     };
     
     const handleCardClick = (filterType: FilterStatus | 'total', title: string) => {

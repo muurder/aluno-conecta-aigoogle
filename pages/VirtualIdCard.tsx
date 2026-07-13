@@ -421,7 +421,29 @@ const VirtualIdCard: React.FC = () => {
       pdf.setTextColor(160, 160, 160);
       pdf.text("Portal do Aluno Conecta © Todos os direitos reservados.", pageWidth / 2, 285, { align: 'center' });
       
-      pdf.save(`carteirinha-${user.fullName?.toLowerCase().replace(/\s+/g, '-') || 'estudante'}.pdf`);
+      const fileName = `carteirinha-${user.fullName?.toLowerCase().replace(/\s+/g, '-') || 'estudante'}.pdf`;
+      const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+
+      if (isCapacitor && navigator.share && navigator.canShare) {
+        try {
+          const pdfBlob = pdf.output('blob');
+          const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'Carteirinha Virtual',
+              text: 'Aqui está sua carteirinha virtual do Aluno Conecta em PDF.'
+            });
+          } else {
+            pdf.save(fileName);
+          }
+        } catch (shareErr) {
+          console.warn("Share API failed, falling back to direct save:", shareErr);
+          pdf.save(fileName);
+        }
+      } else {
+        pdf.save(fileName);
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
     } finally {
